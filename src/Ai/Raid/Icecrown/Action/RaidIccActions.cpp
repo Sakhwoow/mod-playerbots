@@ -6118,16 +6118,15 @@ void IccSindragosaFrostBeaconAction::HandleSupportActions()
 
 bool IccSindragosaFrostBeaconAction::HandleBeaconedPlayer(const Unit* boss)
 {
-    // Phase 3 positioning (below 35% health, not flying)
+    // Phase 3 (below 35% health, boss on ground): same tomb assignment as P1/P2,
+    // but add a speed boost so bots reach their spots quickly.
     if (boss->HealthBelowPct(35) && !IsBossFlying(boss))
     {
         if (!bot->HasAura(SPELL_NITRO_BOOSTS))
             bot->AddAura(SPELL_NITRO_BOOSTS, bot);
-        botAI->Reset();
-        return MoveToPositionIfNeeded(ICC_SINDRAGOSA_THOMBMB2_POSITION, POSITION_TOLERANCE);
     }
 
-    // Regular beacon positioning using tomb spots
+    // Tomb spot assignment — works for all phases including P3
     Group* group = bot->GetGroup();
     if (!group)
     {
