@@ -281,7 +281,8 @@ float IccAddsPutricideMultiplier::GetValue(Action* action)
             return 0.0f;  // Cancel all other actions when we need to handle Unbound Plague
     }
 
-    if (dynamic_cast<IccPutricideVolatileOozeAction*>(action))
+    Unit* volatileOoze = AI_VALUE2(Unit*, "find target", "volatile ooze");
+    if (volatileOoze && volatileOoze->IsAlive())
     {
         if (dynamic_cast<IccPutricideAvoidMalleableGooAction*>(action))
             return 0.0f;
