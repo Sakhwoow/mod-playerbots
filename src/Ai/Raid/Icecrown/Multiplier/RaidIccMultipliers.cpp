@@ -393,12 +393,15 @@ float IccBpcAssistMultiplier::GetValue(Action* action)
 
     if (bombFound && !(aura && aura->GetStackAmount() > 12) && !botAI->IsTank(bot))
     {
-        // If kinetic bomb action is active, disable these actions
+        // Kinetic bomb has highest priority for ranged DPS
         if (dynamic_cast<IccBpcKineticBombAction*>(action))
             return 1.0f;
 
-        if (dynamic_cast<DpsAssistAction*>(action) || dynamic_cast<TankAssistAction*>(action) ||
-            dynamic_cast<AttackRtiTargetAction*>(action))
+        // Allow attacking the skull-marked empowered prince even during bomb
+        if (dynamic_cast<AttackRtiTargetAction*>(action))
+            return 1.0f;
+
+        if (dynamic_cast<DpsAssistAction*>(action) || dynamic_cast<TankAssistAction*>(action))
             return 0.0f;
     }
 
@@ -409,10 +412,13 @@ float IccBpcAssistMultiplier::GetValue(Action* action)
         if (dynamic_cast<IccBpcKelesethTankAction*>(action))
             return 1.0f;
 
+        // Allow attacking the skull-marked empowered prince
+        if (dynamic_cast<AttackRtiTargetAction*>(action))
+            return 1.0f;
+
         // Disable normal assist behavior
         if (dynamic_cast<TankAssistAction*>(action) ||
             dynamic_cast<FleeAction*>(action) ||
-            dynamic_cast<AttackRtiTargetAction*>(action) ||
             dynamic_cast<CastConsecrationAction*>(action))
             return 0.0f;
 
