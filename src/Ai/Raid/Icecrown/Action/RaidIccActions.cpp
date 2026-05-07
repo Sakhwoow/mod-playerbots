@@ -1998,10 +1998,10 @@ bool IccRotfaceGroupPositionAction::PositionRangedAndHealers(Unit* boss,Unit *sm
     if (!isHeroic)
         return false;
 
-    return FindAndMoveFromClosestMember(boss, smallOoze);
+    return FindAndMoveFromClosestMember(smallOoze);
 }
 
-bool IccRotfaceGroupPositionAction::FindAndMoveFromClosestMember(Unit* boss, Unit* smallOoze)
+bool IccRotfaceGroupPositionAction::FindAndMoveFromClosestMember(Unit* smallOoze)
 {
 
     const GuidVector npcs = AI_VALUE(GuidVector, "nearest hostile npcs");
@@ -6924,7 +6924,7 @@ bool IccLichKingWinterAction::Execute(Event /*event*/)
         isVictim = true;
 
     // First priority: Get out of Defile if we're in one
-    if (!IsPositionSafeFromDefile(bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(), 3.0f))
+    if (!IsPositionSafeFromDefile(bot->GetPositionX(), bot->GetPositionY(), 3.0f))
     {
         // Find nearest safe position (use tank position as fallback)
         const Position* safePos = botAI->IsTank(bot) ? GetMainTankPosition() : GetMainTankRangedPosition();
@@ -7123,7 +7123,7 @@ const Position* IccLichKingWinterAction::GetMainTankRangedPosition()
         return &ICC_LK_FROSTR3_POSITION;
 }
 
-bool IccLichKingWinterAction::IsPositionSafeFromDefile(float x, float y, float z, float minSafeDistance)
+bool IccLichKingWinterAction::IsPositionSafeFromDefile(float x, float y, float minSafeDistance)
 {
     Unit* boss = AI_VALUE2(Unit*, "find target", "the lich king");
     if (!boss)
@@ -7189,7 +7189,7 @@ bool IccLichKingWinterAction::TryMoveToPosition(float targetX, float targetY, fl
     dy /= distance;
 
     // First check if direct path is safe
-    if (bot->IsWithinLOS(targetX, targetY, targetZ) && IsPositionSafeFromDefile(targetX, targetY, targetZ, 3.0f))
+    if (bot->IsWithinLOS(targetX, targetY, targetZ) && IsPositionSafeFromDefile(targetX, targetY, 3.0f))
     {
         if (isForced)
             botAI->Reset();
@@ -7220,7 +7220,7 @@ bool IccLichKingWinterAction::TryMoveToPosition(float targetX, float targetY, fl
             float testY = currentY + dy * attemptDistance + offsetY * direction;
             float testZ = targetZ;
 
-            if (bot->IsWithinLOS(testX, testY, testZ) && IsPositionSafeFromDefile(testX, testY, testZ, 3.0f))
+            if (bot->IsWithinLOS(testX, testY, testZ) && IsPositionSafeFromDefile(testX, testY, 3.0f))
             {
                 if (isForced)
                     botAI->Reset();
@@ -7270,7 +7270,7 @@ void IccLichKingWinterAction::HandleTankPositioning()
     const Position* targetPos = GetMainTankPosition();
 
     // First check if current position is safe
-    if (!IsPositionSafeFromDefile(bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(), 3.0f))
+    if (!IsPositionSafeFromDefile(bot->GetPositionX(), bot->GetPositionY(), 3.0f))
     {
         // If in defile, prioritize getting out
         TryMoveToPosition(targetPos->GetPositionX(), targetPos->GetPositionY(), 840.857f, true);
@@ -7294,7 +7294,7 @@ void IccLichKingWinterAction::HandleTankPositioning()
         }
 
         // Once in position, handle add management from tank position
-        HandleMainTankAddManagement(boss, targetPos);
+        HandleMainTankAddManagement(targetPos);
     }
     // ASSIST TANK: More flexible positioning based on add collection
     else if (botAI->IsAssistTank(bot))
@@ -7311,7 +7311,7 @@ void IccLichKingWinterAction::HandleTankPositioning()
         }
 
         // Handle assist tank add collection and positioning
-        HandleAssistTankAddManagement(boss, targetPos);
+        HandleAssistTankAddManagement(targetPos);
     }
 }
 
@@ -7404,7 +7404,7 @@ void IccLichKingWinterAction::HandleRangedPositioning()
     const Position* targetPos = GetMainTankRangedPosition();
 
     // First check if current position is safe
-    if (!IsPositionSafeFromDefile(bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(), 3.0f))
+    if (!IsPositionSafeFromDefile(bot->GetPositionX(), bot->GetPositionY(), 3.0f))
     {
         // If in defile, prioritize getting out
         TryMoveToPosition(targetPos->GetPositionX(), targetPos->GetPositionY(), 840.857f, true);
@@ -7483,7 +7483,7 @@ void IccLichKingWinterAction::HandleRangedPositioning()
     }
 }
 
-void IccLichKingWinterAction::HandleMainTankAddManagement(Unit* boss, const Position* tankPos)
+void IccLichKingWinterAction::HandleMainTankAddManagement(const Position* tankPos)
 {
     if (!botAI->IsMainTank(bot))
         return;
@@ -7606,7 +7606,7 @@ void IccLichKingWinterAction::HandleMainTankAddManagement(Unit* boss, const Posi
     }
 }
 
-void IccLichKingWinterAction::HandleAssistTankAddManagement(Unit* boss, const Position* tankPos)
+void IccLichKingWinterAction::HandleAssistTankAddManagement(const Position* tankPos)
 {
     if (!botAI->IsAssistTank(bot))
         return;
@@ -7811,7 +7811,7 @@ bool IccLichKingAddsAction::Execute(Event /*event*/)
         return true;
 
     // Handle shambling horror interactions
-    HandleShamblingHorrors(boss, hasPlague);
+    HandleShamblingHorrors();
 
     // Handle assist tank add management
     if (HandleAssistTankAddManagement(boss, diff))
@@ -8250,7 +8250,7 @@ bool IccLichKingAddsAction::HandleQuakeMechanics(Unit* boss)
     return false;
 }
 
-void IccLichKingAddsAction::HandleShamblingHorrors(Unit* boss, bool hasPlague)
+void IccLichKingAddsAction::HandleShamblingHorrors()
 {
     // Find closest shambling horror
     GuidVector npcs2 = AI_VALUE(GuidVector, "nearest hostile npcs");
