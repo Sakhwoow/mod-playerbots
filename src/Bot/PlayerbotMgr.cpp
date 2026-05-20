@@ -640,6 +640,8 @@ void PlayerbotHolder::OnBotLogin(Player* const bot)
             switch (channel->ChannelID)
             {
                 case ChatChannelId::GENERAL:
+                    // Bots don't join General channel to avoid join/leave spam for players
+                    break;
                 case ChatChannelId::LOCAL_DEFENSE:
                 {
                     char new_channel_name_buf[100];
