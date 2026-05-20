@@ -4824,11 +4824,13 @@ bool IccSisterSvalnaAction::Execute(Event /*event*/)
         return false;
 
     // Don't throw the spear while Ymirjar trash is still alive
-    if (bot->FindNearestCreature(NPC_YMIRJAR_BATTLE_MAIDEN, 100.0f) ||
-        bot->FindNearestCreature(NPC_YMIRJAR_DEATHBRINGER, 100.0f) ||
-        bot->FindNearestCreature(NPC_YMIRJAR_FROSTBINDER, 100.0f) ||
-        bot->FindNearestCreature(NPC_YMIRJAR_HUNTRESS, 100.0f) ||
-        bot->FindNearestCreature(NPC_YMIRJAR_WARLORD, 100.0f))
+    // 37132 = Ymirjar Battle-Maiden, 38125 = Ymirjar Deathbringer, 37127 = Ymirjar Frostbinder
+    // 37134 = Ymirjar Huntress, 37133 = Ymirjar Warlord
+    if (bot->FindNearestCreature(37132, 100.0f) ||
+        bot->FindNearestCreature(38125, 100.0f) ||
+        bot->FindNearestCreature(37127, 100.0f) ||
+        bot->FindNearestCreature(37134, 100.0f) ||
+        bot->FindNearestCreature(37133, 100.0f))
         return false;
 
     // Check if bot has the spear item
