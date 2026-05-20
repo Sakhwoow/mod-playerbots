@@ -4823,6 +4823,14 @@ bool IccSisterSvalnaAction::Execute(Event /*event*/)
     if (!svalna || !svalna->HasAura(SPELL_AETHER_SHIELD)) // Check for Aether Shield aura
         return false;
 
+    // Don't throw the spear while Ymirjar trash is still alive
+    if (bot->FindNearestCreature(NPC_YMIRJAR_BATTLE_MAIDEN, 100.0f) ||
+        bot->FindNearestCreature(NPC_YMIRJAR_DEATHBRINGER, 100.0f) ||
+        bot->FindNearestCreature(NPC_YMIRJAR_FROSTBINDER, 100.0f) ||
+        bot->FindNearestCreature(NPC_YMIRJAR_HUNTRESS, 100.0f) ||
+        bot->FindNearestCreature(NPC_YMIRJAR_WARLORD, 100.0f))
+        return false;
+
     // Check if bot has the spear item
     if (!botAI->HasItemInInventory(ITEM_SPEAR))
         return false;
