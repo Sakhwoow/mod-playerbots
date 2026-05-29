@@ -27,6 +27,7 @@
 #include "PlayerbotFactory.h"
 #include "PlayerbotOperations.h"
 #include "PlayerbotSecurity.h"
+#include "PlayerbotTextMgr.h"
 #include "PlayerbotWorldThreadProcessor.h"
 #include "Playerbots.h"
 #include "PlayerbotGuildMgr.h"
@@ -320,7 +321,8 @@ void PlayerbotMgr::CancelLogout()
         {
             WorldPackets::Character::LogoutCancel data = WorldPacket(CMSG_LOGOUT_CANCEL);
             bot->GetSession()->HandleLogoutCancelOpcode(data);
-            botAI->TellMaster("Logout cancelled!");
+            botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
+                "logout_cancel", "Logout cancelled!", {}));
         }
     }
 
@@ -411,7 +413,8 @@ void PlayerbotHolder::DisablePlayerBot(ObjectGuid guid)
         {
             return;
         }
-        botAI->TellMaster("Goodbye!");
+        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
+            "goodbye", "Goodbye!", {}));
         bot->StopMoving();
         bot->GetMotionMaster()->Clear();
 
@@ -544,7 +547,8 @@ void PlayerbotHolder::OnBotLogin(Player* const bot)
     // set delay on login
     botAI->SetNextCheckDelay(urand(2000, 4000));
 
-    botAI->TellMaster("Hello!", PLAYERBOT_SECURITY_TALK);
+    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
+        "hello", "Hello!", {}), PLAYERBOT_SECURITY_TALK);
 
     // Queue group operations for world thread
     if (master && master->GetGroup() && !group)
@@ -921,7 +925,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
 
     if (!strcmp(cmd, "initself"))
     {
-        if (master->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
+        if (master->CanBeGameMaster())
         {
             // OnBotLogin(master);
             PlayerbotFactory factory(master, master->GetLevel(), ITEM_QUALITY_EPIC);
@@ -940,7 +944,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
     {
         if (!strcmp(cmd, "initself=uncommon"))
         {
-            if (master->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
+            if (master->CanBeGameMaster())
             {
                 // OnBotLogin(master);
                 PlayerbotFactory factory(master, master->GetLevel(), ITEM_QUALITY_UNCOMMON);
@@ -956,7 +960,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
         }
         if (!strcmp(cmd, "initself=rare"))
         {
-            if (master->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
+            if (master->CanBeGameMaster())
             {
                 // OnBotLogin(master);
                 PlayerbotFactory factory(master, master->GetLevel(), ITEM_QUALITY_RARE);
@@ -972,7 +976,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
         }
         if (!strcmp(cmd, "initself=epic"))
         {
-            if (master->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
+            if (master->CanBeGameMaster())
             {
                 // OnBotLogin(master);
                 PlayerbotFactory factory(master, master->GetLevel(), ITEM_QUALITY_EPIC);
@@ -988,7 +992,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
         }
         if (!strcmp(cmd, "initself=legendary"))
         {
-            if (master->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
+            if (master->CanBeGameMaster())
             {
                 // OnBotLogin(master);
                 PlayerbotFactory factory(master, master->GetLevel(), ITEM_QUALITY_LEGENDARY);
@@ -1005,7 +1009,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
         int32 gs;
         if (sscanf(cmd, "initself=%d", &gs) != -1)
         {
-            if (master->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
+            if (master->CanBeGameMaster())
             {
                 // OnBotLogin(master);
                 PlayerbotFactory factory(master, master->GetLevel(), ITEM_QUALITY_LEGENDARY, gs);
@@ -1029,7 +1033,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
 
     if (!strcmp(cmd, "reload"))
     {
-        if (master->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
+        if (master->CanBeGameMaster())
         {
             sPlayerbotAIConfig.Initialize();
             messages.push_back("Config reloaded.");
@@ -1061,7 +1065,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
         }
         else if (sPlayerbotAIConfig.selfBotLevel == 0)
             messages.push_back("Self-bot is disabled");
-        else if (sPlayerbotAIConfig.selfBotLevel == 1 && master->GetSession()->GetSecurity() < SEC_GAMEMASTER)
+        else if (sPlayerbotAIConfig.selfBotLevel == 1 && !master->CanBeGameMaster())
             messages.push_back("You do not have permission to enable player botAI");
         else
         {
@@ -1081,7 +1085,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
 
     if (!strcmp(cmd, "addclass"))
     {
-        if (sPlayerbotAIConfig.addClassCommand == 0 && master->GetSession()->GetSecurity() < SEC_GAMEMASTER)
+        if (sPlayerbotAIConfig.addClassCommand == 0 && !master->CanBeGameMaster())
         {
             messages.push_back("You do not have permission to create bot by addclass command");
             return messages;
@@ -1306,7 +1310,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
         else if (master && member != master->GetGUID())
         {
             out << ProcessBotCommand(cmdStr, member, master->GetGUID(),
-                                     master->GetSession()->GetSecurity() >= SEC_GAMEMASTER,
+                                     master->CanBeGameMaster(),
                                      master->GetSession()->GetAccountId(), master->GetGuildId());
         }
         else if (!master)
@@ -1641,7 +1645,7 @@ void PlayerbotMgr::OnPlayerLogin(Player* player)
 
     // For bot texts (DB-driven), prefer the database locale with a safe fallback.
     LocaleConstant usedLocale = databaseLocale;
-    if (usedLocale >= MAX_LOCALES)
+    if (usedLocale >= TOTAL_LOCALES)
         usedLocale = LOCALE_enUS; // fallback
 
     // set locale priority for bot texts
