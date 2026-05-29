@@ -187,6 +187,7 @@ public:
     bool Execute(Event event) override;
 
     bool TeleportTo(const Position& position);
+    bool IsAllyCannonFrozen();
     void CleanupSkullIcon(uint8_t SKULL_ICON_INDEX);
     void UpdateBossSkullIcon(Unit* boss, uint8_t SKULL_ICON_INDEX);
 };
@@ -199,6 +200,7 @@ public:
     bool Execute(Event event) override;
 
     bool TeleportTo(const Position& position);
+    bool IsHordeCannonFrozen();
     void CleanupSkullIcon(uint8_t SKULL_ICON_INDEX);
     void UpdateBossSkullIcon(Unit* boss, uint8_t SKULL_ICON_INDEX);
 };

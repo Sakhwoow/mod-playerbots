@@ -858,31 +858,40 @@ bool IccGunshipTeleportAllyAction::Execute(Event /*event*/)
     static constexpr float MAX_ATTACK_DISTANCE = 15.0f;
     static constexpr uint8_t SKULL_ICON_INDEX = 7;
 
-    // Find the Battle-Mage boss
-    Unit* boss = AI_VALUE2(Unit*, "find target", "kor'kron battle-mage");
-
-    // Check if we need to remove skull icon when boss is dead
     CleanupSkullIcon(SKULL_ICON_INDEX);
 
-    // If no boss found or boss is dead or not casting, check waiting position
-    if (!boss || !boss->IsAlive() || !boss->HasUnitState(UNIT_STATE_CASTING))
+    // Use cannon freeze aura instead of mage cast state:
+    // "find target" loses the mage when bots die and their threat list resets,
+    // causing revived bots to go to waiting position while the mage is still alive.
+    if (!IsAllyCannonFrozen())
     {
-        // If we're too far from waiting position, go there
         if (bot->GetExactDist2d(ICC_GUNSHIP_TELEPORT_ALLY2) > MAX_WAITING_DISTANCE)
             return TeleportTo(ICC_GUNSHIP_TELEPORT_ALLY2);
+        return false;
     }
-    else if (boss->HasUnitState(UNIT_STATE_CASTING) && boss->FindCurrentSpellBySpellId(SPELL_BELOW_ZERO) &&
-             boss->IsAlive())
-    {
-        // Mark the boss with skull icon
-        UpdateBossSkullIcon(boss, SKULL_ICON_INDEX);
 
-        // Teleport non-tank bots to attack position if not already there
-        if (!botAI->IsAssistTank(bot) && bot->GetExactDist2d(ICC_GUNSHIP_TELEPORT_ALLY) > MAX_ATTACK_DISTANCE)
-            return TeleportTo(ICC_GUNSHIP_TELEPORT_ALLY);
+    if (botAI->IsAssistTank(bot))
+        return false;
+
+    if (bot->GetExactDist2d(ICC_GUNSHIP_TELEPORT_ALLY) > MAX_ATTACK_DISTANCE)
+        return TeleportTo(ICC_GUNSHIP_TELEPORT_ALLY);
+
+    // Already at attack position — find and attack the freeze mage directly.
+    // FindNearestCreature works here because the bot is already on the enemy ship.
+    Unit* mage = bot->FindNearestCreature(NPC_KOR_KRON_BATTLE_MAGE, 30.0f);
+    if (mage && mage->IsAlive())
+    {
+        UpdateBossSkullIcon(mage, SKULL_ICON_INDEX);
+        return Attack(mage);
     }
 
     return false;
+}
+
+bool IccGunshipTeleportAllyAction::IsAllyCannonFrozen()
+{
+    Unit* cannon = bot->FindNearestCreature(NPC_CANNONA, 200.0f);
+    return cannon && (cannon->HasAura(69704) || cannon->HasAura(69705));
 }
 
 bool IccGunshipTeleportAllyAction::TeleportTo(const Position& position)
@@ -925,31 +934,35 @@ bool IccGunshipTeleportHordeAction::Execute(Event /*event*/)
     static constexpr float MAX_ATTACK_DISTANCE = 15.0f;
     static constexpr uint8_t SKULL_ICON_INDEX = 7;
 
-    // Find the Sorcerer boss
-    Unit* boss = AI_VALUE2(Unit*, "find target", "skybreaker sorcerer");
-
-    // Check if we need to remove skull icon when boss is dead
     CleanupSkullIcon(SKULL_ICON_INDEX);
 
-    // If no boss found or boss is dead or not casting, check waiting position
-    if (!boss || !boss->IsAlive() || !boss->HasUnitState(UNIT_STATE_CASTING))
+    if (!IsHordeCannonFrozen())
     {
-        // If we're too far from waiting position, go there
         if (bot->GetExactDist2d(ICC_GUNSHIP_TELEPORT_HORDE2) > MAX_WAITING_DISTANCE)
             return TeleportTo(ICC_GUNSHIP_TELEPORT_HORDE2);
+        return false;
     }
-    else if (boss->HasUnitState(UNIT_STATE_CASTING) && boss->FindCurrentSpellBySpellId(SPELL_BELOW_ZERO) &&
-             boss->IsAlive())
-    {
-        // Mark the boss with skull icon
-        UpdateBossSkullIcon(boss, SKULL_ICON_INDEX);
 
-        // Teleport non-tank bots to attack position if not already there
-        if (!botAI->IsAssistTank(bot) && bot->GetExactDist2d(ICC_GUNSHIP_TELEPORT_HORDE) > MAX_ATTACK_DISTANCE)
-            return TeleportTo(ICC_GUNSHIP_TELEPORT_HORDE);
+    if (botAI->IsAssistTank(bot))
+        return false;
+
+    if (bot->GetExactDist2d(ICC_GUNSHIP_TELEPORT_HORDE) > MAX_ATTACK_DISTANCE)
+        return TeleportTo(ICC_GUNSHIP_TELEPORT_HORDE);
+
+    Unit* mage = bot->FindNearestCreature(NPC_SKYBREAKER_SORCERER, 30.0f);
+    if (mage && mage->IsAlive())
+    {
+        UpdateBossSkullIcon(mage, SKULL_ICON_INDEX);
+        return Attack(mage);
     }
 
     return false;
+}
+
+bool IccGunshipTeleportHordeAction::IsHordeCannonFrozen()
+{
+    Unit* cannon = bot->FindNearestCreature(NPC_CANNONH, 200.0f);
+    return cannon && (cannon->HasAura(69704) || cannon->HasAura(69705));
 }
 
 bool IccGunshipTeleportHordeAction::TeleportTo(const Position& position)
@@ -2363,8 +2376,8 @@ bool IccPutricideVolatileOozeAction::Execute(Event /*event*/)
 {
     static const float STACK_DISTANCE = 7.0f;
 
-    Unit* ooze = AI_VALUE2(Unit*, "find target", "volatile ooze");
-    if (!ooze)
+    Unit* ooze = bot->FindNearestCreature(NPC_VOLATILE_OOZE, 200.0f);
+    if (!ooze || !ooze->IsAlive())
         return false;
 
     Unit* boss = AI_VALUE2(Unit*, "find target", "professor putricide");
@@ -2474,8 +2487,8 @@ Unit* IccPutricideVolatileOozeAction::FindAuraTarget()
 
 bool IccPutricideGasCloudAction::Execute(Event /*event*/)
 {
-    Unit* gasCloud = AI_VALUE2(Unit*, "find target", "gas cloud");
-    if (!gasCloud)
+    Unit* gasCloud = bot->FindNearestCreature(NPC_GAS_CLOUD, 200.0f);
+    if (!gasCloud || !gasCloud->IsAlive())
         return false;
 
     Unit* boss = AI_VALUE2(Unit*, "find target", "professor putricide");
@@ -2493,7 +2506,7 @@ bool IccPutricideGasCloudAction::Execute(Event /*event*/)
         return false;
 
     bool hasGaseousBloat = botAI->HasAura("Gaseous Bloat", bot);
-    Unit* volatileOoze = AI_VALUE2(Unit*, "find target", "volatile ooze");
+    Unit* volatileOoze = bot->FindNearestCreature(NPC_VOLATILE_OOZE, 200.0f);
 
     // Find all alive gasCloud
     std::vector<Unit*> aliveGasCloud;
@@ -2796,7 +2809,7 @@ bool IccPutricideGasCloudAction::HandleGroupAuraSituation(Unit* gasCloud)
         return false;
 
     // Mark gas cloud with skull if no volatile ooze is present or alive
-    Unit* volatileOoze = AI_VALUE2(Unit*, "find target", "volatile ooze");
+    Unit* volatileOoze = bot->FindNearestCreature(NPC_VOLATILE_OOZE, 200.0f);
     if ((!volatileOoze || !volatileOoze->IsAlive()) && gasCloud && gasCloud->IsAlive())
     {
         Group* group = bot->GetGroup();
@@ -2892,7 +2905,9 @@ bool IccPutricideAvoidMalleableGooAction::Execute(Event /*event*/)
         return true;
 
     // Skip if volatile ooze or gas cloud exists
-    if (AI_VALUE2(Unit*, "find target", "volatile ooze") || AI_VALUE2(Unit*, "find target", "gas cloud"))
+    Unit* activeOoze = bot->FindNearestCreature(NPC_VOLATILE_OOZE, 200.0f);
+    Unit* activeGasCloud = bot->FindNearestCreature(NPC_GAS_CLOUD, 200.0f);
+    if ((activeOoze && activeOoze->IsAlive()) || (activeGasCloud && activeGasCloud->IsAlive()))
         return false;
 
     // Handle unbound plague movement

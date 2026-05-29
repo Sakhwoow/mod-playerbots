@@ -315,8 +315,11 @@ bool IccPutricideGrowingOozePuddleTrigger::IsActive()
 
 bool IccPutricideVolatileOozeTrigger::IsActive()
 {
-    Unit* boss = AI_VALUE2(Unit*, "find target", "volatile ooze");
-    if (!boss)
+    // "find target" only searches the threat list, which is empty until a bot attacks the ooze.
+    // Volatile ooze moves toward its target without attacking others, so it never enters most
+    // bots' threat lists — use FindNearestCreature so all bots detect it immediately.
+    Unit* ooze = bot->FindNearestCreature(NPC_VOLATILE_OOZE, 200.0f);
+    if (!ooze || !ooze->IsAlive())
         return false;
 
     if (botAI->HasAura("Gaseous Bloat", bot))
@@ -327,18 +330,19 @@ bool IccPutricideVolatileOozeTrigger::IsActive()
 
 bool IccPutricideGasCloudTrigger::IsActive()
 {
-    Unit* boss = AI_VALUE2(Unit*, "find target", "gas cloud");
-    if (!boss)
+    Unit* gasCloud = bot->FindNearestCreature(NPC_GAS_CLOUD, 200.0f);
+    if (!gasCloud || !gasCloud->IsAlive())
         return false;
 
-    Unit* boss1 = AI_VALUE2(Unit*, "find target", "volatile ooze");
+    Unit* volatileOoze = bot->FindNearestCreature(NPC_VOLATILE_OOZE, 200.0f);
+    bool volatileOozeAlive = volatileOoze && volatileOoze->IsAlive();
 
     bool hasGaseousBloat = botAI->HasAura("Gaseous Bloat", bot);
 
-    if (hasGaseousBloat && boss1)
+    if (hasGaseousBloat && volatileOozeAlive)
         return true;
 
-    if (boss1)
+    if (volatileOozeAlive)
         return false;
 
     return true;

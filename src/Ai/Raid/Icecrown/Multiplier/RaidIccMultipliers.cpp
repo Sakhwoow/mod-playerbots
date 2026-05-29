@@ -281,7 +281,7 @@ float IccAddsPutricideMultiplier::GetValue(Action* action)
             return 0.0f;  // Cancel all other actions when we need to handle Unbound Plague
     }
 
-    Unit* volatileOoze = AI_VALUE2(Unit*, "find target", "volatile ooze");
+    Unit* volatileOoze = bot->FindNearestCreature(NPC_VOLATILE_OOZE, 200.0f);
     if (volatileOoze && volatileOoze->IsAlive())
     {
         if (dynamic_cast<IccPutricideAvoidMalleableGooAction*>(action))

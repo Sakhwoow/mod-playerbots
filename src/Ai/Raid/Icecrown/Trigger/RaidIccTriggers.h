@@ -41,6 +41,8 @@ enum CreatureIdsICC
     NPC_BIG_OOZE                        = 36899,
 
     // Putricide
+    NPC_VOLATILE_OOZE                   = 37697,
+    NPC_GAS_CLOUD                       = 37562,
     NPC_MALLEABLE_OOZE_STALKER          = 38556,
     NPC_GROWING_OOZE_PUDDLE             = 37690,
     NPC_CHOKING_GAS_BOMB                = 38159,
