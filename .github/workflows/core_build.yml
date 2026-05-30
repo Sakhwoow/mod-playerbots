@@ -38,7 +38,7 @@ jobs:
       - name: Checkout AzerothCore
         uses: actions/checkout@v3
         with:
-          repository: 'mod-playerbots/azerothcore-wotlk'
+          repository: 'Sakhwoow/azerothcore-wotlk'
           ref: ${{ (github.base_ref || github.ref_name) == 'test-staging' && 'test-staging' || 'Playerbot' }}
 
       - name: Set reusable strings
@@ -46,11 +46,11 @@ jobs:
         shell: bash
         run: |
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-          
+
       - name: Checkout Playerbot Module
         uses: actions/checkout@v3
         with:
-          repository: 'mod-playerbots/mod-playerbots'
+          repository: 'Sakhwoow/mod-playerbots'
           path: 'modules/mod-playerbots'
       
       - name: Cache
