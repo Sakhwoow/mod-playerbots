@@ -734,6 +734,8 @@ bool PlayerbotAIConfig::Initialize()
 
     LOG_INFO("server.loading", "---------------------------------------");
     LOG_INFO("server.loading", "       mod-playerbots initialized      ");
+    LOG_INFO("server.loading", "Bot text locale: {} ({})", botTextLocale,
+        botTextLocale < 0 ? "auto-detect" : botTextLocale == 8 ? "ruRU" : std::to_string(botTextLocale));
     LOG_INFO("server.loading", "---------------------------------------");
 
     return true;
