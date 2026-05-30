@@ -463,6 +463,9 @@ public:
 
     std::vector<uint32> excludedHunterPetFamilies;
 
+    // Forced locale for bot text output (-1 = auto-detect from online players, 0-8 = fixed locale index)
+    int32 botTextLocale;
+
 private:
     PlayerbotAIConfig() = default;
     ~PlayerbotAIConfig() = default;

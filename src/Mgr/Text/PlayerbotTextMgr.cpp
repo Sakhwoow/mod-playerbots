@@ -9,6 +9,7 @@
 #include "QueryResult.h"
 
 #include "PlayerbotTextMgr.h"
+#include "PlayerbotAIConfig.h"
 
 void PlayerbotTextMgr::replaceAll(std::string& str, const std::string& from, const std::string& to)
 {
@@ -203,6 +204,11 @@ void PlayerbotTextMgr::AddLocalePriority(uint32 locale)
 
 uint32 PlayerbotTextMgr::GetLocalePriority()
 {
+    // If a fixed locale is configured, use it directly
+    int32 const configLocale = sPlayerbotAIConfig.botTextLocale;
+    if (configLocale >= 0 && configLocale < TOTAL_LOCALES)
+        return static_cast<uint32>(configLocale);
+
     // if no real players online, reset top locale
     uint32 const activeSessions = sWorldSessionMgr->GetActiveSessionCount();
     if (!activeSessions)

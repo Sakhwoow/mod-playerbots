@@ -875,6 +875,13 @@ AiPlayerbot.PetChatCommandDebug = 0
 # See the creature_family database table for all pet families by ID (note: ID for spiders is 3)
 AiPlayerbot.ExcludedHunterPetFamilies = ""
 
+# Bot text locale override.
+# Forces bots to use a specific language for all chat messages from the ai_playerbot_texts table.
+# Set to -1 to auto-detect from online players (default).
+# Locale index values: 0=enUS, 1=koKR, 2=frFR, 3=deDE, 4=zhCN, 5=zhTW, 6=esES, 7=esMX, 8=ruRU
+# Example for Russian: AiPlayerbot.BotTextLocale = 8
+AiPlayerbot.BotTextLocale = -1
+
 #
 #
 ####################################################################################################
