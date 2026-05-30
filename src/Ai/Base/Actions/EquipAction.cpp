@@ -13,6 +13,7 @@
 #include "Playerbots.h"
 #include "StatsWeightCalculator.h"
 #include "ItemPackets.h"
+#include "PlayerbotTextMgr.h"
 
 bool EquipAction::Execute(Event event)
 {
@@ -112,7 +113,7 @@ void EquipAction::EquipItem(Item* item)
             bot->GetSession()->HandleAutoEquipItemSlotOpcode(nicePacket);
 
             std::ostringstream out;
-            out << "Equipping " << chat->FormatItem(itemProto) << " in ranged slot";
+            out << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_equipping", "Equipping", {}) << " " << chat->FormatItem(itemProto) << " " << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_in_ranged_slot", "in ranged slot", {});
             botAI->TellMaster(out);
             return;
         }
@@ -227,7 +228,7 @@ void EquipAction::EquipItem(Item* item)
                 }
 
                 std::ostringstream out;
-                out << "Equipping " << chat->FormatItem(itemProto) << " in main hand";
+                out << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_equipping", "Equipping", {}) << " " << chat->FormatItem(itemProto) << " " << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_in_main_hand", "in main hand", {});
                 botAI->TellMaster(out);
                 return;
             }
@@ -244,7 +245,7 @@ void EquipAction::EquipItem(Item* item)
                 bot->GetSession()->HandleAutoEquipItemSlotOpcode(nicePacket);
 
                 std::ostringstream out;
-                out << "Equipping " << chat->FormatItem(itemProto) << " in offhand";
+                out << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_equipping", "Equipping", {}) << " " << chat->FormatItem(itemProto) << " " << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_in_offhand", "in offhand", {});
                 botAI->TellMaster(out);
                 return;
             }
@@ -324,7 +325,7 @@ void EquipAction::EquipItem(Item* item)
     }
 
     std::ostringstream out;
-    out << "Equipping " << chat->FormatItem(itemProto);
+    out << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_equipping", "Equipping", {}) << " " << chat->FormatItem(itemProto);
     botAI->TellMaster(out);
 }
 
