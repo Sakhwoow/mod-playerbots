@@ -180,7 +180,7 @@ bool MaintenanceAction::Execute(Event /*event*/)
         return false;
     }
 
-    botAI->TellMaster("I'm maintaining");
+    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_im_maintaining", "I'm maintaining", {}));
     PlayerbotFactory factory(bot, bot->GetLevel());
 
     if (!botAI->IsAlt())
@@ -574,7 +574,7 @@ bool AutoGearAction::Execute(Event /*event*/)
         return false;
     }
 
-    botAI->TellMaster("I'm auto gearing");
+    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_im_auto_gearing", "I'm auto gearing", {}));
     uint32 gs = sPlayerbotAIConfig.autoGearScoreLimit == 0
                     ? 0
                     : PlayerbotFactory::CalcMixedGearScore(sPlayerbotAIConfig.autoGearScoreLimit,
