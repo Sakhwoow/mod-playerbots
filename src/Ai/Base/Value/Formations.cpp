@@ -618,12 +618,12 @@ bool SetFormationAction::Execute(Event event)
         str << "Invalid formation: |cffff0000" << formation;
         botAI->TellMaster(str);
         botAI->TellMaster(
-            "Please set to any of:|cffffffff chaos (default), near, queue, circle, line, shield, arrow, melee, far");
+            "Выбери построение:|cffffffff chaos (по умолчанию), near, queue, circle, line, shield, arrow, melee, far");
         return false;
     }
 
     std::ostringstream str;
-    str << "Formation set to: " << formation;
+    str << "Построение: " << formation;
     botAI->TellMaster(str);
     return true;
 }
