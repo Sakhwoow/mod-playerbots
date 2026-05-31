@@ -1,0 +1,10 @@
+-- Localized movement and revival bot messages
+INSERT INTO `ai_playerbot_texts` (`name`, `text`, `say_type`, `reply_type`, `text_loc1`, `text_loc2`, `text_loc3`, `text_loc4`, `text_loc5`, `text_loc6`, `text_loc7`, `text_loc8`) VALUES
+('string_i_live_again',          'I live, again!',                              0, 0, '', 'Je vis, à nouveau!',            'Ich lebe, wieder!',                 '我又活了！',   '', '¡Vivo, de nuevo!',              '', 'Я снова живой!'),
+('string_i_will_there_soon',     'I will there soon.',                          0, 0, '', 'J\'y serai bientôt.',           'Ich bin gleich da.',                '我马上就到。', '', 'Estaré allí pronto.',           '', 'Скоро буду!'),
+('string_close_wait_for_me',     'I am close, wait for me!',                    0, 0, '', 'Je suis proche, attends-moi!',  'Ich bin nah dran, warte auf mich!', '我快到了，等我！', '', '¡Estoy cerca, espérame!',       '', 'Я рядом, подождите!'),
+('string_heading_to_position',   'I heading to your position.',                 0, 0, '', 'Je me dirige vers ta position.','Ich gehe zu deiner Position.',      '我正在去你的位置。', '', 'Me dirijo a tu posición.',     '', 'Иду к тебе.'),
+('string_traveling_to_position', 'I am traveling to your position.',            0, 0, '', 'Je voyage vers ta position.',   'Ich reise zu deiner Position.',     '我正在赶往你的位置。', '', 'Estoy viajando a tu posición.','', 'Направляюсь к тебе.'),
+('string_back_from_grave',       'Back from the grave!',                        0, 0, '', 'De retour de la tombe!',        'Zurück aus dem Grab!',              '死而复生！',   '', '¡De vuelta de la tumba!',      '', 'Вернулся с того света!'),
+('string_too_far_away',          'You are too far away from me! I will there soon.', 0, 0, '', 'Tu es trop loin de moi! J\'y serai bientôt.', 'Du bist zu weit weg! Ich bin gleich da.', '你离我太远了！我马上到。', '', '¡Estás demasiado lejos! Estaré allí pronto.', '', 'Ты слишком далеко! Скоро буду.'),
+('string_max_dps',               'Max DPS!',                                    0, 0, '', 'DPS maximum!',                  'Maximaler DPS!',                    '最大输出！',   '', '¡DPS máximo!',                 '', 'Максимальный ДПС!');
