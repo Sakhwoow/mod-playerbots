@@ -1307,7 +1307,12 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
         std::string const bot = *i;
 
         std::ostringstream out;
-        out << cmdStr << ": " << bot << " - ";
+        std::string cmdLabel = cmdStr;
+        if (cmdStr == "add" || cmdStr == "addaccount" || cmdStr == "login")
+            cmdLabel = PlayerbotTextMgr::instance().GetBotTextOrDefault("string_cmd_add", "add", {});
+        else if (cmdStr == "remove" || cmdStr == "logout" || cmdStr == "rm")
+            cmdLabel = PlayerbotTextMgr::instance().GetBotTextOrDefault("string_cmd_remove", "remove", {});
+        out << cmdLabel << ": " << bot << " - ";
 
         ObjectGuid member = sCharacterCache->GetCharacterGuidByName(bot);
         if (!member)
