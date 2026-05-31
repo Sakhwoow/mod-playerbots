@@ -260,7 +260,7 @@ bool SetStanceAction::Execute(Event event)
     }
 
     std::ostringstream str;
-    str << "Stance set to: " << stance;
+    str << "Стойка: " << stance;
     botAI->TellMaster(str);
     return true;
 }
