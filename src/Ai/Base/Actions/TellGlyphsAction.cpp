@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -7,6 +7,7 @@
 
 #include "Event.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 
 #include "ObjectMgr.h"
 #include "SpellMgr.h"
@@ -105,7 +106,7 @@ bool TellGlyphsAction::Execute(Event event)
     // 4. Send chat messages
     //-----------------------------------------------------------------
     if (first)                                       // no glyphs
-        botAI->TellMaster("No glyphs equipped");
+        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_no_glyphs", "No glyphs equipped", {}));
     else
         botAI->TellMaster(std::string("Glyphs: ") + list.str());
 

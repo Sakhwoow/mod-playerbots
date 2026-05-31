@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -28,6 +28,7 @@
 #include "IVMapMgr.h"
 #include "PathGenerator.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 #include "PositionValue.h"
 #include "PvpTriggers.h"
 #include "ServerFacade.h"
@@ -4302,7 +4303,7 @@ bool ArenaTactics::Execute(Event /*event*/)
 
                 float x, y, z;
                 target->GetPosition(x, y, z);
-                botAI->TellMasterNoFacing("Repositioning to exit the LoS target!");
+                botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_reposition_los", "Repositioning to exit the LoS target!", {}));
                 return MoveTo(target->GetMapId(), x + frand(-1, +1), y + frand(-1, +1), z, false, true);
             }
         }
