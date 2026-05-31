@@ -256,7 +256,7 @@ bool NaxxChatShortcutAction::Execute(Event /*event*/)
     botAI->Reset();
     botAI->ChangeStrategy("+naxx", BOT_STATE_NON_COMBAT);
     botAI->ChangeStrategy("+naxx", BOT_STATE_COMBAT);
-    botAI->TellMasterNoFacing("Add Naxx Strategies!");
+    botAI->TellMasterNoFacing("Стратегии Некрополиса активированы!");
     // bot->Say("Add Naxx Strategies!", LANG_UNIVERSAL);
     return true;
 }
@@ -270,6 +270,6 @@ bool BwlChatShortcutAction::Execute(Event /*event*/)
     botAI->Reset();
     botAI->ChangeStrategy("+bwl", BOT_STATE_NON_COMBAT);
     botAI->ChangeStrategy("+bwl", BOT_STATE_COMBAT);
-    botAI->TellMasterNoFacing("Add Bwl Strategies!");
+    botAI->TellMasterNoFacing("Стратегии Логова Крыла Тьмы активированы!");
     return true;
 }

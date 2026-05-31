@@ -188,7 +188,7 @@ bool QuestAction::ProcessQuests(WorldObject* questGiver)
     {
         //if (botAI->HasStrategy("debug", BotState::BOT_STATE_COMBAT) || botAI->HasStrategy("debug", BotState::BOT_STATE_NON_COMBAT))
 
-        botAI->TellError("Cannot talk to quest giver");
+        botAI->TellError("Не могу поговорить с давателем задания");
         return false;
     }
 
