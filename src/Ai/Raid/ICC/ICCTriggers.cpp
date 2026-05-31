@@ -774,10 +774,11 @@ bool IccValithriaPortalTrigger::IsActive()
     for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
     {
         Player* member = itr->GetSource();
-        if (!member || !member->IsAlive() || botAI->IsRealPlayer())
+        PlayerbotAI* memberAI = GET_PLAYERBOT_AI(member);
+        if (!member || !member->IsAlive() || !memberAI || memberAI->IsRealPlayer())
             continue;
 
-        if (botAI->IsHeal(member) && !botAI->IsRealPlayer())
+        if (botAI->IsHeal(member))
         {
             healerCount++;
             healerGuids.push_back(member->GetGUID());
@@ -879,10 +880,11 @@ bool IccValithriaHealTrigger::IsActive()
     for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
     {
         Player* member = itr->GetSource();
-        if (!member || !member->IsAlive() || botAI->IsRealPlayer())
+        PlayerbotAI* memberAI = GET_PLAYERBOT_AI(member);
+        if (!member || !member->IsAlive() || !memberAI || memberAI->IsRealPlayer())
             continue;
 
-        if (botAI->IsHeal(member) && !botAI->IsRealPlayer())
+        if (botAI->IsHeal(member))
         {
             healerCount++;
             healerGuids.push_back(member->GetGUID());
