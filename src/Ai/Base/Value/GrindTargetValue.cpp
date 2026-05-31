@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -7,6 +7,7 @@
 
 #include "NewRpgInfo.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 #include "ReputationMgr.h"
 #include "ServerFacade.h"
 #include "SharedDefines.h"
@@ -88,7 +89,7 @@ Unit* GrindTargetValue::FindTargetForGrinding(uint32 assistCount)
             ServerFacade::instance().GetDistance2d(master, unit) > sPlayerbotAIConfig.lootDistance)
         {
             if (botAI->HasStrategy("debug grind", BotState::BOT_STATE_NON_COMBAT))
-                botAI->TellMaster(chat->FormatWorldobject(unit) + " ignored (far from master).");
+                botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_ignored_far_from_master", "%unit ignored (far from master).", {{"%unit", chat->FormatWorldobject(unit)}}));
             continue;
         }
 

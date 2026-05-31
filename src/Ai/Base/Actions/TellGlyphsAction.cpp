@@ -108,7 +108,7 @@ bool TellGlyphsAction::Execute(Event event)
     if (first)                                       // no glyphs
         botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_no_glyphs", "No glyphs equipped", {}));
     else
-        botAI->TellMaster(std::string("Glyphs: ") + list.str());
+        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_glyphs_prefix", "Glyphs: ", {}) + list.str());
 
     return true;
 }

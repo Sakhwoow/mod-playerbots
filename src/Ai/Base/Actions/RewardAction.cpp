@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -8,6 +8,7 @@
 #include "ChatHelper.h"
 #include "Event.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 
 bool RewardAction::Execute(Event event)
 {
@@ -39,7 +40,7 @@ bool RewardAction::Execute(Event event)
     if (groupLeaderUnit && Reward(itemId, groupLeaderUnit))
         return true;
 
-    botAI->TellError("Cannot talk to quest giver");
+    botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_cant_talk_quest_giver", "Cannot talk to quest giver", {}));
     return false;
 }
 

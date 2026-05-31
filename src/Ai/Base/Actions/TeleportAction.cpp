@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -9,6 +9,7 @@
 #include "LastMovementValue.h"
 #include "AiObjectContext.h"
 #include "PlayerbotAI.h"
+#include "PlayerbotTextMgr.h"
 #include "SpellMgr.h"
 #include "Spell.h"
 
@@ -109,6 +110,6 @@ bool TeleportAction::Execute(Event /*event*/)
     }
 
     // If no teleport option is found
-    botAI->TellError("Cannot find any portal to teleport");
+    botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_no_portal", "Cannot find any portal to teleport", {}));
     return false;
 }

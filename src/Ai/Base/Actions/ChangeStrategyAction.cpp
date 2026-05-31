@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -8,6 +8,7 @@
 #include "Event.h"
 #include "PlayerbotRepository.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 
 // Helper function for prefixes used by combat and non-combat strategy commands.
 static void HandleStrategyCommon(PlayerbotAI* botAI, std::string const& text, BotState state)
@@ -53,7 +54,7 @@ bool ChangeNonCombatStrategyAction::Execute(Event event)
     {
         if (text.find("loot") != std::string::npos || text.find("gather") != std::string::npos)
         {
-            botAI->TellError("You can change any strategy except loot and gather");
+            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_cant_change_strategy", "You can change any strategy except loot and gather", {}));
             return false;
         }
     }

@@ -298,7 +298,7 @@ bool SpiritHealerAction::Execute(Event /*event*/)
     Corpse* corpse = bot->GetCorpse();
     if (!corpse)
     {
-        botAI->TellError("I am not a spirit");
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_not_a_spirit", "I am not a spirit", {}));
         return false;
     }
 
