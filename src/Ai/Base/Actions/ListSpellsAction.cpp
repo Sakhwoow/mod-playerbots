@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -7,6 +7,7 @@
 
 #include "Event.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 #include "PlayerbotSpellRepository.h"
 
 using SpellListEntry = std::pair<uint32, std::string>;
@@ -284,7 +285,7 @@ bool ListSpellsAction::Execute(Event event)
     if (spells.empty())
     {
         // CHANGE: Give early feedback when no spells match the filter.
-        botAI->TellMaster("No spells found.");
+        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_no_spells_found", "No spells found.", {}));
         return true;
     }
 
