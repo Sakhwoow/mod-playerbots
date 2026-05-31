@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -687,7 +687,7 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
     if (cmd == "add" || cmd == "addaccount" || cmd == "login")
     {
         if (ObjectAccessor::FindPlayer(guid))
-            return "player already logged in";
+            return PlayerbotTextMgr::instance().GetBotTextOrDefault("string_player_already_logged_in", "player already logged in", {});
 
         // For addaccount command, verify it's an account name
         if (cmd == "addaccount")
@@ -695,7 +695,7 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
             uint32 accountId = sCharacterCache->GetCharacterAccountIdByGuid(guid);
             if (!accountId)
             {
-                return "character not found";
+                return PlayerbotTextMgr::instance().GetBotTextOrDefault("string_character_not_found", "character not found", {});
             }
 
             if (!sPlayerbotAIConfig.allowAccountBots && accountId != masterAccountId &&
@@ -706,18 +706,18 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
         }
 
         AddPlayerBot(guid, masterAccountId);
-        return "ok";
+        return PlayerbotTextMgr::instance().GetBotTextOrDefault("string_bot_ok", "ok", {});
     }
     else if (cmd == "remove" || cmd == "logout" || cmd == "rm")
     {
         if (!ObjectAccessor::FindPlayer(guid))
-            return "player is offline";
+            return PlayerbotTextMgr::instance().GetBotTextOrDefault("string_player_offline", "player is offline", {});
 
         if (!GetPlayerBot(guid))
-            return "not your bot";
+            return PlayerbotTextMgr::instance().GetBotTextOrDefault("string_not_your_bot", "not your bot", {});
 
         LogoutPlayerBot(guid);
-        return "ok";
+        return PlayerbotTextMgr::instance().GetBotTextOrDefault("string_bot_ok", "ok", {});
     }
 
     // if (admin)
@@ -768,31 +768,31 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
             {
                 PlayerbotFactory factory(bot, master->GetLevel(), ITEM_QUALITY_NORMAL);
                 factory.Randomize(false);
-                return "ok";
+                return PlayerbotTextMgr::instance().GetBotTextOrDefault("string_bot_ok", "ok", {});
             }
             else if (cmd == "init=green" || cmd == "init=uncommon")
             {
                 PlayerbotFactory factory(bot, master->GetLevel(), ITEM_QUALITY_UNCOMMON);
                 factory.Randomize(false);
-                return "ok";
+                return PlayerbotTextMgr::instance().GetBotTextOrDefault("string_bot_ok", "ok", {});
             }
             else if (cmd == "init=blue" || cmd == "init=rare")
             {
                 PlayerbotFactory factory(bot, master->GetLevel(), ITEM_QUALITY_RARE);
                 factory.Randomize(false);
-                return "ok";
+                return PlayerbotTextMgr::instance().GetBotTextOrDefault("string_bot_ok", "ok", {});
             }
             else if (cmd == "init=epic" || cmd == "init=purple")
             {
                 PlayerbotFactory factory(bot, master->GetLevel(), ITEM_QUALITY_EPIC);
                 factory.Randomize(false);
-                return "ok";
+                return PlayerbotTextMgr::instance().GetBotTextOrDefault("string_bot_ok", "ok", {});
             }
             else if (cmd == "init=legendary" || cmd == "init=yellow")
             {
                 PlayerbotFactory factory(bot, master->GetLevel(), ITEM_QUALITY_LEGENDARY);
                 factory.Randomize(false);
-                return "ok";
+                return PlayerbotTextMgr::instance().GetBotTextOrDefault("string_bot_ok", "ok", {});
             }
             else if (cmd == "init=auto")
             {
@@ -819,7 +819,7 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
             // after the command is executed, the AI ​​needs to go back online or exit the raid and re-enter.
             PlayerbotFactory factory(bot, bot->GetLevel());
             factory.UnbindInstance();
-            return "ok";
+            return PlayerbotTextMgr::instance().GetBotTextOrDefault("string_bot_ok", "ok", {});
         }
     }
 
@@ -827,18 +827,18 @@ std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, Obje
     {
         PlayerbotFactory factory(bot, bot->GetLevel());
         factory.Randomize(true);
-        return "ok";
+        return PlayerbotTextMgr::instance().GetBotTextOrDefault("string_bot_ok", "ok", {});
     }
     else if (cmd == "refresh")
     {
         PlayerbotFactory factory(bot, bot->GetLevel());
         factory.Refresh();
-        return "ok";
+        return PlayerbotTextMgr::instance().GetBotTextOrDefault("string_bot_ok", "ok", {});
     }
     else if (cmd == "random")
     {
         sRandomPlayerbotMgr.Randomize(bot);
-        return "ok";
+        return PlayerbotTextMgr::instance().GetBotTextOrDefault("string_bot_ok", "ok", {});
     }
     else if (cmd == "quests")
     {
@@ -1158,7 +1158,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
 
         if (claz == 6 && master->GetLevel() < sWorld->getIntConfig(CONFIG_START_HEROIC_PLAYER_LEVEL))
         {
-            messages.push_back("Your level is too low to summon Deathknight");
+            messages.push_back(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_level_too_low_dk", "Your level is too low to summon Deathknight", {}));
             return messages;
         }
         uint8 teamId = master->GetTeamId(true);
@@ -1427,7 +1427,7 @@ std::string const PlayerbotHolder::ListBots(Player* master)
 
     std::ostringstream out;
     bool first = true;
-    out << "Bot roster: ";
+    out << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_bot_roster", "Bot roster: ", {});
     for (std::vector<std::string>::iterator i = names.begin(); i != names.end(); ++i)
     {
         if (first)
