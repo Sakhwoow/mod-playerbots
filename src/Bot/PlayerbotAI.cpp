@@ -1758,9 +1758,9 @@ void PlayerbotAI::ApplyInstanceStrategies(uint32 mapId, bool tellMaster)
 
     if (tellMaster && !strategyName.empty())
     {
-        std::ostringstream out;
-        out << "Added " << strategyName << " instance strategy";
-        TellMasterNoFacing(out.str());
+        TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault(
+            "string_added_instance_strategy", "Added %strategy instance strategy",
+            {{"%strategy", strategyName}}));
     }
 }
 
