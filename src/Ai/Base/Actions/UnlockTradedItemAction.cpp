@@ -94,6 +94,6 @@ void UnlockTradedItemAction::UnlockItem(Item* item)
     }
     else
     {
-        botAI->TellError("Failed to cast Pick Lock.");
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_failed_pick_lock", "Failed to cast Pick Lock.", {}));
     }
 }

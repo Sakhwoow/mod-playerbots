@@ -79,7 +79,7 @@ bool GoAction::Execute(Event event)
                     if (ServerFacade::instance().IsDistanceGreaterThan(ServerFacade::instance().GetDistance2d(bot, go),
                                                              sPlayerbotAIConfig.reactDistance))
                     {
-                        botAI->TellError("It is too far away");
+                        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_too_far_go", "It is too far away", {}));
                         return false;
                     }
 
@@ -213,7 +213,7 @@ bool GoAction::Execute(Event event)
         if (ServerFacade::instance().IsDistanceGreaterThan(ServerFacade::instance().GetDistance2d(bot, pos.x, pos.y),
                                                  sPlayerbotAIConfig.reactDistance))
         {
-            botAI->TellError("It is too far away");
+            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_too_far_go", "It is too far away", {}));
             return false;
         }
 
