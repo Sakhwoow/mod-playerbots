@@ -225,7 +225,7 @@ bool SetPetStanceAction::Execute(Event /*event*/)
 
     // If debug is enabled in config, inform the master of the new stance
     if (sPlayerbotAIConfig.petChatCommandDebug == 1)
-        botAI->TellMaster("Pet stance set to " + stanceText + " (applied to all pets/guardians).");
+        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_pet_stance_set", "Pet stance set to %stance (applied to all pets/guardians).", {{"%stance", stanceText}}));
 
     return true;
 }
