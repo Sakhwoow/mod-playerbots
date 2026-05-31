@@ -14,12 +14,13 @@
 #include "StatsWeightCalculator.h"
 #include "WorldPacket.h"
 #include "BroadcastHelper.h"
+#include "PlayerbotTextMgr.h"
 
 bool TalkToQuestGiverAction::ProcessQuest(Quest const* quest, Object* questGiver)
 {
     bool isCompleted = false;
     std::ostringstream out;
-    out << "Quest ";
+    out << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_quest", "Quest", {}) << " ";
 
     QuestStatus status = bot->GetQuestStatus(quest->GetQuestId());
     Player* master = GetMaster();
@@ -51,13 +52,13 @@ bool TalkToQuestGiverAction::ProcessQuest(Quest const* quest, Object* questGiver
         isCompleted |= TurnInQuest(quest, questGiver, out);
         break;
     case QUEST_STATUS_INCOMPLETE:
-        out << "|cffff0000Incompleted|r";
+        out << "|cffff0000" << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_incompleted", "Incompleted", {}) << "|r";
         break;
     case QUEST_STATUS_NONE:
-        out << "|cff00ff00Available|r";
+        out << "|cff00ff00" << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_available", "Available", {}) << "|r";
         break;
     case QUEST_STATUS_FAILED:
-        out << "|cffff0000Failed|r";
+        out << "|cffff0000" << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_quest_failed", "Failed", {}) << "|r";
         break;
     default:
         break;
@@ -285,13 +286,13 @@ bool TurnInQueryQuestAction::Execute(Event event)
         TurnInQuest(quest, object, out);
         break;
     case QUEST_STATUS_INCOMPLETE:
-        out << "|cffff0000Incompleted|r";
+        out << "|cffff0000" << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_incompleted", "Incompleted", {}) << "|r";
         break;
     case QUEST_STATUS_NONE:
-        out << "|cff00ff00Available|r";
+        out << "|cff00ff00" << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_available", "Available", {}) << "|r";
         break;
     case QUEST_STATUS_FAILED:
-        out << "|cffff0000Failed|r";
+        out << "|cffff0000" << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_quest_failed", "Failed", {}) << "|r";
         break;
     case QUEST_STATUS_REWARDED:
         out << "|cffff0000Rewarded|r";

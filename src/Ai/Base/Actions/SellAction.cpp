@@ -6,6 +6,7 @@
 #include "SellAction.h"
 
 #include "Event.h"
+#include "PlayerbotTextMgr.h"
 #include "ItemUsageValue.h"
 #include "ItemVisitors.h"
 #include "Playerbots.h"
@@ -127,7 +128,7 @@ void SellAction::Sell(Item* item)
             bot->SetMoney(botMoney);
         }
 
-        out << "Selling " << chat->FormatItem(item->GetTemplate());
+        out << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_selling", "Selling", {}) << " " << chat->FormatItem(item->GetTemplate());
         botAI->TellMaster(out);
 
         bot->PlayDistanceSound(120);
