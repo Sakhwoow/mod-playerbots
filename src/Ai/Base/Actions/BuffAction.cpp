@@ -64,19 +64,19 @@ void BuffAction::TellHeader(uint32 subClass)
     switch (subClass)
     {
         case ITEM_SUBCLASS_ELIXIR:
-            botAI->TellMaster("--- Elixir ---");
+            botAI->TellMaster("--- Эликсир ---");
             return;
         case ITEM_SUBCLASS_FLASK:
-            botAI->TellMaster("--- Flask ---");
+            botAI->TellMaster("--- Колба ---");
             return;
         case ITEM_SUBCLASS_SCROLL:
-            botAI->TellMaster("--- Scroll ---");
+            botAI->TellMaster("--- Свиток ---");
             return;
         case ITEM_SUBCLASS_FOOD:
-            botAI->TellMaster("--- Food ---");
+            botAI->TellMaster("--- Еда ---");
             return;
         case ITEM_SUBCLASS_ITEM_ENHANCEMENT:
-            botAI->TellMaster("--- Enchant ---");
+            botAI->TellMaster("--- Чары ---");
             return;
     }
 }

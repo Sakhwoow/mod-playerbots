@@ -44,20 +44,20 @@ void ListQuestsAction::ListQuests(QuestListFilter filter, QuestTravelDetail trav
     bool showCompleted = filter & QUEST_LIST_FILTER_COMPLETED;
 
     if (showIncompleted)
-        botAI->TellMaster("--- Incompleted quests ---");
+        botAI->TellMaster("--- Незавершённые задания ---");
 
     uint32 incompleteCount = ListQuests(false, !showIncompleted, travelDetail);
 
     if (showCompleted)
-        botAI->TellMaster("--- Completed quests ---");
+        botAI->TellMaster("--- Завершённые задания ---");
 
     uint32 completeCount = ListQuests(true, !showCompleted, travelDetail);
 
-    botAI->TellMaster("--- Summary ---");
+    botAI->TellMaster("--- Итог ---");
 
     std::ostringstream out;
-    out << "Total: " << (completeCount + incompleteCount) << " / 25 (incompleted: " << incompleteCount
-        << ", completed: " << completeCount << ")";
+    out << "Всего: " << (completeCount + incompleteCount) << " / 25 (незавершённых: " << incompleteCount
+        << ", завершённых: " << completeCount << ")";
     botAI->TellMaster(out);
 }
 

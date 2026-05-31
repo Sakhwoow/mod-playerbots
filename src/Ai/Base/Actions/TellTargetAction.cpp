@@ -28,7 +28,7 @@ bool TellTargetAction::Execute(Event /*event*/)
 
 bool TellAttackersAction::Execute(Event /*event*/)
 {
-    botAI->TellMaster("--- Attackers ---");
+    botAI->TellMaster("--- Атакующие ---");
 
     GuidVector attackers = context->GetValue<GuidVector>("attackers")->Get();
     int32 count = 0;
@@ -41,7 +41,7 @@ bool TellAttackersAction::Execute(Event /*event*/)
         botAI->TellMaster(std::to_string(++count) + std::string(".") + unit->GetName());
     }
 
-    botAI->TellMaster("--- Threat ---");
+    botAI->TellMaster("--- Угроза ---");
 
     auto const& threatenedByMe = bot->GetThreatMgr().GetThreatenedByMeList();
     if (threatenedByMe.empty())

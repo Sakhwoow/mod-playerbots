@@ -21,7 +21,7 @@ bool TellEmblemsAction::Execute(Event /*event*/)
         49426  // Emblem of Frost
     };
 
-    botAI->TellMaster("=== Emblems ===");
+    botAI->TellMaster("=== Эмблемы ===");
 
     for (uint32 itemId : emblemIds)
     {

@@ -111,7 +111,7 @@ bool BankAction::Deposit(Item* pItem)
 
 void BankAction::ListItems()
 {
-    botAI->TellMaster("=== Bank ===");
+    botAI->TellMaster("=== Банк ===");
 
     std::map<uint32, uint32> items;
     std::map<uint32, bool> soulbound;

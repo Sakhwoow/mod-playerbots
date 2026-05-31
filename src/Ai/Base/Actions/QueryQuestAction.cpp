@@ -116,7 +116,7 @@ void QueryQuestAction::TellObjectives(uint32 questId)
     // Checks if the questTemplate is valid
     if (!questTemplate)
     {
-        botAI->TellMaster("Quest template not found.");
+        botAI->TellMaster("Шаблон задания не найден.");
         return;
     }
 
