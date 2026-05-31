@@ -718,46 +718,32 @@ bool IccSindragosaBlisteringColdAction::Execute(Event /*event*/)
     if (!boss)
         return false;
 
-    // Only non-tanks should move out
+    // Tanks already stand close to the boss
     if (botAI->IsMainTank(bot))
         return false;
 
-   float dist = bot->GetExactDist2d(boss->GetPositionX(), boss->GetPositionY());
+    float dist = bot->GetExactDist2d(boss->GetPositionX(), boss->GetPositionY());
 
-    if (dist >= 33.0f)
+    // Already within 5 yards — safe from Blistering Cold
+    if (dist <= 5.0f)
         return false;
 
-    Position const& targetPos = ICC_SINDRAGOSA_BLISTERING_COLD_POSITION;
+    // Move toward the boss to get within 5 yards (safe zone)
+    float const STEP_SIZE = 15.0f;
+    float dirX = boss->GetPositionX() - bot->GetPositionX();
+    float dirY = boss->GetPositionY() - bot->GetPositionY();
+    float length = sqrt(dirX * dirX + dirY * dirY);
+    dirX /= length;
+    dirY /= length;
 
-    // Only move if we're too close to the boss (< 30 yards)
-    if (dist < 33.0f)
-    {
+    float moveX = bot->GetPositionX() + dirX * STEP_SIZE;
+    float moveY = bot->GetPositionY() + dirY * STEP_SIZE;
 
-        float const STEP_SIZE = 15.0f;
-        float distToTarget = bot->GetDistance2d(targetPos.GetPositionX(), targetPos.GetPositionY());
+    if (!bot->HasAura(SPELL_NITRO_BOOSTS))
+        bot->AddAura(SPELL_NITRO_BOOSTS, bot);
 
-        if (distToTarget > 0.1f)  // Avoid division by zero
-        {
-            if (!bot->HasAura(SPELL_NITRO_BOOSTS))
-                bot->AddAura(SPELL_NITRO_BOOSTS, bot);
-            // Calculate direction vector
-            float dirX = targetPos.GetPositionX() - bot->GetPositionX();
-            float dirY = targetPos.GetPositionY() - bot->GetPositionY();
-
-            // Normalize direction vector
-            float length = sqrt(dirX * dirX + dirY * dirY);
-            dirX /= length;
-            dirY /= length;
-
-            // Move STEP_SIZE yards in that direction
-            float moveX = bot->GetPositionX() + dirX * STEP_SIZE;
-            float moveY = bot->GetPositionY() + dirY * STEP_SIZE;
-
-            return MoveTo(bot->GetMapId(), moveX, moveY, bot->GetPositionZ(),
-                         false, false, false, true, MovementPriority::MOVEMENT_FORCED, true, false);
-        }
-    }
-    return false;
+    return MoveTo(bot->GetMapId(), moveX, moveY, bot->GetPositionZ(),
+                 false, false, false, true, MovementPriority::MOVEMENT_FORCED, true, false);
 }
 
 bool IccSindragosaUnchainedMagicAction::Execute(Event /*event*/)
