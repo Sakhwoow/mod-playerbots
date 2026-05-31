@@ -103,10 +103,10 @@ bool TellAuraAction::Execute(Event /*event*/)
                              " isArea: " + std::to_string(is_area) + " duration: " + std::to_string(duration) +
                              " spellId: " + std::to_string(spellId) + " isPositive: " + std::to_string(isPositive));
 
-        botAI->TellMaster("Info of Aura - name: " + auraName + " caster: " + caster_name + " type: " +
-                          std::to_string(type) + " owner: " + owner_name + " distance: " + std::to_string(distance) +
-                          " isArea: " + std::to_string(is_area) + " duration: " + std::to_string(duration) +
-                          " spellId: " + std::to_string(spellId) + " isPositive: " + std::to_string(isPositive));
+        botAI->TellMaster("Аура: " + auraName + " заклинатель: " + caster_name + " тип: " +
+                          std::to_string(type) + " владелец: " + owner_name + " дистанция: " + std::to_string(distance) +
+                          " область: " + std::to_string(is_area) + " длительность: " + std::to_string(duration) +
+                          " ID заклинания: " + std::to_string(spellId) + " положительная: " + std::to_string(isPositive));
 
         if (type == DYNOBJ_AURA_TYPE)
         {

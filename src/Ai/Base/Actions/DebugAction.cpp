@@ -92,7 +92,7 @@ bool DebugAction::Execute(Event event)
         }
         else
         {
-            botAI->TellMasterNoFacing("Destination " + destination + " not found.");
+            botAI->TellMasterNoFacing("Место назначения " + destination + " не найдено.");
             return true;
         }
     }
@@ -205,7 +205,7 @@ bool DebugAction::Execute(Event event)
             endNode->setLinked(false);
         }
 
-        botAI->TellMasterNoFacing("Node " + name + " created.");
+        botAI->TellMasterNoFacing("Узел " + name + " создан.");
 
         TravelNodeMap::instance().setHasToGen();
 
@@ -222,12 +222,12 @@ bool DebugAction::Execute(Event event)
 
         if (startNode->isImportant())
         {
-            botAI->TellMasterNoFacing("Node can not be removed.");
+            botAI->TellMasterNoFacing("Узел нельзя удалить.");
         }
 
         TravelNodeMap::instance().m_nMapMtx.lock();
         TravelNodeMap::instance().removeNode(startNode);
-        botAI->TellMasterNoFacing("Node removed.");
+        botAI->TellMasterNoFacing("Узел удалён.");
         TravelNodeMap::instance().m_nMapMtx.unlock();
 
         TravelNodeMap::instance().setHasToGen();
