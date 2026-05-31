@@ -939,7 +939,7 @@ bool IccValithriaPortalAction::Execute(Event /*event*/)
     if (bot->GetDistance2d(assigned->GetPositionX(), assigned->GetPositionY()) > 0.5f)
     {
         MoveTo(assigned->GetMapId(), assigned->GetPositionX(), assigned->GetPositionY(), assigned->GetPositionZ(),
-               false, false, false, true, MovementPriority::MOVEMENT_NORMAL);
+               false, false, false, true, MovementPriority::MOVEMENT_COMBAT);
     }
 
     botAI->RemoveShapeshift();
