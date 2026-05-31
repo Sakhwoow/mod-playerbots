@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -7,6 +7,7 @@
 
 #include "Event.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 
 bool TellMasterAction::Execute(Event /*event*/)
 {
@@ -16,7 +17,7 @@ bool TellMasterAction::Execute(Event /*event*/)
 
 bool OutOfReactRangeAction::Execute(Event /*event*/)
 {
-    botAI->TellMaster("Wait for me!");
+    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_wait_for_me", "Wait for me!", {}));
     return true;
 }
 

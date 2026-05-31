@@ -158,9 +158,9 @@ bool QuestAction::CompleteQuest(Player* player, uint32 entry)
     if (botAI->HasStrategy("debug quest", BotState::BOT_STATE_NON_COMBAT) || botAI->HasStrategy("debug rpg", BotState::BOT_STATE_COMBAT))
     {
         LOG_INFO("playerbots", "{} => Quest [ {} ] completed", bot->GetName(), pQuest->GetTitle());
-        bot->Say("Quest [ " + text_quest + " ] completed", LANG_UNIVERSAL);
+        bot->Say(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_quest_completed", "Quest completed %quest", {{"%quest", text_quest}}), LANG_UNIVERSAL);
     }
-    botAI->TellMasterNoFacing("Quest completed " + text_quest);
+    botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_quest_completed", "Quest completed %quest", {{"%quest", text_quest}}));
 
     player->CompleteQuest(entry);
 
@@ -229,7 +229,7 @@ bool QuestAction::AcceptQuest(Quest const* quest, ObjectGuid questGiver)
             out << "Can't take";
     }
     else if (!bot->SatisfyQuestLog(false))
-        out << "Quest log is full";
+        out << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_quest_log_full", "Quest log is full", {});
     else if (!bot->CanAddQuest(quest, false))
         out << "Bags are full";
     else
@@ -288,7 +288,7 @@ bool QuestUpdateCompleteAction::Execute(Event event)
             // }
         const auto format = ChatHelper::FormatQuest(qInfo);
         if (botAI->GetMaster())
-            botAI->TellMasterNoFacing("Quest completed " + format);
+            botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_quest_completed", "Quest completed %quest", {{"%quest", format}}));
         BroadcastHelper::BroadcastQuestUpdateComplete(botAI, bot, qInfo);
         botAI->rpgStatistic.questCompleted++;
         // LOG_DEBUG("playerbots", "[New rpg] {} complete quest {}", bot->GetName(), qInfo->GetQuestId());
@@ -456,7 +456,7 @@ bool QuestUpdateFailedTimerAction::Execute(Event event)
     }
     else
     {
-        botAI->TellMaster("Failed timer for " + std::to_string(questId));
+        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_quest_failed_timer", "Failed timer for quest, abandoning", {}));
     }
 
     //drop quest

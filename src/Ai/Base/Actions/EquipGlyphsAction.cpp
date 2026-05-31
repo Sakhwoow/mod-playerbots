@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -6,6 +6,7 @@
 #include "EquipGlyphsAction.h"
 
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 #include "ObjectMgr.h"
 #include "SpellMgr.h"
 #include "DBCStores.h"
@@ -144,12 +145,12 @@ bool EquipGlyphsAction::Execute(Event event)
 
         if (!placed)
         {
-            botAI->TellMaster("Not enought empty sockets for all glyphs.");
+            botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_glyphs_no_sockets", "Not enough empty sockets for all glyphs.", {}));
             return false;
         }
     }
 
-    botAI->TellMaster("Glyphs updated.");
+    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_glyphs_updated", "Glyphs updated.", {}));
 
     // Flag for custom glyphs
     botAI->GetAiObjectContext()->GetValue<bool>("custom_glyphs")->Set(true);

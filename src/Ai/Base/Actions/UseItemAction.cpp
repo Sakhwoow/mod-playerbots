@@ -178,7 +178,7 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
             packet << uint32(0);
             bot->GetSession()->HandleQuestgiverAcceptQuestOpcode(packet);
 
-            botAI->TellMasterNoFacing("Got quest " + chat->FormatQuest(qInfo));
+            botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_got_quest", "Got quest %quest", {{"%quest", chat->FormatQuest(qInfo)}}));
             return true;
         }
     }
