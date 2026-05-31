@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -7,6 +7,7 @@
 
 #include "Event.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 #include "PositionValue.h"
 
 void TellPosition(PlayerbotAI* botAI, std::string const name, PositionInfo pos)
@@ -169,7 +170,7 @@ bool ReturnToStayPositionAction::isPossible()
         const float distance = bot->GetDistance(stayPosition.x, stayPosition.y, stayPosition.z);
         if (distance > sPlayerbotAIConfig.reactDistance)
         {
-            botAI->TellMaster("The stay position is too far to return. I am going to stay where I am now");
+            botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_stay_pos_too_far", "The stay position is too far to return. I am going to stay where I am now", {}));
 
             // Set the stay position to current position
             stayPosition.Set(bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(), bot->GetMapId());

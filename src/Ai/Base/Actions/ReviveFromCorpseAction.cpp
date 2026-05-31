@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -29,7 +29,7 @@ bool ReviveFromCorpseAction::Execute(Event event)
         {
             if (!botAI->HasStrategy("follow", BOT_STATE_NON_COMBAT))
             {
-                botAI->TellMasterNoFacing("Welcome back!");
+                botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_welcome_back", "Welcome back!", {}));
                 botAI->ChangeStrategy("+follow,-stay", BOT_STATE_NON_COMBAT);
                 return true;
             }

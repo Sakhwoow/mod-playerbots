@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -8,6 +8,7 @@
 #include "Event.h"
 #include "RandomPlayerbotMgr.h"
 #include "PlayerbotAI.h"
+#include "PlayerbotTextMgr.h"
 
 bool HireAction::Execute(Event /*event*/)
 {
@@ -30,13 +31,13 @@ bool HireAction::Execute(Event /*event*/)
 
     if (charCount >= 10)
     {
-        botAI->TellMaster("You already have the maximum number of characters");
+        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_max_characters", "You already have the maximum number of characters", {}));
         return false;
     }
 
     if (bot->GetLevel() > master->GetLevel())
     {
-        botAI->TellMaster("You cannot hire higher level characters than you");
+        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_hire_too_high_level", "You cannot hire higher level characters than you", {}));
         return false;
     }
 
@@ -52,7 +53,7 @@ bool HireAction::Execute(Event /*event*/)
         return false;
     }
 
-    botAI->TellMaster("I will join you at your next relogin");
+    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_join_next_relogin", "I will join you at your next relogin", {}));
 
     bot->SetMoney(moneyReq);
     RandomPlayerbotMgr::instance().Remove(bot);

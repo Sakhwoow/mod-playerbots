@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -10,6 +10,7 @@
 #include "Formations.h"
 #include "PathGenerator.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 #include "PositionValue.h"
 #include "ServerFacade.h"
 
@@ -60,7 +61,7 @@ bool GoAction::Execute(Event event)
         }
         else
         {
-            botAI->TellMasterNoFacing("Clearing travel target");
+            botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_clearing_travel", "Clearing travel target", {}));
             target->setTarget(TravelMgr::instance().nullTravelDestination, TravelMgr::instance().nullWorldPosition);
             target->setForced(false);
             return true;
@@ -179,7 +180,7 @@ bool GoAction::Execute(Event event)
         if (ServerFacade::instance().IsDistanceGreaterThan(ServerFacade::instance().GetDistance2d(bot, x, y),
                                                  sPlayerbotAIConfig.reactDistance))
         {
-            botAI->TellMaster("It is too far away");
+            botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_too_far_away_obj", "It is too far away", {}));
             return false;
         }
 
