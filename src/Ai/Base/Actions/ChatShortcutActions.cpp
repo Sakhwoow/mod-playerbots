@@ -99,10 +99,10 @@ bool FollowChatShortcutAction::Execute(Event /*event*/)
         if (bot->isDead())
         {
             bot->ResurrectPlayer(1.0f, false);
-            botAI->TellMasterNoFacing("Back from the grave!");
+            botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_back_from_grave", "Back from the grave!", {}));
         }
         else
-            botAI->TellMaster("You are too far away from me! I will there soon.");
+            botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_too_far_away", "You are too far away from me! I will there soon.", {}));
 
         bot->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
         bot->TeleportTo(master->GetMapId(), master->GetPositionX(), master->GetPositionY(), master->GetPositionZ(),
@@ -242,7 +242,7 @@ bool MaxDpsChatShortcutAction::Execute(Event /*event*/)
     botAI->Reset();
 
     botAI->ChangeStrategy("-threat,-conserve mana,-cast time,+dps debuff,+boost", BOT_STATE_COMBAT);
-    botAI->TellMaster("Max DPS!");
+    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_max_dps", "Max DPS!", {}));
 
     return true;
 }

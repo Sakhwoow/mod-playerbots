@@ -6,6 +6,7 @@
 #include "FollowActions.h"
 
 #include <algorithm>
+#include "PlayerbotTextMgr.h"
 #include <cmath>
 #include <array>
 
@@ -323,15 +324,15 @@ bool FleeToGroupLeaderAction::Execute(Event /*event*/)
     if (distance < sPlayerbotAIConfig.reactDistance * 3)
     {
         if (!urand(0, 3))
-            botAI->TellMaster("I am close, wait for me!");
+            botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_close_wait_for_me", "I am close, wait for me!", {}));
     }
     else if (distance < 1000)
     {
         if (!urand(0, 10))
-            botAI->TellMaster("I heading to your position.");
+            botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_heading_to_position", "I heading to your position.", {}));
     }
     else if (!urand(0, 20))
-        botAI->TellMaster("I am traveling to your position.");
+        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_traveling_to_position", "I am traveling to your position.", {}));
 
     botAI->SetNextCheckDelay(3000);
 
