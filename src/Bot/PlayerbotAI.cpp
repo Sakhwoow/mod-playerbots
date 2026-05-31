@@ -1782,7 +1782,7 @@ bool PlayerbotAI::DoSpecificAction(std::string const name, Event event, bool sil
                 }
                 return true;
             case ACTION_RESULT_IMPOSSIBLE:
-                out << name << ": impossible";
+                out << name << ": невозможно";
                 if (!silent)
                 {
                     TellError(out.str());
@@ -1790,7 +1790,7 @@ bool PlayerbotAI::DoSpecificAction(std::string const name, Event event, bool sil
                 }
                 return false;
             case ACTION_RESULT_USELESS:
-                out << name << ": useless";
+                out << name << ": бесполезно";
                 if (!silent)
                 {
                     TellError(out.str());
@@ -1800,7 +1800,7 @@ bool PlayerbotAI::DoSpecificAction(std::string const name, Event event, bool sil
             case ACTION_RESULT_FAILED:
                 if (!silent)
                 {
-                    out << name << ": failed";
+                    out << name << ": не удалось";
                     TellError(out.str());
                 }
                 return false;
