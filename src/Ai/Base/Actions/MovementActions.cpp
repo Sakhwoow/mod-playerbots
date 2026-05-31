@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -2543,7 +2543,7 @@ bool DisperseSetAction::Execute(Event event)
     if (text == "disable")
     {
         RESET_AI_VALUE(float, "disperse distance");
-        botAI->TellMasterNoFacing("Disable disperse");
+        botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_disable_disperse", "Disable disperse", {}));
         return true;
     }
     if (text == "enable" || text == "reset")

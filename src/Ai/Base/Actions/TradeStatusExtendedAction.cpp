@@ -1,7 +1,8 @@
-#include "TradeStatusExtendedAction.h"
+﻿#include "TradeStatusExtendedAction.h"
 #include "Event.h"
 #include "Player.h"
 #include "PlayerbotAI.h"
+#include "PlayerbotTextMgr.h"
 #include "WorldPacket.h"
 #include "TradeData.h"
 
@@ -75,7 +76,7 @@ bool TradeStatusExtendedAction::Execute(Event event)
             }
             else
             {
-                botAI->TellMaster("I can't unlock this item.");
+                botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_cant_unlock_item", "I can't unlock this item.", {}));
             }
         }
     }

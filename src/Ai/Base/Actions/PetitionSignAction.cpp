@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -8,6 +8,7 @@
 #include "ArenaTeam.h"
 #include "Event.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 
 bool PetitionSignAction::Execute(Event event)
 {
@@ -88,7 +89,7 @@ bool PetitionSignAction::Execute(Event event)
         WorldPacket data(CMSG_PETITION_SIGN, 20);
         data << petitionGuid << unk;
         bot->GetSession()->HandlePetitionSignOpcode(data);
-        bot->Say("Thanks for the invite!", LANG_UNIVERSAL);
+        bot->Say(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_thanks_invite", "Thanks for the invite!", {}), LANG_UNIVERSAL);
         LOG_INFO("playerbots", "Bot {} <{}> accepts {} invite", bot->GetGUID().ToString().c_str(),
                  bot->GetName().c_str(), isArena ? "Arena" : "Guild");
         return true;
