@@ -1,0 +1,11 @@
+-- Localized system messages shown on login and bot commands
+INSERT INTO `ai_playerbot_texts` (`name`, `text`, `say_type`, `reply_type`, `text_loc1`, `text_loc2`, `text_loc3`, `text_loc4`, `text_loc5`, `text_loc6`, `text_loc7`, `text_loc8`) VALUES
+('string_bot_ok',                   'ok',                                     0, 0, '', 'ok', 'ok', 'ok', '', 'ok', '', 'ок'),
+('string_player_already_logged_in', 'player already logged in',               0, 0, '', 'joueur déjà connecté', 'Spieler bereits eingeloggt', '玩家已登录', '', 'jugador ya conectado', '', 'игрок уже в игре'),
+('string_bot_roster',               'Bot roster: ',                           0, 0, '', 'Liste des bots: ', 'Bot-Liste: ', '机器人列表：', '', 'Lista de bots: ', '', 'Список ботов: '),
+('string_configured_bots',          'The server is configured with %count bots.', 0, 0, '', 'Le serveur est configuré avec %count bots.', 'Der Server ist mit %count Bots konfiguriert.', '服务器配置了 %count 个机器人。', '', 'El servidor está configurado con %count bots.', '', 'Сервер настроен на %count ботов.'),
+('string_player_offline',           'player is offline',                      0, 0, '', 'joueur hors ligne', 'Spieler ist offline', '玩家不在线', '', 'jugador desconectado', '', 'игрок не в сети'),
+('string_not_your_bot',             'not your bot',                           0, 0, '', 'pas votre bot', 'nicht dein Bot', '不是你的机器人', '', 'no es tu bot', '', 'не твой бот'),
+('string_character_not_found',      'character not found',                    0, 0, '', 'personnage introuvable', 'Charakter nicht gefunden', '找不到角色', '', 'personaje no encontrado', '', 'персонаж не найден'),
+('string_bot_system_disabled',      'Playerbot system is currently disabled!', 0, 0, '', 'Le système Playerbot est désactivé!', 'Playerbot-System ist deaktiviert!', '玩家机器人系统当前已禁用！', '', '¡El sistema Playerbot está deshabilitado!', '', 'Система плейерботов отключена!'),
+('string_level_too_low_dk',         'Your level is too low to summon Deathknight', 0, 0, '', 'Votre niveau est trop bas pour invoquer un Chevalier de la Mort.', 'Dein Level ist zu niedrig für einen Todesritter.', '你的等级太低，无法召唤死亡骑士。', '', 'Tu nivel es demasiado bajo para invocar a un Caballero de la Muerte.', '', 'Твой уровень слишком низок для создания Рыцаря смерти');

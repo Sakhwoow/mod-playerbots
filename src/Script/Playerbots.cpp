@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -16,6 +16,7 @@
  */
 
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 
 #include "BattlefieldScript.h"
 #include "Channel.h"
@@ -115,7 +116,7 @@ public:
                 std::string maxAllowedBotCount = std::to_string(sRandomPlayerbotMgr.GetMaxAllowedBotCount());
 
                 ChatHandler(player->GetSession()).SendSysMessage(
-                    "|cff00ff00Playerbots:|r The server is configured with " + maxAllowedBotCount + " bots.");
+                    PlayerbotTextMgr::instance().GetBotTextOrDefault("string_configured_bots", "|cff00ff00Playerbots:|r The server is configured with %count bots.", {{"%count", maxAllowedBotCount}}));
             }
         }
     }
