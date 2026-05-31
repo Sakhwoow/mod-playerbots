@@ -1,5 +1,6 @@
-#include "UnlockItemAction.h"
+﻿#include "UnlockItemAction.h"
 #include "PlayerbotAI.h"
+#include "PlayerbotTextMgr.h"
 #include "ItemTemplate.h"
 #include "Player.h"
 #include "ObjectMgr.h"
@@ -31,5 +32,5 @@ void UnlockItemAction::UnlockItem(Item* item)
         botAI->TellMaster(out.str());
     }
     else
-        botAI->TellError("Failed to cast Pick Lock.");
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_failed_pick_lock", "Failed to cast Pick Lock.", {}));
 }

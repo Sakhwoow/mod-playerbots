@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -751,7 +751,7 @@ void PlayerbotAI::HandleCommand(uint32 type, const std::string& text, Player& fr
         uint32 delay = atof(remaining.c_str()) * IN_MILLISECONDS;
         if (delay > 20000)
         {
-            bot->TellMaster(&fromPlayer, "Max wait time is 20 seconds!");
+            bot->TellMaster(&fromPlayer, PlayerbotTextMgr::instance().GetBotTextOrDefault("string_max_wait_time", "Max wait time is 20 seconds!", {}).c_str());
             return;
         }
 

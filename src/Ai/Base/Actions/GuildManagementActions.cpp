@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -8,6 +8,7 @@
 #include "GuildMgr.h"
 #include "GuildPackets.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 #include "ServerFacade.h"
 #include "BroadcastHelper.h"
 
@@ -298,7 +299,7 @@ bool GuildLeaveAction::Execute(Event event)
     Player* owner = event.getOwner();
     if (owner && !botAI->GetSecurity()->CheckLevelFor(PLAYERBOT_SECURITY_INVITE, false, owner, true))
     {
-        botAI->TellError("Sorry, I am happy in my guild :)");
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_happy_in_guild", "Sorry, I am happy in my guild :)", {}));
         return false;
     }
 

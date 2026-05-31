@@ -72,7 +72,7 @@ bool SkipSpellsListAction::Execute(Event event)
         uint32 spellId = chat->parseSpell(cmd);
         if (!spellId)
         {
-            botAI->TellError("Unknown spell");
+            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_unknown_spell", "Unknown spell", {}));
             return false;
         }
 

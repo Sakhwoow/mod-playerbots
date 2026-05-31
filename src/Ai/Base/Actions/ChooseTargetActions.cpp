@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -10,6 +10,7 @@
 #include "LootObjectStack.h"
 #include "NewRpgStrategy.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 #include "RtiTargetValue.h"
 #include "PossibleRpgTargetsValue.h"
 #include "PvpTriggers.h"
@@ -177,7 +178,7 @@ bool AttackRtiTargetAction::Execute(Event /*event*/)
         }
     }
     else
-        botAI->TellError("I dont see my rti attack target");
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_no_rti_target", "I dont see my rti attack target", {}));
 
     return false;
 }

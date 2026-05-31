@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -8,6 +8,7 @@
 #include "Event.h"
 #include "GossipDef.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 
 bool GossipHelloAction::Execute(Event event)
 {
@@ -83,7 +84,7 @@ bool GossipHelloAction::ProcessGossip(int32 menuToSelect, bool silent)
     if (menuToSelect != -1 && !menu.GetItem(menuToSelect))
     {
         if (!silent)
-            botAI->TellError("Unknown gossip option");
+            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_unknown_gossip", "Unknown gossip option", {}));
         return false;
     }
 
@@ -138,7 +139,7 @@ bool GossipHelloAction::Execute(ObjectGuid guid, int32 menuToSelect, bool silent
     else if (!bot->PlayerTalkClass)
     {
         if (!silent)
-            botAI->TellError("I need to talk first");
+            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_need_talk_first", "I need to talk first", {}));
         return false;
     }
     else

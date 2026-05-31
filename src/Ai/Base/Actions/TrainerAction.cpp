@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -176,7 +176,7 @@ bool MaintenanceAction::Execute(Event /*event*/)
 {
     if (!sPlayerbotAIConfig.maintenanceCommand)
     {
-        botAI->TellError("maintenance command is not allowed, please check the configuration.");
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_maintenance_not_allowed", "maintenance command is not allowed, please check the configuration.", {}));
         return false;
     }
 
@@ -563,14 +563,14 @@ bool AutoGearAction::Execute(Event /*event*/)
 {
     if (!sPlayerbotAIConfig.autoGearCommand)
     {
-        botAI->TellError("autogear command is not allowed, please check the configuration.");
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_autogear_not_allowed", "autogear command is not allowed, please check the configuration.", {}));
         return false;
     }
 
     if (!sPlayerbotAIConfig.autoGearCommandAltBots &&
         !sPlayerbotAIConfig.IsInRandomAccountList(bot->GetSession()->GetAccountId()))
     {
-        botAI->TellError("You cannot use autogear on alt bots.");
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_no_autogear_alt", "You cannot use autogear on alt bots.", {}));
         return false;
     }
 

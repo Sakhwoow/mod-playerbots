@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -9,6 +9,7 @@
 #include "Event.h"
 #include "Mail.h"
 #include "Playerbots.h"
+#include "PlayerbotTextMgr.h"
 
 std::map<std::string, MailProcessor*> MailAction::processors;
 
@@ -83,7 +84,7 @@ public:
         Player* bot = botAI->GetBot();
         if (!CheckBagSpace(bot))
         {
-            botAI->TellError("Not enough bag space");
+            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_not_enough_bag_space", "Not enough bag space", {}));
             return false;
         }
 
@@ -256,7 +257,7 @@ bool MailAction::Execute(Event event)
 
     if (!MailProcessor::FindMailbox(botAI))
     {
-        botAI->TellError("There is no mailbox nearby");
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_no_mailbox", "There is no mailbox nearby", {}));
         return false;
     }
 

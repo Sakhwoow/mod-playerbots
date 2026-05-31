@@ -39,7 +39,7 @@ bool PetitionSignAction::Execute(Event event)
         if (bot->GetArenaTeamId(slot))
         {
             // player is already in an arena team
-            botAI->TellError("Sorry, I am already in such team");
+            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_already_in_team", "Sorry, I am already in such team", {}));
             accept = false;
         }
     }
@@ -47,13 +47,13 @@ bool PetitionSignAction::Execute(Event event)
     {
         if (bot->GetGuildId())
         {
-            botAI->TellError("Sorry, I am in a guild already");
+            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_already_in_guild", "Sorry, I am in a guild already", {}));
             accept = false;
         }
 
         if (bot->GetGuildIdInvited())
         {
-            botAI->TellError("Sorry, I am invited to a guild already");
+            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_already_invited_guild", "Sorry, I am invited to a guild already", {}));
             accept = false;
         }
 
@@ -61,7 +61,7 @@ bool PetitionSignAction::Execute(Event event)
         /*if (QueryResult* result = CharacterDatabase.Query("SELECT playerguid FROM petition_sign WHERE player_account =
         {} AND petitionguid = {}'", bot->GetSession()->GetAccountId(), petitionGuid.GetCounter()))
         {
-            botAI->TellError("Sorry, I already signed this pettition");
+            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_already_signed_petition", "Sorry, I already signed this pettition", {}));
             accept = false;
         }
         */

@@ -163,7 +163,7 @@ bool MovementAction::MoveToLOS(WorldObject* target, bool ranged)
     if (dest.isSet())
         return MoveTo(dest.mapId, dest.x, dest.y, dest.z);
     else
-        botAI->TellError("All paths not in LOS");
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_all_paths_no_los", "All paths not in LOS", {}));
 
     return false;
 }
@@ -1155,7 +1155,7 @@ bool MovementAction::Follow(Unit* target, float distance, float angle)
             botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_i_live_again", "I live, again!", {}));
         }
         else
-            botAI->TellError("I am stuck while following");
+            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_stuck_following", "I am stuck while following", {}));
 
         bot->CombatStop(true);
         botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_i_will_there_soon", "I will there soon.", {}));
@@ -1371,7 +1371,7 @@ bool MovementAction::Flee(Unit* target)
 
     if (!IsMovingAllowed())
     {
-        botAI->TellError("I am stuck while fleeing");
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_stuck_fleeing", "I am stuck while fleeing", {}));
         return false;
     }
 
@@ -1524,7 +1524,7 @@ bool MovementAction::Flee(Unit* target)
     float rx, ry, rz;
     if (!manager.CalculateDestination(&rx, &ry, &rz))
     {
-        botAI->TellError("Nowhere to flee");
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_nowhere_to_flee", "Nowhere to flee", {}));
         return false;
     }
 

@@ -186,14 +186,14 @@ bool GoAction::Execute(Event event)
 
         if (map->IsInWater(bot->GetPhaseMask(), x, y, z, bot->GetCollisionHeight()))
         {
-            botAI->TellError("It is in water");
+            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_in_water", "It is in water", {}));
             return false;
         }
 
         float ground = map->GetHeight(x, y, z + 0.5f);
         if (ground <= INVALID_HEIGHT)
         {
-            botAI->TellError("I can't go there");
+            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_cant_go_there", "I can't go there", {}));
             return false;
         }
 
