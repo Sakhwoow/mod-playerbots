@@ -18,7 +18,7 @@ class TellMailProcessor : public MailProcessor
 public:
     bool Before(PlayerbotAI* botAI) override
     {
-        botAI->TellMaster("=== Mailbox ===");
+        botAI->TellMaster("=== Почта ===");
         tells.clear();
         return true;
     }

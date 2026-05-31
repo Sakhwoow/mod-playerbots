@@ -289,7 +289,7 @@ bool ListSpellsAction::Execute(Event event)
         return true;
     }
 
-    botAI->TellMaster("=== Spells ===");
+    botAI->TellMaster("=== Заклинания ===");
 
     std::sort(spells.begin(), spells.end(), CompareSpells);
 

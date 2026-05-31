@@ -107,7 +107,7 @@ bool EquipGlyphsAction::Execute(Event event)
     std::vector<GlyphInfo const*> glyphs;
     if (!CollectGlyphs(itemIds, glyphs))
     {
-        botAI->TellMaster("Usage: glyph equip <6 glyph item IDs> (3 major, 3 minor).");
+        botAI->TellMaster("Использование: glyph equip <6 ID глифов> (3 большие, 3 малые).");
         return false;
     }
 

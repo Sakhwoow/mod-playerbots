@@ -155,40 +155,40 @@ void InventoryAction::TellItems(std::map<uint32, uint32> itemMap, std::map<uint3
             switch (proto->Class)
             {
                 case ITEM_CLASS_CONSUMABLE:
-                    botAI->TellMaster("--- consumable ---");
+                    botAI->TellMaster("--- расходуемые ---");
                     break;
                 case ITEM_CLASS_CONTAINER:
-                    botAI->TellMaster("--- container ---");
+                    botAI->TellMaster("--- контейнеры ---");
                     break;
                 case ITEM_CLASS_WEAPON:
-                    botAI->TellMaster("--- weapon ---");
+                    botAI->TellMaster("--- оружие ---");
                     break;
                 case ITEM_CLASS_ARMOR:
-                    botAI->TellMaster("--- armor ---");
+                    botAI->TellMaster("--- броня ---");
                     break;
                 case ITEM_CLASS_REAGENT:
-                    botAI->TellMaster("--- reagent ---");
+                    botAI->TellMaster("--- реагенты ---");
                     break;
                 case ITEM_CLASS_PROJECTILE:
-                    botAI->TellMaster("--- projectile ---");
+                    botAI->TellMaster("--- снаряды ---");
                     break;
                 case ITEM_CLASS_TRADE_GOODS:
-                    botAI->TellMaster("--- trade goods ---");
+                    botAI->TellMaster("--- торговые товары ---");
                     break;
                 case ITEM_CLASS_RECIPE:
-                    botAI->TellMaster("--- recipe ---");
+                    botAI->TellMaster("--- рецепты ---");
                     break;
                 case ITEM_CLASS_QUIVER:
-                    botAI->TellMaster("--- quiver ---");
+                    botAI->TellMaster("--- колчан ---");
                     break;
                 case ITEM_CLASS_QUEST:
-                    botAI->TellMaster("--- quest items ---");
+                    botAI->TellMaster("--- предметы заданий ---");
                     break;
                 case ITEM_CLASS_KEY:
-                    botAI->TellMaster("--- keys ---");
+                    botAI->TellMaster("--- ключи ---");
                     break;
                 case ITEM_CLASS_MISC:
-                    botAI->TellMaster("--- other ---");
+                    botAI->TellMaster("--- разное ---");
                     break;
             }
         }
