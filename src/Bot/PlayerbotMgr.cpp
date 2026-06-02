@@ -1213,7 +1213,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
         Group* group = master->GetGroup();
         if (!group)
         {
-            messages.push_back("you must be in group");
+            messages.push_back("вы должны быть в группе");
             return messages;
         }
 
