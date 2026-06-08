@@ -22,17 +22,33 @@ bool HelpAction::Execute(Event /*event*/)
 
 void HelpAction::TellChatCommands()
 {
-    std::ostringstream out;
-    out << "Whisper any of: ";
-    out << CombineSupported(chatContext->supports());
-    out << ", [item], [quest] or [object] link";
-    botAI->TellError(out.str());
+    botAI->TellError("=== Команды (пишите в личку на английском) ===");
+
+    botAI->TellError("Инфо: stats · spells · quests · reputation · aura · who · tell target · tell pvp stats · emblems · los · position");
+
+    botAI->TellError("Бой: co ? (боевые стратегии) · nc ? (небоевые) · de ? (смерть) · buff · summon · formation [тип] · stance [тип] · rti");
+
+    botAI->TellError("Предметы: equip [предмет] · unequip [предмет] · sell [предмет] · buy [предмет] · use [предмет] · trade [предмет] · destroy [предмет] · item count [предмет]");
+
+    botAI->TellError("Экипировка: autogear · autogear bis · equip upgrade · glyphs · glyph equip · repair · maintenance · trainer");
+
+    botAI->TellError("Квесты: share [квест] · drop [квест] · reward [квест] · quests · query quest [квест] · clean quest log · gossip hello");
+
+    botAI->TellError("Перемещение: teleport · taxi · go · home · summon · release · repop · spirit healer");
+
+    botAI->TellError("Банк/Почта: bank · gb (банк гильдии) · mail · sendmail · sell (продать всё серое)");
+
+    botAI->TellError("Питомец: pet · pet attack · tame");
+
+    botAI->TellError("Прочее: help · wipe · range · save mana · ll (лут) · buff · invite · leave · join · lfg · roll · calc · wts · hire · craft · flag · cheat");
+
+    botAI->TellError("Также принимает ссылки: [предмет], [квест], [объект]");
 }
 
 void HelpAction::TellStrategies()
 {
     std::ostringstream out;
-    out << "Possible strategies (co/nc/dead commands): ";
+    out << "Доступные стратегии (команды co/nc/de): ";
     out << CombineSupported(botAI->GetAiObjectContext()->GetSupportedStrategies());
     botAI->TellError(out.str());
 }
