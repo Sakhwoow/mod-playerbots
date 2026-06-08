@@ -1,9 +1,11 @@
 #include "PlayerbotGuildMgr.h"
 #include "Player.h"
 #include "PlayerbotAIConfig.h"
+#include "CharacterCache.h"
 #include "DatabaseEnv.h"
 #include "Guild.h"
 #include "GuildMgr.h"
+#include "GuildScript.h"
 #include "ScriptMgr.h"
 
 void PlayerbotGuildMgr::Init()
@@ -347,7 +349,50 @@ class BotGuildCacheWorldScript : public WorldScript
         uint32 _validateTimer;
 };
 
+class BotGuildLimitGuildScript : public GuildScript
+{
+public:
+    BotGuildLimitGuildScript() : GuildScript("BotGuildLimitGuildScript", {GUILDHOOK_CAN_ADD_MEMBER}) {}
+
+    bool CanGuildAddMember(Guild* guild, Player* player, uint8& /*plRank*/) override
+    {
+        uint32 maxBots = sPlayerbotAIConfig.maxBotsInRealGuild;
+        if (maxBots == 0 || !player)
+            return true;
+
+        if (!PlayerbotGuildMgr::instance().IsRealGuild(guild->GetId()))
+            return true;
+
+        if (!sPlayerbotAIConfig.IsInRandomAccountList(player->GetSession()->GetAccountId()))
+            return true;
+
+        QueryResult result = CharacterDatabase.Query(
+            "SELECT guid FROM guild_member WHERE guildid = {}", guild->GetId());
+
+        uint32 botCount = 0;
+        if (result)
+        {
+            do
+            {
+                ObjectGuid memberGuid = ObjectGuid::Create<HighGuid::Player>(result->Fetch()[0].Get<uint32>());
+                CharacterCacheEntry const* entry = sCharacterCache->GetCharacterCacheByGuid(memberGuid);
+                if (entry && sPlayerbotAIConfig.IsInRandomAccountList(entry->AccountId))
+                    botCount++;
+            } while (result->NextRow());
+        }
+
+        if (botCount >= maxBots)
+        {
+            LOG_DEBUG("playerbots", "CanGuildAddMember: bot limit {}/{} reached in guild '{}', rejecting {}",
+                botCount, maxBots, guild->GetName(), player->GetName());
+            return false;
+        }
+        return true;
+    }
+};
+
 void PlayerBotsGuildValidationScript()
 {
     new BotGuildCacheWorldScript();
+    new BotGuildLimitGuildScript();
 }

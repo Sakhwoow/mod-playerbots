@@ -167,6 +167,11 @@ AiPlayerbot.RandomBotGuildSizeMax = 15
 # Delete all randombot guilds if set to 1
 AiPlayerbot.DeleteRandomBotGuilds = 0
 
+# Maximum number of random bots allowed in a real player guild (0 = unlimited).
+# Prevents players from mass-inviting bots to their guilds via addon or /ginvite.
+# Real players are never counted toward this limit.
+AiPlayerbot.MaxBotsInRealGuild = 50
+
 # Randombots will invite players to groups/raids/guilds
 AiPlayerbot.RandomBotInvitePlayer = 0
 
