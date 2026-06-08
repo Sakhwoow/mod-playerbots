@@ -14,6 +14,8 @@
 #include <algorithm>
 
 #include "ChannelMgr.h"
+#include "DBCStores.h"
+#include "Player.h"
 #include "CharacterCache.h"
 #include "CharacterPackets.h"
 #include "Common.h"
@@ -231,6 +233,16 @@ void PlayerbotHolder::HandlePlayerBotLoginCallback(PlayerbotLoginQueryHolder con
     }
 
     sRandomPlayerbotMgr.OnPlayerLogin(bot);
+
+    if (uint32 titleId = sPlayerbotAIConfig.botTitleId)
+    {
+        if (CharTitlesEntry const* titleEntry = sCharTitlesStore.LookupEntry(titleId))
+        {
+            bot->SetTitle(titleEntry);
+            bot->SetUInt32Value(PLAYER_CHOSEN_TITLE, titleEntry->bit_index);
+        }
+    }
+
     auto op = std::make_unique<OnBotLoginOperation>(bot->GetGUID(), masterAccountId);
     PlayerbotWorldThreadProcessor::instance().QueueOperation(std::move(op));
 
@@ -359,6 +371,17 @@ void PlayerbotHolder::LogoutPlayerBot(ObjectGuid guid)
         PlayerbotWorldThreadProcessor::instance().QueueOperation(std::move(cleanupOp));
 
         LOG_DEBUG("playerbots", "Bot {} logging out", bot->GetName().c_str());
+
+        if (uint32 titleId = sPlayerbotAIConfig.botTitleId)
+        {
+            if (CharTitlesEntry const* titleEntry = sCharTitlesStore.LookupEntry(titleId))
+            {
+                if (bot->GetUInt32Value(PLAYER_CHOSEN_TITLE) == titleEntry->bit_index)
+                    bot->SetUInt32Value(PLAYER_CHOSEN_TITLE, 0);
+                bot->SetTitle(titleEntry, true);
+            }
+        }
+
         bot->SaveToDB(false, false);
 
         WorldSession* botWorldSessionPtr = bot->GetSession();
@@ -1056,10 +1079,29 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
 
     if (!strcmp(cmd, "self"))
     {
+        auto applyBotTitle = [](Player* p, bool apply)
+        {
+            if (uint32 titleId = sPlayerbotAIConfig.botTitleId)
+                if (CharTitlesEntry const* e = sCharTitlesStore.LookupEntry(titleId))
+                {
+                    if (apply)
+                    {
+                        p->SetTitle(e);
+                        p->SetUInt32Value(PLAYER_CHOSEN_TITLE, e->bit_index);
+                    }
+                    else
+                    {
+                        p->SetUInt32Value(PLAYER_CHOSEN_TITLE, 0);
+                        p->SetTitle(e, true);
+                    }
+                }
+        };
+
         if (GET_PLAYERBOT_AI(master))
         {
             messages.push_back("Disable player botAI");
             delete GET_PLAYERBOT_AI(master);
+            applyBotTitle(master, false);
         }
         else if (sPlayerbotAIConfig.selfBotLevel == 0)
             messages.push_back("Self-bot is disabled");
@@ -1070,6 +1112,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
             messages.push_back("Enable player botAI");
             PlayerbotsMgr::instance().AddPlayerbotData(master, true);
             GET_PLAYERBOT_AI(master)->SetMaster(master);
+            applyBotTitle(master, true);
         }
 
         return messages;
@@ -1665,8 +1708,33 @@ void PlayerbotMgr::OnPlayerLogin(Player* player)
     // set locale priority for bot texts
     PlayerbotTextMgr::instance().AddLocalePriority(usedLocale);
 
+    // Реальный игрок заходит — убираем тайтл бота на случай если остался от прошлой сессии
+    if (!session->IsBot())
+    {
+        if (uint32 titleId = sPlayerbotAIConfig.botTitleId)
+        {
+            if (CharTitlesEntry const* titleEntry = sCharTitlesStore.LookupEntry(titleId))
+            {
+                if (player->GetUInt32Value(PLAYER_CHOSEN_TITLE) == titleEntry->bit_index)
+                    player->SetUInt32Value(PLAYER_CHOSEN_TITLE, 0);
+                if (player->HasTitle(titleEntry))
+                    player->SetTitle(titleEntry, true);
+            }
+        }
+    }
+
     if (sPlayerbotAIConfig.selfBotLevel > 2)
+    {
         HandlePlayerbotCommand("self", player);
+        if (uint32 titleId = sPlayerbotAIConfig.botTitleId)
+        {
+            if (CharTitlesEntry const* titleEntry = sCharTitlesStore.LookupEntry(titleId))
+            {
+                player->SetTitle(titleEntry);
+                player->SetUInt32Value(PLAYER_CHOSEN_TITLE, titleEntry->bit_index);
+            }
+        }
+    }
 
     if (!sPlayerbotAIConfig.botAutologin)
         return;

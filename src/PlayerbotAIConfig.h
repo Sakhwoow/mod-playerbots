@@ -466,6 +466,9 @@ public:
     // Forced locale for bot text output (-1 = auto-detect from online players, 0-8 = fixed locale index)
     int32 botTextLocale;
 
+    // CharTitles.dbc entry ID to assign to bots (0 = disabled)
+    uint32 botTitleId;
+
 private:
     PlayerbotAIConfig() = default;
     ~PlayerbotAIConfig() = default;

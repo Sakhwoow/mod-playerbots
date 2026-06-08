@@ -882,6 +882,12 @@ AiPlayerbot.ExcludedHunterPetFamilies = ""
 # Example for Russian: AiPlayerbot.BotTextLocale = 8
 AiPlayerbot.BotTextLocale = -1
 
+# Title ID from CharTitles.dbc to assign to all bots so they are visually
+# distinguishable from real players in the world. 0 = disabled.
+# Custom entry ID 172 (Mask_ID 137) = "%s Бот" — requires chartitles_dbc SQL entry
+# and matching client CharTitles.dbc patch (zhTW locale column).
+AiPlayerbot.BotTitleId = 172
+
 #
 #
 ####################################################################################################
