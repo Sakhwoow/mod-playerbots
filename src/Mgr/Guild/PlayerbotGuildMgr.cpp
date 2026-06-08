@@ -129,7 +129,33 @@ void PlayerbotGuildMgr::OnGuildUpdate(Guild* guild)
 {
     auto it = _guildCache.find(guild->GetId());
     if (it == _guildCache.end())
+    {
+        // New guild created while server is running — add it to cache immediately
+        ObjectGuid leaderGuid = guild->GetLeaderGUID();
+        CharacterCacheEntry const* leaderEntry = sCharacterCache->GetCharacterCacheByGuid(leaderGuid);
+
+        GuildCache entry;
+        entry.name = guild->GetName();
+        entry.maxMembers = sPlayerbotAIConfig.randomBotGuildSizeMax;
+        entry.memberCount = guild->GetMemberCount();
+        entry.status = entry.memberCount > 0 ? 1 : 0;
+
+        if (leaderEntry)
+        {
+            entry.hasRealPlayer = !(sPlayerbotAIConfig.IsInRandomAccountList(leaderEntry->AccountId));
+            entry.faction = Player::TeamIdForRace(leaderEntry->Race);
+        }
+        else
+        {
+            entry.hasRealPlayer = true; // safe default: protect unknown guilds
+            entry.faction = TEAM_ALLIANCE;
+        }
+
+        _guildCache[guild->GetId()] = entry;
+        LOG_DEBUG("playerbots", "OnGuildUpdate: added new guild {} '{}' to cache (hasRealPlayer={})",
+                  guild->GetId(), guild->GetName(), entry.hasRealPlayer);
         return;
+    }
 
     GuildCache& entry = it->second;
     entry.memberCount = guild->GetMemberCount();
@@ -217,6 +243,17 @@ void PlayerbotGuildMgr::ValidateGuildCache()
         cache.memberCount = guild->GetMemberCount();
         ObjectGuid leaderGuid = guild->GetLeaderGUID();
         CharacterCacheEntry const* leaderEntry = sCharacterCache->GetCharacterCacheByGuid(leaderGuid);
+        if (!leaderEntry)
+        {
+            // Treat guild as real (safe default) if leader not yet in character cache
+            LOG_WARN("playerbots", "Guild {} '{}': leader {} not in character cache, marking as real guild",
+                     guildId, cache.name, leaderGuid.ToString());
+            cache.hasRealPlayer = true;
+            cache.faction = TEAM_ALLIANCE;
+            cache.status = cache.memberCount > 0 ? 1 : 0;
+            _guildCache.insert_or_assign(guildId, cache);
+            continue;
+        }
         uint32 leaderAccount = leaderEntry->AccountId;
         cache.hasRealPlayer = !(sPlayerbotAIConfig.IsInRandomAccountList(leaderAccount));
         cache.faction = Player::TeamIdForRace(leaderEntry->Race);
