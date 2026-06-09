@@ -349,10 +349,64 @@ class BotGuildCacheWorldScript : public WorldScript
         uint32 _validateTimer;
 };
 
+void PlayerbotGuildMgr::LoadGuildBotCounts()
+{
+    _guildBotCount.clear();
+    QueryResult result = CharacterDatabase.Query(
+        "SELECT gm.guildid, c.account FROM guild_member gm "
+        "JOIN characters c ON gm.guid = c.guid");
+    if (result)
+    {
+        do
+        {
+            uint32 guildId = (*result)[0].Get<uint32>();
+            uint32 accountId = (*result)[1].Get<uint32>();
+            if (sPlayerbotAIConfig.IsInRandomAccountList(accountId))
+                _guildBotCount[guildId]++;
+        } while (result->NextRow());
+    }
+    _guildBotCountLoaded = true;
+}
+
+void PlayerbotGuildMgr::IncrementGuildBotCount(uint32 guildId)
+{
+    _guildBotCount[guildId]++;
+}
+
+void PlayerbotGuildMgr::DecrementGuildBotCount(uint32 guildId)
+{
+    auto it = _guildBotCount.find(guildId);
+    if (it != _guildBotCount.end() && it->second > 0)
+        it->second--;
+}
+
+uint32 PlayerbotGuildMgr::GetGuildBotCount(uint32 guildId)
+{
+    if (!_guildBotCountLoaded)
+        LoadGuildBotCounts();
+    auto it = _guildBotCount.find(guildId);
+    return it != _guildBotCount.end() ? it->second : 0;
+}
+
 class BotGuildLimitGuildScript : public GuildScript
 {
 public:
-    BotGuildLimitGuildScript() : GuildScript("BotGuildLimitGuildScript", {GUILDHOOK_CAN_ADD_MEMBER}) {}
+    BotGuildLimitGuildScript() : GuildScript("BotGuildLimitGuildScript",
+        {GUILDHOOK_CAN_ADD_MEMBER, GUILDHOOK_ON_ADD_MEMBER, GUILDHOOK_ON_REMOVE_MEMBER}) {}
+
+    void OnAddMember(Guild* guild, Player* player, uint8& /*plRank*/) override
+    {
+        if (player && sPlayerbotAIConfig.IsInRandomAccountList(player->GetSession()->GetAccountId()))
+            PlayerbotGuildMgr::instance().IncrementGuildBotCount(guild->GetId());
+    }
+
+    void OnRemoveMember(Guild* guild, Player* player, bool isDisbanding, bool /*isKicked*/) override
+    {
+        if (isDisbanding || !player)
+            return;
+        if (sPlayerbotAIConfig.IsInRandomAccountList(player->GetSession()->GetAccountId()))
+            PlayerbotGuildMgr::instance().DecrementGuildBotCount(guild->GetId());
+    }
 
     bool CanGuildAddMember(Guild* guild, Player* player, uint8& /*plRank*/) override
     {
@@ -366,13 +420,7 @@ public:
         if (!sPlayerbotAIConfig.IsInRandomAccountList(player->GetSession()->GetAccountId()))
             return true;
 
-        uint32 botCount = 0;
-        for (auto const& [guid, member] : guild->m_members)
-        {
-            if (sPlayerbotAIConfig.IsInRandomAccountList(member.GetAccountId()))
-                botCount++;
-        }
-
+        uint32 botCount = PlayerbotGuildMgr::instance().GetGuildBotCount(guild->GetId());
         if (botCount >= maxBots)
         {
             LOG_DEBUG("playerbots", "CanGuildAddMember: bot limit {}/{} reached in guild '{}', rejecting {}",

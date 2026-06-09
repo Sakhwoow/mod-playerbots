@@ -27,7 +27,14 @@ public:
     bool IsRealGuild(uint32 guildId);
     bool IsRealGuild(Player* bot);
 
+    void IncrementGuildBotCount(uint32 guildId);
+    void DecrementGuildBotCount(uint32 guildId);
+    uint32 GetGuildBotCount(uint32 guildId);
+
 private:
+    void LoadGuildBotCounts();
+    bool _guildBotCountLoaded = false;
+    std::unordered_map<uint32, uint32> _guildBotCount;
     PlayerbotGuildMgr() = default;
     ~PlayerbotGuildMgr() = default;
 

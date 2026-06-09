@@ -8,7 +8,6 @@
 #include "Chat.h"
 #include "DatabaseEnv.h"
 #include "Event.h"
-#include "GuildMgr.h"
 #include "GuildPackets.h"
 #include "PlayerbotGuildMgr.h"
 #include "PlayerbotSecurity.h"
@@ -55,15 +54,7 @@ bool GuildAcceptAction::Execute(Event event)
         uint32 maxBots = sPlayerbotAIConfig.maxBotsInRealGuild;
         if (maxBots > 0 && PlayerbotGuildMgr::instance().IsRealGuild(guildId))
         {
-            uint32 botCount = 0;
-            if (Guild* guild = sGuildMgr->GetGuildById(guildId))
-            {
-                for (auto const& [guid, member] : guild->m_members)
-                {
-                    if (sPlayerbotAIConfig.IsInRandomAccountList(member.GetAccountId()))
-                        botCount++;
-                }
-            }
+            uint32 botCount = PlayerbotGuildMgr::instance().GetGuildBotCount(guildId);
             if (botCount >= maxBots)
             {
                 ChatHandler(inviter->GetSession()).PSendSysMessage(
