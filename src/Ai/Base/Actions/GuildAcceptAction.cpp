@@ -57,8 +57,7 @@ bool GuildAcceptAction::Execute(Event event)
             uint32 botCount = PlayerbotGuildMgr::instance().GetGuildBotCount(guildId);
             if (botCount >= maxBots)
             {
-                ChatHandler(inviter->GetSession()).PSendSysMessage(
-                    "Превышен лимит ботов в гильдии {}/{}", botCount, maxBots);
+                inviter->GetSession()->SendNotification("|cFFFF0000Превышен лимит ботов в гильдии %u/%u|r", botCount, maxBots);
                 accept = false;
             }
         }
