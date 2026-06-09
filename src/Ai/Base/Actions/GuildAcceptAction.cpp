@@ -6,7 +6,7 @@
 #include "GuildAcceptAction.h"
 
 #include "CharacterCache.h"
-#include "ChatHandler.h"
+#include "Chat.h"
 #include "DatabaseEnv.h"
 #include "Event.h"
 #include "GuildMgr.h"
