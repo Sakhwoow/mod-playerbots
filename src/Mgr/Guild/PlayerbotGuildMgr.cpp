@@ -366,19 +366,11 @@ public:
         if (!sPlayerbotAIConfig.IsInRandomAccountList(player->GetSession()->GetAccountId()))
             return true;
 
-        QueryResult result = CharacterDatabase.Query(
-            "SELECT guid FROM guild_member WHERE guildid = {}", guild->GetId());
-
         uint32 botCount = 0;
-        if (result)
+        for (auto const& [guid, member] : guild->m_members)
         {
-            do
-            {
-                ObjectGuid memberGuid = ObjectGuid::Create<HighGuid::Player>(result->Fetch()[0].Get<uint32>());
-                CharacterCacheEntry const* entry = sCharacterCache->GetCharacterCacheByGuid(memberGuid);
-                if (entry && sPlayerbotAIConfig.IsInRandomAccountList(entry->AccountId))
-                    botCount++;
-            } while (result->NextRow());
+            if (sPlayerbotAIConfig.IsInRandomAccountList(member.GetAccountId()))
+                botCount++;
         }
 
         if (botCount >= maxBots)

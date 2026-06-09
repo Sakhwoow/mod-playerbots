@@ -5,7 +5,6 @@
 
 #include "GuildAcceptAction.h"
 
-#include "CharacterCache.h"
 #include "Chat.h"
 #include "DatabaseEnv.h"
 #include "Event.h"
@@ -56,18 +55,14 @@ bool GuildAcceptAction::Execute(Event event)
         uint32 maxBots = sPlayerbotAIConfig.maxBotsInRealGuild;
         if (maxBots > 0 && PlayerbotGuildMgr::instance().IsRealGuild(guildId))
         {
-            QueryResult result = CharacterDatabase.Query(
-                "SELECT guid FROM guild_member WHERE guildid = {}", guildId);
             uint32 botCount = 0;
-            if (result)
+            if (Guild* guild = sGuildMgr->GetGuildById(guildId))
             {
-                do
+                for (auto const& [guid, member] : guild->m_members)
                 {
-                    ObjectGuid memberGuid = ObjectGuid::Create<HighGuid::Player>(result->Fetch()[0].Get<uint32>());
-                    CharacterCacheEntry const* entry = sCharacterCache->GetCharacterCacheByGuid(memberGuid);
-                    if (entry && sPlayerbotAIConfig.IsInRandomAccountList(entry->AccountId))
+                    if (sPlayerbotAIConfig.IsInRandomAccountList(member.GetAccountId()))
                         botCount++;
-                } while (result->NextRow());
+                }
             }
             if (botCount >= maxBots)
             {
