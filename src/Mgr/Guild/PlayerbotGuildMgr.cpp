@@ -144,7 +144,7 @@ void PlayerbotGuildMgr::OnGuildUpdate(Guild* guild)
 
         if (leaderEntry)
         {
-            entry.hasRealPlayer = !(sPlayerbotAIConfig.IsInRandomAccountList(leaderEntry->AccountId));
+            entry.hasRealPlayer = !(sPlayerbotAIConfig.IsRandomBotAccount(leaderEntry->AccountId));
             entry.faction = Player::TeamIdForRace(leaderEntry->Race);
         }
         else
@@ -257,7 +257,7 @@ void PlayerbotGuildMgr::ValidateGuildCache()
             continue;
         }
         uint32 leaderAccount = leaderEntry->AccountId;
-        cache.hasRealPlayer = !(sPlayerbotAIConfig.IsInRandomAccountList(leaderAccount));
+        cache.hasRealPlayer = !(sPlayerbotAIConfig.IsRandomBotAccount(leaderAccount));
         cache.faction = Player::TeamIdForRace(leaderEntry->Race);
         if (cache.memberCount == 0)
             cache.status = 0; // empty
@@ -361,7 +361,7 @@ void PlayerbotGuildMgr::LoadGuildBotCounts()
         {
             uint32 guildId = (*result)[0].Get<uint32>();
             uint32 accountId = (*result)[1].Get<uint32>();
-            if (sPlayerbotAIConfig.IsInRandomAccountList(accountId))
+            if (sPlayerbotAIConfig.IsRandomBotAccount(accountId))
                 _guildBotCount[guildId]++;
         } while (result->NextRow());
     }
@@ -396,7 +396,7 @@ public:
 
     void OnAddMember(Guild* guild, Player* player, uint8& /*plRank*/) override
     {
-        if (player && sPlayerbotAIConfig.IsInRandomAccountList(player->GetSession()->GetAccountId()))
+        if (player && sPlayerbotAIConfig.IsRandomBotAccount(player->GetSession()->GetAccountId()))
             PlayerbotGuildMgr::instance().IncrementGuildBotCount(guild->GetId());
     }
 
@@ -404,7 +404,7 @@ public:
     {
         if (isDisbanding || !player)
             return;
-        if (sPlayerbotAIConfig.IsInRandomAccountList(player->GetSession()->GetAccountId()))
+        if (sPlayerbotAIConfig.IsRandomBotAccount(player->GetSession()->GetAccountId()))
             PlayerbotGuildMgr::instance().DecrementGuildBotCount(guild->GetId());
     }
 
@@ -417,7 +417,7 @@ public:
         if (!PlayerbotGuildMgr::instance().IsRealGuild(guild->GetId()))
             return true;
 
-        if (!sPlayerbotAIConfig.IsInRandomAccountList(player->GetSession()->GetAccountId()))
+        if (!sPlayerbotAIConfig.IsRandomBotAccount(player->GetSession()->GetAccountId()))
             return true;
 
         uint32 botCount = PlayerbotGuildMgr::instance().GetGuildBotCount(guild->GetId());

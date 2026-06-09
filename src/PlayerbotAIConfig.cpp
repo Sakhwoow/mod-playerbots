@@ -5,6 +5,7 @@
 
 #include "PlayerbotAIConfig.h"
 #include <iostream>
+#include "AccountMgr.h"
 #include "BisListMgr.h"
 #include "Config.h"
 #include "NewRpgInfo.h"
@@ -747,6 +748,21 @@ bool PlayerbotAIConfig::Initialize()
 bool PlayerbotAIConfig::IsInRandomAccountList(uint32 id)
 {
     return find(randomBotAccounts.begin(), randomBotAccounts.end(), id) != randomBotAccounts.end();
+}
+
+bool PlayerbotAIConfig::IsRandomBotAccount(uint32 id)
+{
+    if (!randomBotAccounts.empty())
+        return IsInRandomAccountList(id);
+
+    std::string accountName;
+    if (!AccountMgr::GetName(id, accountName))
+        return false;
+
+    std::transform(accountName.begin(), accountName.end(), accountName.begin(), ::tolower);
+    std::string prefix = randomBotAccountPrefix;
+    std::transform(prefix.begin(), prefix.end(), prefix.begin(), ::tolower);
+    return accountName.size() >= prefix.size() && accountName.substr(0, prefix.size()) == prefix;
 }
 
 bool PlayerbotAIConfig::IsInRandomQuestItemList(uint32 id)

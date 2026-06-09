@@ -49,7 +49,7 @@ bool GuildAcceptAction::Execute(Event event)
             "guild_accept_declined", "Sorry, I don't want to join your guild :(", {}));
         accept = false;
     }
-    else if (sPlayerbotAIConfig.IsInRandomAccountList(bot->GetSession()->GetAccountId()))
+    else if (sPlayerbotAIConfig.IsRandomBotAccount(bot->GetSession()->GetAccountId()))
     {
         uint32 maxBots = sPlayerbotAIConfig.maxBotsInRealGuild;
         if (maxBots > 0 && PlayerbotGuildMgr::instance().IsRealGuild(guildId))
