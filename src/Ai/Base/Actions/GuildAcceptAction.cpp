@@ -5,11 +5,17 @@
 
 #include "GuildAcceptAction.h"
 
+#include "CharacterCache.h"
+#include "ChatHandler.h"
+#include "DatabaseEnv.h"
 #include "Event.h"
+#include "GuildMgr.h"
 #include "GuildPackets.h"
+#include "PlayerbotGuildMgr.h"
 #include "PlayerbotSecurity.h"
 #include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
+#include "StringFormat.h"
 
 bool GuildAcceptAction::Execute(Event event)
 {
@@ -44,6 +50,32 @@ bool GuildAcceptAction::Execute(Event event)
         botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
             "guild_accept_declined", "Sorry, I don't want to join your guild :(", {}));
         accept = false;
+    }
+    else if (sPlayerbotAIConfig.IsInRandomAccountList(bot->GetSession()->GetAccountId()))
+    {
+        uint32 maxBots = sPlayerbotAIConfig.maxBotsInRealGuild;
+        if (maxBots > 0 && PlayerbotGuildMgr::instance().IsRealGuild(guildId))
+        {
+            QueryResult result = CharacterDatabase.Query(
+                "SELECT guid FROM guild_member WHERE guildid = {}", guildId);
+            uint32 botCount = 0;
+            if (result)
+            {
+                do
+                {
+                    ObjectGuid memberGuid = ObjectGuid::Create<HighGuid::Player>(result->Fetch()[0].Get<uint32>());
+                    CharacterCacheEntry const* entry = sCharacterCache->GetCharacterCacheByGuid(memberGuid);
+                    if (entry && sPlayerbotAIConfig.IsInRandomAccountList(entry->AccountId))
+                        botCount++;
+                } while (result->NextRow());
+            }
+            if (botCount >= maxBots)
+            {
+                ChatHandler(inviter->GetSession()).PSendSysMessage(
+                    "Превышен лимит ботов в гильдии {}/{}", botCount, maxBots);
+                accept = false;
+            }
+        }
     }
 
     if (accept)
