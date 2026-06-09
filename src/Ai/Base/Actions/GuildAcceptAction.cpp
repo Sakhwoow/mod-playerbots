@@ -57,7 +57,10 @@ bool GuildAcceptAction::Execute(Event event)
             uint32 botCount = PlayerbotGuildMgr::instance().GetGuildBotCount(guildId);
             if (botCount >= maxBots)
             {
-                inviter->GetSession()->SendNotification("|cFFFF0000Превышен лимит ботов в гильдии %u/%u|r", botCount, maxBots);
+                std::string msg = Acore::StringFormat("|cFFFF0000Превышен лимит ботов в гильдии {}/{}|r", botCount, maxBots);
+                WorldPacket notif(SMSG_NOTIFICATION, msg.size() + 1);
+                notif << msg;
+                inviter->GetSession()->SendPacket(&notif);
                 accept = false;
             }
         }
