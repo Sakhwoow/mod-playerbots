@@ -4,6 +4,7 @@
  */
 
 #include "RandomPlayerbotMgr.h"
+#include "Mgr/Guild/PlayerbotGuildMgr.h"
 
 #include <WorldSessionMgr.h>
 
@@ -1430,6 +1431,19 @@ bool RandomPlayerbotMgr::ProcessBot(uint32 bot)
     uint32 logout = GetEventValue(bot, "logout");
     if (player && !logout && !isValid)
     {
+        // Не выгоняем гильдейского бота пока реальный игрок в гильдии онлайн и минимум не набран
+        if (sPlayerbotAIConfig.guildBotMinOnline && player->GetGuildId())
+        {
+            uint32 guildId = player->GetGuildId();
+            if (PlayerbotGuildMgr::instance().IsRealGuild(guildId) &&
+                HasRealPlayerInGuild(guildId) &&
+                GetOnlineGuildBotCount(guildId) <= sPlayerbotAIConfig.guildBotMinOnline)
+            {
+                SetEventValue(bot, "add", 1, urand(60, 120));
+                return false;
+            }
+        }
+
         LOG_DEBUG("playerbots", "Bot #{} {}:{} <{}>: log out", bot, IsAlliance(player->getRace()) ? "A" : "H",
                   player->GetLevel(), player->GetName().c_str());
         LogoutPlayerBot(botGUID);
@@ -2560,6 +2574,100 @@ void RandomPlayerbotMgr::OnBotLoginInternal(Player* const bot)
     }
 }
 
+uint32 RandomPlayerbotMgr::GetOnlineGuildBotCount(uint32 guildId)
+{
+    uint32 count = 0;
+    for (auto const& [guid, bot] : playerBots)
+    {
+        if (IsRandomBot(bot) && bot->GetGuildId() == guildId)
+            count++;
+    }
+    return count;
+}
+
+bool RandomPlayerbotMgr::HasRealPlayerInGuild(uint32 guildId)
+{
+    for (Player* p : players)
+    {
+        if (p->GetGuildId() == guildId)
+            return true;
+    }
+    return false;
+}
+
+void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId)
+{
+    if (!sPlayerbotAIConfig.guildBotMinOnline)
+        return;
+
+    uint32 onlineCount = GetOnlineGuildBotCount(guildId);
+    uint32 needed = sPlayerbotAIConfig.guildBotMinOnline;
+    if (onlineCount >= needed)
+        return;
+
+    uint32 toLogin = needed - onlineCount;
+
+    QueryResult result = CharacterDatabase.Query(
+        "SELECT gm.guid, c.account FROM guild_member gm "
+        "INNER JOIN characters c ON c.guid = gm.guid "
+        "WHERE gm.guildid = {}", guildId);
+
+    if (!result)
+        return;
+
+    do
+    {
+        if (!toLogin)
+            break;
+
+        uint32 charGuid = (*result)[0].Get<uint32>();
+        uint32 accountId = (*result)[1].Get<uint32>();
+
+        if (!sPlayerbotAIConfig.IsInRandomAccountList(accountId))
+            continue;
+
+        ObjectGuid botGUID = ObjectGuid::Create<HighGuid::Player>(charGuid);
+        if (GetPlayerBot(botGUID))
+            continue;
+
+        uint32 maxAllowed = GetEventValue(0, "bot_count");
+        if (!maxAllowed)
+            maxAllowed = sPlayerbotAIConfig.maxRandomBots;
+
+        // Если лимит заполнен — выкидываем обычного бота без группы и без гильдии реального игрока
+        if ((uint32)playerBots.size() >= maxAllowed)
+        {
+            bool kicked = false;
+            for (auto const& [guid, candidate] : playerBots)
+            {
+                if (!IsRandomBot(candidate))
+                    continue;
+                if (candidate->GetGroup())
+                    continue;
+                uint32 cGuildId = candidate->GetGuildId();
+                if (cGuildId && HasRealPlayerInGuild(cGuildId))
+                    continue;
+
+                LogoutPlayerBot(guid);
+                kicked = true;
+                break;
+            }
+            if (!kicked)
+                break;
+        }
+
+        if (std::find(currentBots.begin(), currentBots.end(), charGuid) == currentBots.end())
+            currentBots.push_back(charGuid);
+
+        SetEventValue(charGuid, "add", 1, sPlayerbotAIConfig.maxRandomBotInWorldTime);
+        AddPlayerBot(botGUID, 0);
+
+        LOG_DEBUG("playerbots", "GuildBotMinOnline: logging in guild bot {} for guild {}", charGuid, guildId);
+        toLogin--;
+
+    } while (result->NextRow());
+}
+
 void RandomPlayerbotMgr::OnPlayerLogin(Player* player)
 {
     uint32 botsNearby = 0;
@@ -2650,6 +2758,12 @@ void RandomPlayerbotMgr::OnPlayerLogin(Player* player)
     {
         players.push_back(player);
         LOG_DEBUG("playerbots", "Including non-random bot player {} into random bot update", player->GetName().c_str());
+
+        if (sPlayerbotAIConfig.guildBotMinOnline && player->GetGuildId() &&
+            PlayerbotGuildMgr::instance().IsRealGuild(player->GetGuildId()))
+        {
+            EnsureGuildBotsOnline(player->GetGuildId());
+        }
     }
 }
 

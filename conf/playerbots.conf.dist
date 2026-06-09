@@ -172,6 +172,12 @@ AiPlayerbot.DeleteRandomBotGuilds = 0
 # Real players are never counted toward this limit.
 AiPlayerbot.MaxBotsInRealGuild = 50
 
+# Minimum number of guild bots to keep online when a real player from that guild is logged in.
+# When a real player logs in, the system will prioritize logging in their guild bots up to this count,
+# displacing regular random bots from the pool if needed (total bot count stays within the global limit).
+# Set to 0 to disable (default).
+AiPlayerbot.GuildBotMinOnline = 0
+
 # Randombots will invite players to groups/raids/guilds
 AiPlayerbot.RandomBotInvitePlayer = 0
 

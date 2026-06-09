@@ -116,6 +116,9 @@ public:
     std::string const HandleRemoteCommand(std::string const request);
     void OnPlayerLogout(Player* player);
     void OnPlayerLogin(Player* player);
+    void EnsureGuildBotsOnline(uint32 guildId);
+    uint32 GetOnlineGuildBotCount(uint32 guildId);
+    bool HasRealPlayerInGuild(uint32 guildId);
     void OnPlayerLoginError(uint32 bot);
     Player* GetRandomPlayer();
     std::vector<Player*> GetPlayers() { return players; };
