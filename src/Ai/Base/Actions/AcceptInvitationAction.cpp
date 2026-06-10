@@ -8,6 +8,7 @@
 #include "Event.h"
 #include "ObjectAccessor.h"
 #include "PlayerbotAIConfig.h"
+#include "PlayerbotGuildMgr.h"
 #include "PlayerbotSecurity.h"
 #include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
@@ -34,6 +35,33 @@ bool AcceptInvitationAction::Execute(Event event)
         inviter->SendDirectMessage(&data);
         bot->UninviteFromGroup();
         return false;
+    }
+
+    // Bots in real player guilds only accept invites from the same guild
+    if (sRandomPlayerbotMgr.IsRandomBot(bot))
+    {
+        uint32 botGuildId = bot->GetGuildId();
+        if (botGuildId && PlayerbotGuildMgr::instance().IsRealGuild(botGuildId))
+        {
+            if (inviter->GetGuildId() != botGuildId)
+            {
+                WorldPacket data(SMSG_GROUP_DECLINE, 10);
+                data << bot->GetName();
+                inviter->SendDirectMessage(&data);
+
+                std::string msg = PlayerbotTextMgr::instance().GetBotTextOrDefault(
+                    "guild_only_invite",
+                    "Sorry, I only accept party invitations from my guildmates.",
+                    {});
+                WorldPacket whisper;
+                ChatHandler::BuildChatPacket(whisper, CHAT_MSG_WHISPER, LANG_UNIVERSAL,
+                    bot, nullptr, msg.c_str());
+                inviter->SendDirectMessage(&whisper);
+
+                bot->UninviteFromGroup();
+                return false;
+            }
+        }
     }
 
     if (bot->isAFK())
