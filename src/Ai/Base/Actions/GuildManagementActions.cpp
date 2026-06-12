@@ -8,6 +8,7 @@
 #include "GuildMgr.h"
 #include "GuildPackets.h"
 #include "Playerbots.h"
+#include "PlayerbotGuildMgr.h"
 #include "PlayerbotTextMgr.h"
 #include "ServerFacade.h"
 #include "BroadcastHelper.h"
