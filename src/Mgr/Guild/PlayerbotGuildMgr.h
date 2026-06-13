@@ -4,6 +4,7 @@
 #include "Guild.h"
 #include "Player.h"
 #include "PlayerbotAI.h"
+#include <chrono>
 
 class PlayerbotGuildMgr
 {
@@ -30,6 +31,7 @@ public:
     void IncrementGuildBotCount(uint32 guildId);
     void DecrementGuildBotCount(uint32 guildId);
     uint32 GetGuildBotCount(uint32 guildId);
+    void SetHasRealPlayer(uint32 guildId, bool value);
 
 private:
     void LoadGuildBotCounts();
@@ -54,6 +56,7 @@ private:
         uint32 memberCount = 0;
         uint8 faction = 0;
         bool hasRealPlayer = false;
+        std::chrono::steady_clock::time_point realPlayerCheckedAt = {};
     };
     std::unordered_map<uint32 , GuildCache> _guildCache;
     std::vector<std::string> _shuffled_guild_keys;
