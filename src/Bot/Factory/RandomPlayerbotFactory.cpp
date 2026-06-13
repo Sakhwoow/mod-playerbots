@@ -9,7 +9,9 @@
 #include "ArenaTeamMgr.h"
 #include "DatabaseEnv.h"
 #include "PlayerbotAI.h"
+#include "PlayerbotFactory.h"
 #include "RaceMgr.h"
+#include "RandomPlayerbotMgr.h"
 #include "ScriptMgr.h"
 #include "SharedDefines.h"
 #include "SocialMgr.h"
@@ -856,6 +858,24 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
 
         // Field* fields = results->Fetch();
         // uint8 slot = fields[0].Get<uint8>();
+
+        // Assign PvP spec if bot doesn't already have one
+        if (!sRandomPlayerbotMgr.IsSpecPvp(player->GetGUID().GetCounter(), player->getClass()))
+        {
+            uint8 cls = player->getClass();
+            for (uint32 i = 0; i < MAX_SPECNO; ++i)
+            {
+                std::string const& specName = sPlayerbotAIConfig.premadeSpecName[cls][i];
+                if (!specName.empty() && specName.find("pvp") != std::string::npos)
+                {
+                    sRandomPlayerbotMgr.SetValue(player->GetGUID().GetCounter(), "specNo", i + 1);
+                    PlayerbotFactory factory(player, player->GetLevel());
+                    factory.Refresh();
+                    LOG_DEBUG("playerbots", "Assigned pvp spec '{}' to arena bot {}", specName, player->GetName());
+                    break;
+                }
+            }
+        }
 
         ArenaTeam* arenateam = new ArenaTeam();
         if (!arenateam->Create(player->GetGUID(), type, arenaTeamName, 0, 0, 0, 0, 0))
