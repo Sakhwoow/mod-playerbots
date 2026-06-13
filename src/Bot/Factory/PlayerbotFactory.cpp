@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "AccountMgr.h"
+#include "CharacterCache.h"
 #include "AiFactory.h"
 #include "ArenaTeam.h"
 #include "ArenaTeamMgr.h"
@@ -4708,23 +4709,21 @@ void PlayerbotFactory::InitArenaTeam()
         {
             LOG_INFO("playerbots", "Deleting random bot arena teams...");
 
-            for (auto it = sArenaTeamMgr->GetArenaTeams().begin(); it != sArenaTeamMgr->GetArenaTeams().end(); ++it)
+            std::vector<ArenaTeam*> toDisband;
+            for (auto& kv : sArenaTeamMgr->GetArenaTeams())
             {
-                ArenaTeam* arenateam = it->second;
-                if (arenateam->GetCaptain() && arenateam->GetCaptain().IsPlayer())
-                {
-                    Player* bot = ObjectAccessor::FindPlayer(arenateam->GetCaptain());
-                    PlayerbotAI* botAI = GET_PLAYERBOT_AI(bot);
-                    if (!botAI || botAI->IsRealPlayer())
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        arenateam->Disband(nullptr);
-                    }
-                }
+                ArenaTeam* arenateam = kv.second;
+                ObjectGuid captainGuid = arenateam->GetCaptain();
+                if (!captainGuid || !captainGuid.IsPlayer())
+                    continue;
+                CharacterCacheEntry const* entry = sCharacterCache->GetCharacterCacheByGuid(captainGuid);
+                if (!entry)
+                    continue;
+                if (sPlayerbotAIConfig.IsRandomBotAccount(entry->AccountId))
+                    toDisband.push_back(arenateam);
             }
+            for (ArenaTeam* team : toDisband)
+                team->Disband(nullptr);
 
             LOG_INFO("playerbots", "Random bot arena teams deleted");
         }
