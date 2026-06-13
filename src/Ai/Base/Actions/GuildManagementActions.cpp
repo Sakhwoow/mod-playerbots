@@ -297,15 +297,16 @@ bool GuildManageNearbyAction::isUseful()
 
 bool GuildLeaveAction::Execute(Event event)
 {
-    Player* owner = event.getOwner();
-    if (owner && !botAI->GetSecurity()->CheckLevelFor(PLAYERBOT_SECURITY_INVITE, false, owner, true))
+    // Block first: bots in real player guilds never leave via player command
+    uint32 guildId = bot->GetGuildId();
+    if (guildId && PlayerbotGuildMgr::instance().IsRealGuild(guildId))
     {
         botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_happy_in_guild", "Sorry, I am happy in my guild :)", {}));
         return false;
     }
 
-    uint32 guildId = bot->GetGuildId();
-    if (guildId && PlayerbotGuildMgr::instance().IsRealGuild(guildId))
+    Player* owner = event.getOwner();
+    if (owner && !botAI->GetSecurity()->CheckLevelFor(PLAYERBOT_SECURITY_INVITE, false, owner, true))
     {
         botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_happy_in_guild", "Sorry, I am happy in my guild :)", {}));
         return false;
