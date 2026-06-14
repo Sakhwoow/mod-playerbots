@@ -1727,6 +1727,10 @@ bool BGTactics::moveToStart(bool force)
     if (!force && bg->GetStatus() != STATUS_WAIT_JOIN)
         return false;
 
+    // Click ready marker after 5 seconds so the match starts faster
+    if (bg->isArena() && bg->GetStartDelayTime() <= BG_START_DELAY_1M - 5000)
+        bg->ReadyMarkerClicked(bot);
+
     BattlegroundTypeId bgType = bg->GetBgTypeID();
     if (bgType == BATTLEGROUND_RB)
         bgType = bg->GetBgTypeID(true);
