@@ -9,8 +9,10 @@
 #include "ObjectAccessor.h"
 #include "PlayerbotAIConfig.h"
 #include "PlayerbotGuildMgr.h"
+#include "PlayerbotOperations.h"
 #include "PlayerbotSecurity.h"
 #include "PlayerbotTextMgr.h"
+#include "PlayerbotWorldThreadProcessor.h"
 #include "Playerbots.h"
 #include "WorldPacket.h"
 
@@ -67,28 +69,11 @@ bool AcceptInvitationAction::Execute(Event event)
     if (bot->isAFK())
         bot->ToggleAFK();
 
-    WorldPacket p;
-    uint32 roles_mask = 0;
-    p << roles_mask;
-    bot->GetSession()->HandleGroupAcceptOpcode(p);
+    // Group/LFG mutation must not happen on this map thread: another bot's map thread can be
+    // mutating the same Group's LfgGroupData concurrently, corrupting it (caused a worldserver
+    // deadlock in LfgGroupData::AddPlayer). Defer to the world thread instead.
+    auto acceptOp = std::make_unique<GroupAcceptInviteOperation>(bot->GetGUID(), inviter->GetGUID());
+    PlayerbotWorldThreadProcessor::instance().QueueOperation(std::move(acceptOp));
 
-    if (!bot->GetGroup() || !bot->GetGroup()->IsMember(inviter->GetGUID()))
-        return false;
-
-    if (sRandomPlayerbotMgr.IsRandomBot(bot))
-        botAI->SetMaster(inviter);
-    // else
-    // PlayerbotRepository::instance().Save(botAI);
-
-    botAI->ResetStrategies();
-    botAI->ChangeStrategy("+follow,-lfg,-bg", BOT_STATE_NON_COMBAT);
-    botAI->Reset();
-
-    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("hello", "Hello", {}));
-
-    if (sPlayerbotAIConfig.summonWhenGroup && bot->GetDistance(inviter) > sPlayerbotAIConfig.sightDistance)
-    {
-        Teleport(inviter, bot, true);
-    }
     return true;
 }
