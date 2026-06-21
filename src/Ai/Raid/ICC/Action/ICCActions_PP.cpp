@@ -430,7 +430,68 @@ Position IccPutricideGrowingOozePuddleAction::CalculateSafeMovePosition(Unit* cl
         }
     }
 
-    // Fallback: straight outward from puddle center on its safe ring.
+    // Relief scan: the strict loop above can fail entirely when the bot is
+    // wedged against a wall (e.g. boxed in by two puddles plus the arena
+    // wall) — none of the 8 candidates clear every check. Scan a finer ring
+    // and keep only positions with a clear line of sight, picking the one
+    // furthest from the puddle. This guarantees MoveTo() is never aimed at
+    // an unreachable point; without it, the radial-fallback below can point
+    // straight into a wall, and the pathing engine reroutes back through the
+    // puddle field every tick (the reported "stuck running through lava"
+    // oscillation).
+    {
+        constexpr int numReliefAngles = 16;
+        bool foundRelief = false;
+        float reliefX = 0.0f, reliefY = 0.0f, bestReliefDist = -1.0f;
+        for (int i = 0; i < numReliefAngles; ++i)
+        {
+            float angle = (2.0f * static_cast<float>(M_PI) * i) / numReliefAngles;
+            float rotatedDx = dx * std::cos(angle) - dy * std::sin(angle);
+            float rotatedDy = dx * std::sin(angle) + dy * std::cos(angle);
+
+            float radius = insidePuddle ? (safeDistance + bufferDistance) : moveDistance;
+            float testX = (insidePuddle ? closestPuddle->GetPositionX() : botX) + rotatedDx * radius;
+            float testY = (insidePuddle ? closestPuddle->GetPositionY() : botY) + rotatedDy * radius;
+
+            float candDist = closestPuddle->GetDistance2d(testX, testY);
+            if (candDist < safeDistance)
+                continue;
+
+            if (!bot->IsWithinLOS(testX, testY, botZ))
+                continue;
+
+            if (candDist > bestReliefDist)
+            {
+                bestReliefDist = candDist;
+                reliefX = testX;
+                reliefY = testY;
+                foundRelief = true;
+            }
+        }
+
+        if (foundRelief)
+        {
+            if (botAI->IsTank(bot))
+            {
+                float awayDx = reliefX - closestPuddle->GetPositionX();
+                float awayDy = reliefY - closestPuddle->GetPositionY();
+                float awayDist = std::sqrt(awayDx * awayDx + awayDy * awayDy);
+                if (awayDist > 0.001f)
+                {
+                    awayDx /= awayDist;
+                    awayDy /= awayDist;
+                    reliefX += awayDx * tankShoveDistance;
+                    reliefY += awayDy * tankShoveDistance;
+                }
+            }
+            return Position(reliefX, reliefY, botZ);
+        }
+    }
+
+    // Last-resort fallback: straight outward from puddle center on its safe
+    // ring. No LOS-valid candidate exists anywhere on the relief ring either
+    // (true dead end) — this may point into a wall, but there is nothing
+    // better to offer.
     float fallbackRadius = safeDistance + bufferDistance;
     float fallbackX = insidePuddle ? (closestPuddle->GetPositionX() + dx * fallbackRadius)
                                    : (botX + dx * moveDistance);
