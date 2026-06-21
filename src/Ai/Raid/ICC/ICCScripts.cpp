@@ -5,6 +5,8 @@
 #include "Spell.h"
 #include "SpellInfo.h"
 #include "Timer.h"
+#include "Playerbots.h"
+#include "UnitScript.h"
 #include <algorithm>
 
 namespace IcecrownHelpers
@@ -115,9 +117,77 @@ public:
     }
 };
 
+// Sindragosa lethal-mechanic damage immunity for bots.
+//
+// 1. While frozen in an Ice Tomb (SPELL_ICE_TOMB_UNTARGETABLE = 69700):
+//    Bots cannot be healed while untargetable. Any damage source — the
+//    ICE_TOMB_DAMAGE periodic tick (70157), Frost Aura (70084), ambient
+//    damage — drains their HP. They exit the tomb near-zero and die
+//    immediately. Fix: zero ALL damage while the bot is frozen.
+//
+// 2. Frost Breath P1/P2 (69649/73061) for non-tank bots:
+//    The cone fires in whatever direction Sindragosa faced when the event
+//    fired. Boss drift can clip the melee/ranged stack. P2 in phase 3 with
+//    Mystic Buffet stacks is lethal. Tanks take it; all others → zero.
+class IccSindragosaBotImmunity : public UnitScript
+{
+public:
+    IccSindragosaBotImmunity() : UnitScript("IccSindragosaBotImmunity") { }
+
+    // Returns true if this bot is currently frozen inside an Ice Tomb.
+    static bool IsFrozenInTomb(Unit* target)
+    {
+        // SPELL_ICE_TOMB_UNTARGETABLE = 69700 is applied when the tomb spawns
+        // and removed when the tomb NPC dies (player freed).
+        return target->HasAura(69700);
+    }
+
+    void ModifyPeriodicDamageAurasTick(Unit* target, Unit* /*attacker*/, uint32& damage,
+                                       SpellInfo const* /*spellInfo*/) override
+    {
+        if (!target || damage == 0 || !target->IsPlayer())
+            return;
+        if (!sPlayerbotsMgr.GetPlayerbotAI(target->ToPlayer()))
+            return;
+        if (IsFrozenInTomb(target))
+            damage = 0;
+    }
+
+    void ModifySpellDamageTaken(Unit* target, Unit* attacker, int32& damage,
+                                SpellInfo const* spellInfo) override
+    {
+        if (!target || !attacker || !spellInfo || damage <= 0)
+            return;
+        if (!target->IsPlayer())
+            return;
+        PlayerbotAI* ai = sPlayerbotsMgr.GetPlayerbotAI(target->ToPlayer());
+        if (!ai)
+            return;
+
+        // While frozen: untargetable and unhealable → zero ALL incoming damage
+        if (IsFrozenInTomb(target))
+        {
+            damage = 0;
+            return;
+        }
+
+        uint32 const id = spellInfo->Id;
+
+        // Frost Breath P1/P2 for non-tank bots only
+        // (69649 = P1, 73061 = P2, 71807/73060 = heroic variants)
+        if (id == 69649 || id == 73061 || id == 71807 || id == 73060)
+        {
+            if (!ai->IsTank(target->ToPlayer()))
+                damage = 0;
+            return;
+        }
+    }
+};
+
 void AddSC_IcecrownBotScripts()
 {
     new IccPutricideListenerScript();
     new IccRotfaceListenerScript();
     new IccLichKingListenerScript();
+    new IccSindragosaBotImmunity();
 }

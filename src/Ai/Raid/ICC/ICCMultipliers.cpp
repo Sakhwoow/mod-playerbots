@@ -387,6 +387,8 @@ float IccAddsPutricideMultiplier::GetValue(Action* action)
                     continue;
                 if (!PlayerbotAI::IsTank(member))
                     continue;
+                if (member->GetVehicleBase())
+                    continue;
 
                 if (GetPlagueStacks(member) < myStacks)
                 {
@@ -833,8 +835,8 @@ float IccSindragosaMultiplier::GetValue(Action* action)
             dynamic_cast<IccSindragosaTankSwapPositionAction*>(action))
             return 1.0f;
 
-        // Ranged / healer already beyond the blast radius: keep DPSing or
-        // healing, just block any movement so they don't wander back in.
+        // If already safe (> 33 yards), block only movement that would bring
+        // the bot back in, but keep DPS/healing going.
         bool const safe = bot->GetExactDist2d(boss) >= 33.0f;
         if (safe && (botAI->IsRanged(bot) || botAI->IsHeal(bot)))
         {

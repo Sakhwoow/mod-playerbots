@@ -1099,6 +1099,11 @@ bool IccSindragosaBlisteringColdTrigger::IsActive()
     if (dist >= 33.0f)
         return false;
 
+    // Trigger on Icy Grip too — bots need to move BEFORE Blistering Cold starts
+    // Icy Grip pulls everyone to the boss, then 1 second later Blistering Cold fires
+    if (bot->HasAura(SPELL_ICY_GRIP) || bot->HasAura(SPELL_ICY_GRIP_JUMP))
+        return true;
+
     bool isCasting = false;
     if (boss && boss->HasUnitState(UNIT_STATE_CASTING))
         isCasting = true;

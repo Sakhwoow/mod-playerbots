@@ -220,6 +220,8 @@ enum SpellIdsICC
     SPELL_FROST_BEACON                  = 70126,
     SPELL_ICE_TOMB                      = 70157,
     SPELL_FROST_BOMB_VISUAL             = 70022,
+    SPELL_ICY_GRIP                      = 70117,
+    SPELL_ICY_GRIP_JUMP                 = 70122,
     SPELL_BLISTERING_COLD1              = 70123,
     SPELL_BLISTERING_COLD2              = 71047,
     SPELL_BLISTERING_COLD3              = 71048,
