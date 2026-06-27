@@ -1746,6 +1746,9 @@ void PlayerbotAI::ApplyInstanceStrategies(uint32 mapId, bool tellMaster)
         case 668:
             strategyName = "wotlk-hor";  // Halls of Reflection
             break;
+        case 724:
+            strategyName = "rs";  // Ruby Sanctum
+            break;
         default:
             break;
     }
