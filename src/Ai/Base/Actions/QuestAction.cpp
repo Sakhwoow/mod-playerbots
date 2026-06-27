@@ -414,7 +414,7 @@ bool QuestItemPushResultAction::Execute(Event event)
                 continue;
 
             int32 previousCount = itemCount - count;
-            if (itemId == itemEntry && previousCount < quest->RequiredItemCount[i])
+            if (itemId == itemEntry && uint32(previousCount) < quest->RequiredItemCount[i])
             {
                 if (botAI->GetMaster())
                 {

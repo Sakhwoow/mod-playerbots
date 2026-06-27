@@ -132,7 +132,7 @@ void PlayerbotHolder::AddPlayerBot(ObjectGuid playerGuid, uint32 masterAccountId
                 ++loadingForMaster;
         }
         uint32 count = mgr->GetPlayerbotsCount() + loadingForMaster;
-        if (count >= PlayerbotAIConfig::instance().maxAddedBots)
+        if (count >= uint32(PlayerbotAIConfig::instance().maxAddedBots))
         {
             allowed = false;
             out << "Failure: You have added too many bots (more than " << sPlayerbotAIConfig.maxAddedBots << ")";
@@ -389,7 +389,7 @@ void PlayerbotHolder::LogoutPlayerBot(ObjectGuid guid)
         bot->SaveToDB(false, false);
 
         WorldSession* botWorldSessionPtr = bot->GetSession();
-        WorldSession* masterWorldSessionPtr = nullptr;
+        [[maybe_unused]] WorldSession* masterWorldSessionPtr = nullptr;     // Remove [[maybe_unused]] tag if timed logout implemented.
 
         if (botWorldSessionPtr->isLogingOut())
             return;

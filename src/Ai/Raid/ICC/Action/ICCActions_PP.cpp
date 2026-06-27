@@ -1197,8 +1197,6 @@ bool IccPutricideGasCloudAction::HandleGroupAuraSituation(Unit* gasCloud)
         return false;
 
     constexpr float rangeMinSafeDistance = 15.0f;
-    constexpr float rangedMaxDistance = 25.0f;
-    constexpr float meleeRange = 5.0f;
     constexpr uint8 skullIconId = 7;
 
     Unit* volatileOoze = bot->FindNearestCreature(NPC_VOLATILE_OOZE, 200.0f);
@@ -1270,7 +1268,6 @@ bool IccPutricideAvoidMalleableGooAction::Execute(Event /*event*/)
         constexpr uint32 impactLifetimeMs = 6000;
         constexpr float gooDangerRadius = 8.0f;   // 5yd AoE + 3yd safety
         constexpr float puddleAvoidRadius = 6.0f;
-        constexpr float bombAvoidRadius = 6.0f;
 
         uint32 now = getMSTime();
         float botX = bot->GetPositionX();

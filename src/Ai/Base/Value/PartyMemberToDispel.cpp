@@ -11,7 +11,7 @@ class PartyMemberToDispelPredicate : public FindPlayerPredicate, public Playerbo
 {
 public:
     PartyMemberToDispelPredicate(PlayerbotAI* botAI, uint32 dispelType)
-        : PlayerbotAIAware(botAI), FindPlayerPredicate(), dispelType(dispelType)
+        : FindPlayerPredicate(), PlayerbotAIAware(botAI), dispelType(dispelType)
     {
     }
 
