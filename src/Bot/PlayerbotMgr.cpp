@@ -382,6 +382,10 @@ void PlayerbotHolder::LogoutPlayerBot(ObjectGuid guid)
             }
         }
 
+        // Remove taxi cheat flag on alts.
+        if (!sRandomPlayerbotMgr.IsRandomBot(bot) && bot->isTaxiCheater())
+            bot->SetTaxiCheater(false);
+
         bot->SaveToDB(false, false);
 
         WorldSession* botWorldSessionPtr = bot->GetSession();

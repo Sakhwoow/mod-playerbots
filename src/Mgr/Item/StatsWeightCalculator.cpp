@@ -307,8 +307,8 @@ void StatsWeightCalculator::GenerateBasicWeights(Player* player)
     }
     else if (cls == CLASS_DRUID && tab == DRUID_TAB_FERAL && !PlayerbotAI::IsTank(player))
     {
-        stats_weights_[STATS_TYPE_AGILITY] += 2.2f;
-        stats_weights_[STATS_TYPE_STRENGTH] += 2.4f;
+        stats_weights_[STATS_TYPE_AGILITY] += 2.5f;
+        stats_weights_[STATS_TYPE_STRENGTH] += 2.0f;
         stats_weights_[STATS_TYPE_ATTACK_POWER] += 1.0f;
         stats_weights_[STATS_TYPE_ARMOR_PENETRATION] += 2.3f;
         stats_weights_[STATS_TYPE_HIT] += 1.9f;
