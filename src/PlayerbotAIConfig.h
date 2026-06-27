@@ -104,6 +104,8 @@ public:
     uint32 saveManaThreshold;
     AutoPartyBuffMode autoGreaterBlessings;
     AutoPartyBuffMode autoPartyBuffs;
+    bool tellWhenMissingBuffReagents;
+    uint32 missingBuffReagentMessageCooldown;
     bool autoAvoidAoe;
     float maxAoeAvoidRadius;
     std::set<uint32> aoeAvoidSpellWhitelist;
