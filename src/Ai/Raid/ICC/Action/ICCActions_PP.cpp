@@ -263,6 +263,24 @@ bool IccPutricideGrowingOozePuddleAction::Execute(Event /*event*/)
         return false;
 
     Position movePosition = CalculateSafeMovePosition(closestPuddle);
+
+    Unit* boss = AI_VALUE2(Unit*, "find target", "professor putricide");
+    bool const isP3 = botAI->IsMainTank(bot) && boss && boss->HealthBelowPct(35);
+    if (isP3)
+    {
+        float moveDx = movePosition.GetPositionX() - bot->GetPositionX();
+        float moveDy = movePosition.GetPositionY() - bot->GetPositionY();
+        float gateDx = ICC_PUTRICIDE_GATE_POSITION.GetPositionX() - bot->GetPositionX();
+        float gateDy = ICC_PUTRICIDE_GATE_POSITION.GetPositionY() - bot->GetPositionY();
+        float gateLen = std::sqrt(gateDx * gateDx + gateDy * gateDy);
+        if (gateLen > 0.01f) { gateDx /= gateLen; gateDy /= gateLen; }
+        float dot = moveDx * gateDx + moveDy * gateDy;
+        LOG_DEBUG("playerbots", "[ICCTEST][PP] P3Tank move: bot=({:.1f},{:.1f}) -> ({:.1f},{:.1f}) gate_dot={:.2f} {}",
+            bot->GetPositionX(), bot->GetPositionY(),
+            movePosition.GetPositionX(), movePosition.GetPositionY(),
+            dot, dot > 0.0f ? "TOWARD_GATE" : "AWAY_FROM_GATE");
+    }
+
     return MoveTo(bot->GetMapId(), movePosition.GetPositionX(), movePosition.GetPositionY(),
                   movePosition.GetPositionZ(), false, false, false, false, MovementPriority::MOVEMENT_COMBAT);
 }
@@ -459,6 +477,14 @@ Position IccPutricideGrowingOozePuddleAction::CalculateSafeMovePosition(Unit* cl
 
             if (!bot->IsWithinLOS(testX, testY, botZ))
                 continue;
+
+            if (isP3Tank && gateLen > 0.01f)
+            {
+                float moveDx = testX - botX;
+                float moveDy = testY - botY;
+                if (moveDx * gateDx + moveDy * gateDy <= 0.0f)
+                    continue;
+            }
 
             if (candDist > bestReliefDist)
             {

@@ -656,9 +656,21 @@ bool IccSindragosaFrostBeaconAction::HandleNonBeaconedPlayer(const Unit* boss)
             float const dist = bot->GetExactDist2d(safePosition.GetPositionX(), safePosition.GetPositionY());
             if (dist > MOVE_TOLERANCE)
             {
+                LOG_DEBUG("playerbots", "[ICCTEST][SG] AirPhase no-beacon: bot=({:.1f},{:.1f}) -> safePos=({:.1f},{:.1f}) dist={:.1f} EXPOSED",
+                    bot->GetPositionX(), bot->GetPositionY(),
+                    safePosition.GetPositionX(), safePosition.GetPositionY(), dist);
                 return MoveToPosition(safePosition);
             }
-
+            else
+            {
+                LOG_DEBUG("playerbots", "[ICCTEST][SG] AirPhase no-beacon: bot=({:.1f},{:.1f}) AT_SAFE_POS",
+                    bot->GetPositionX(), bot->GetPositionY());
+            }
+        }
+        else
+        {
+            LOG_DEBUG("playerbots", "[ICCTEST][SG] AirPhase HAS_BEACON: bot=({:.1f},{:.1f}) moving to tomb spot",
+                bot->GetPositionX(), bot->GetPositionY());
         }
         return botAI->IsHeal(bot);  // Continue for healers, wait for others
     }
