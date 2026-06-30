@@ -26,6 +26,8 @@
 #include "FleeManager.h"
 #include "GridNotifiers.h"
 #include "LFGMgr.h"
+#include "Opcodes.h"
+#include "WorldPacket.h"
 #include "MapMgr.h"
 #include "NewRpgInfo.h"
 #include "NewRpgStrategy.h"
@@ -1281,6 +1283,87 @@ void RandomPlayerbotMgr::CheckLfgQueue()
 
                 LfgDungeons[player->GetTeamId()].push_back(dungeon->id);
             }
+        }
+    }
+
+    // Force inactive bots to join LFG when real players are in queue.
+    // BotActiveAlone=10 leaves only 10% of bots active; with 2200 bots that is too few to
+    // fill a group for any given bracket. We bypass the strategy system and send CMSG_LFG_JOIN
+    // directly — one packet per bot per 30s cycle, no AI tick cost.
+    if (!LfgDungeons[TEAM_ALLIANCE].empty() || !LfgDungeons[TEAM_HORDE].empty())
+    {
+        for (auto const& [guid, bot] : playerBots)
+        {
+            if (!bot || !bot->IsInWorld() || bot->GetGroup())
+                continue;
+            if (sLFGMgr->GetState(bot->GetGUID()) != lfg::LFG_STATE_NONE)
+                continue;
+
+            TeamId const teamId = bot->GetTeamId();
+            std::vector<uint32> const& queuedDungeons = LfgDungeons[teamId];
+            if (queuedDungeons.empty())
+                continue;
+
+            lfg::LfgDungeonSet list;
+            for (uint32 dungeonId : queuedDungeons)
+            {
+                LFGDungeonEntry const* dungeon = sLFGDungeonStore.LookupEntry(dungeonId);
+                if (!dungeon)
+                    continue;
+                if (dungeon->TypeID != LFG_TYPE_RANDOM && dungeon->TypeID != LFG_TYPE_DUNGEON &&
+                    dungeon->TypeID != LFG_TYPE_HEROIC && dungeon->TypeID != LFG_TYPE_RAID)
+                    continue;
+
+                uint8 const botLevel = bot->GetLevel();
+                if (dungeon->MinLevel && (botLevel < dungeon->MinLevel || botLevel > dungeon->MaxLevel))
+                    continue;
+                if (botLevel > dungeon->MinLevel + 10 && dungeon->TypeID == LFG_TYPE_DUNGEON)
+                    continue;
+
+                list.insert(dungeon->ID);
+            }
+
+            if (list.empty())
+                continue;
+
+            uint32 roleMask = PLAYER_ROLE_DAMAGE;
+            uint8 const spec = AiFactory::GetPlayerSpecTab(bot);
+            switch (bot->getClass())
+            {
+                case CLASS_DRUID:
+                    if (spec == 2) roleMask = PLAYER_ROLE_HEALER;
+                    else if (spec == 1 && bot->HasAura(16931)) roleMask = PLAYER_ROLE_TANK;
+                    break;
+                case CLASS_PALADIN:
+                    if (spec == 1) roleMask = PLAYER_ROLE_TANK;
+                    else if (spec == 0) roleMask = PLAYER_ROLE_HEALER;
+                    break;
+                case CLASS_PRIEST:
+                    if (spec != 2) roleMask = PLAYER_ROLE_HEALER;
+                    break;
+                case CLASS_SHAMAN:
+                    if (spec == 2) roleMask = PLAYER_ROLE_HEALER;
+                    break;
+                case CLASS_WARRIOR:
+                    if (spec == 2) roleMask = PLAYER_ROLE_TANK;
+                    break;
+                case CLASS_DEATH_KNIGHT:
+                    if (spec == 0) roleMask = PLAYER_ROLE_TANK;
+                    break;
+                default:
+                    break;
+            }
+
+            WorldPacket* data = new WorldPacket(CMSG_LFG_JOIN);
+            *data << (uint32)roleMask;
+            *data << (bool)false;
+            *data << (bool)false;
+            *data << (uint8)(list.size());
+            for (uint32 id : list)
+                *data << (uint32)id;
+            *data << (uint8)3 << (uint8)0 << (uint8)0 << (uint8)0;
+            *data << std::string("0");
+            bot->GetSession()->QueuePacket(data);
         }
     }
 
