@@ -1310,14 +1310,14 @@ void RandomPlayerbotMgr::CheckLfgQueue()
                 LFGDungeonEntry const* dungeon = sLFGDungeonStore.LookupEntry(dungeonId);
                 if (!dungeon)
                     continue;
-                if (dungeon->TypeID != LFG_TYPE_RANDOM && dungeon->TypeID != LFG_TYPE_DUNGEON &&
-                    dungeon->TypeID != LFG_TYPE_HEROIC && dungeon->TypeID != LFG_TYPE_RAID)
+                if (dungeon->TypeID != lfg::LFG_TYPE_RANDOM && dungeon->TypeID != lfg::LFG_TYPE_DUNGEON &&
+                    dungeon->TypeID != lfg::LFG_TYPE_HEROIC && dungeon->TypeID != lfg::LFG_TYPE_RAID)
                     continue;
 
                 uint8 const botLevel = bot->GetLevel();
                 if (dungeon->MinLevel && (botLevel < dungeon->MinLevel || botLevel > dungeon->MaxLevel))
                     continue;
-                if (botLevel > dungeon->MinLevel + 10 && dungeon->TypeID == LFG_TYPE_DUNGEON)
+                if (botLevel > dungeon->MinLevel + 10 && dungeon->TypeID == lfg::LFG_TYPE_DUNGEON)
                     continue;
 
                 list.insert(dungeon->ID);
@@ -1326,29 +1326,29 @@ void RandomPlayerbotMgr::CheckLfgQueue()
             if (list.empty())
                 continue;
 
-            uint32 roleMask = PLAYER_ROLE_DAMAGE;
+            uint32 roleMask = lfg::PLAYER_ROLE_DAMAGE;
             uint8 const spec = AiFactory::GetPlayerSpecTab(bot);
             switch (bot->getClass())
             {
                 case CLASS_DRUID:
-                    if (spec == 2) roleMask = PLAYER_ROLE_HEALER;
-                    else if (spec == 1 && bot->HasAura(16931)) roleMask = PLAYER_ROLE_TANK;
+                    if (spec == 2) roleMask = lfg::PLAYER_ROLE_HEALER;
+                    else if (spec == 1 && bot->HasAura(16931)) roleMask = lfg::PLAYER_ROLE_TANK;
                     break;
                 case CLASS_PALADIN:
-                    if (spec == 1) roleMask = PLAYER_ROLE_TANK;
-                    else if (spec == 0) roleMask = PLAYER_ROLE_HEALER;
+                    if (spec == 1) roleMask = lfg::PLAYER_ROLE_TANK;
+                    else if (spec == 0) roleMask = lfg::PLAYER_ROLE_HEALER;
                     break;
                 case CLASS_PRIEST:
-                    if (spec != 2) roleMask = PLAYER_ROLE_HEALER;
+                    if (spec != 2) roleMask = lfg::PLAYER_ROLE_HEALER;
                     break;
                 case CLASS_SHAMAN:
-                    if (spec == 2) roleMask = PLAYER_ROLE_HEALER;
+                    if (spec == 2) roleMask = lfg::PLAYER_ROLE_HEALER;
                     break;
                 case CLASS_WARRIOR:
-                    if (spec == 2) roleMask = PLAYER_ROLE_TANK;
+                    if (spec == 2) roleMask = lfg::PLAYER_ROLE_TANK;
                     break;
                 case CLASS_DEATH_KNIGHT:
-                    if (spec == 0) roleMask = PLAYER_ROLE_TANK;
+                    if (spec == 0) roleMask = lfg::PLAYER_ROLE_TANK;
                     break;
                 default:
                     break;
