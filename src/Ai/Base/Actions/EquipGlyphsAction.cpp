@@ -1,12 +1,12 @@
-﻿/*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
- * and/or modify it under version 3 of the License, or (at your option), any later version.
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
  */
 
 #include "EquipGlyphsAction.h"
 
 #include "Playerbots.h"
-#include "PlayerbotTextMgr.h"
 #include "ObjectMgr.h"
 #include "SpellMgr.h"
 #include "DBCStores.h"
@@ -107,7 +107,7 @@ bool EquipGlyphsAction::Execute(Event event)
     std::vector<GlyphInfo const*> glyphs;
     if (!CollectGlyphs(itemIds, glyphs))
     {
-        botAI->TellMaster("Использование: glyph equip <6 ID глифов> (3 большие, 3 малые).");
+        botAI->TellMaster("Usage: glyph equip <6 glyph item IDs> (3 major, 3 minor).");
         return false;
     }
 
@@ -145,12 +145,12 @@ bool EquipGlyphsAction::Execute(Event event)
 
         if (!placed)
         {
-            botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_glyphs_no_sockets", "Not enough empty sockets for all glyphs.", {}));
+            botAI->TellMaster("Not enought empty sockets for all glyphs.");
             return false;
         }
     }
 
-    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_glyphs_updated", "Glyphs updated.", {}));
+    botAI->TellMaster("Glyphs updated.");
 
     // Flag for custom glyphs
     botAI->GetAiObjectContext()->GetValue<bool>("custom_glyphs")->Set(true);

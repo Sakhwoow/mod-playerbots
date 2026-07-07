@@ -1,6 +1,7 @@
-﻿/*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
- * and/or modify it under version 3 of the License, or (at your option), any later version.
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
  */
 
 #include "TrainerAction.h"
@@ -176,11 +177,11 @@ bool MaintenanceAction::Execute(Event /*event*/)
 {
     if (!sPlayerbotAIConfig.maintenanceCommand)
     {
-        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_maintenance_not_allowed", "maintenance command is not allowed, please check the configuration.", {}));
+        botAI->TellError("maintenance command is not allowed, please check the configuration.");
         return false;
     }
 
-    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_im_maintaining", "I'm maintaining", {}));
+    botAI->TellMaster("I'm maintaining");
     PlayerbotFactory factory(bot, bot->GetLevel());
 
     if (!botAI->IsAlt())
@@ -563,18 +564,18 @@ bool AutoGearAction::Execute(Event /*event*/)
 {
     if (!sPlayerbotAIConfig.autoGearCommand)
     {
-        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_autogear_not_allowed", "autogear command is not allowed, please check the configuration.", {}));
+        botAI->TellError("autogear command is not allowed, please check the configuration.");
         return false;
     }
 
     if (!sPlayerbotAIConfig.autoGearCommandAltBots &&
         !sPlayerbotAIConfig.IsInRandomAccountList(bot->GetSession()->GetAccountId()))
     {
-        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_no_autogear_alt", "You cannot use autogear on alt bots.", {}));
+        botAI->TellError("You cannot use autogear on alt bots.");
         return false;
     }
 
-    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_im_auto_gearing", "I'm auto gearing", {}));
+    botAI->TellMaster("I'm auto gearing");
     uint32 gs = sPlayerbotAIConfig.autoGearScoreLimit == 0
                     ? 0
                     : PlayerbotFactory::CalcMixedGearScore(sPlayerbotAIConfig.autoGearScoreLimit,

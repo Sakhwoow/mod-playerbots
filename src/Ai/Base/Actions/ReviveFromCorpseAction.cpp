@@ -1,6 +1,7 @@
-﻿/*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
- * and/or modify it under version 3 of the License, or (at your option), any later version.
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
  */
 
 #include "ReviveFromCorpseAction.h"
@@ -29,7 +30,7 @@ bool ReviveFromCorpseAction::Execute(Event event)
         {
             if (!botAI->HasStrategy("follow", BOT_STATE_NON_COMBAT))
             {
-                botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_welcome_back", "Welcome back!", {}));
+                botAI->TellMasterNoFacing("Welcome back!");
                 botAI->ChangeStrategy("+follow,-stay", BOT_STATE_NON_COMBAT);
                 return true;
             }
@@ -298,7 +299,7 @@ bool SpiritHealerAction::Execute(Event /*event*/)
     Corpse* corpse = bot->GetCorpse();
     if (!corpse)
     {
-        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_not_a_spirit", "I am not a spirit", {}));
+        botAI->TellError("I am not a spirit");
         return false;
     }
 

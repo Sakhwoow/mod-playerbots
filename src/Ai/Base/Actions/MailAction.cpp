@@ -1,6 +1,7 @@
-﻿/*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
- * and/or modify it under version 3 of the License, or (at your option), any later version.
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
  */
 
 #include "MailAction.h"
@@ -9,7 +10,6 @@
 #include "Event.h"
 #include "Mail.h"
 #include "Playerbots.h"
-#include "PlayerbotTextMgr.h"
 
 std::map<std::string, MailProcessor*> MailAction::processors;
 
@@ -18,7 +18,7 @@ class TellMailProcessor : public MailProcessor
 public:
     bool Before(PlayerbotAI* botAI) override
     {
-        botAI->TellMaster("=== Почта ===");
+        botAI->TellMaster("=== Mailbox ===");
         tells.clear();
         return true;
     }
@@ -84,7 +84,7 @@ public:
         Player* bot = botAI->GetBot();
         if (!CheckBagSpace(bot))
         {
-            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_not_enough_bag_space", "Not enough bag space", {}));
+            botAI->TellError("Not enough bag space");
             return false;
         }
 
@@ -257,7 +257,7 @@ bool MailAction::Execute(Event event)
 
     if (!MailProcessor::FindMailbox(botAI))
     {
-        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_no_mailbox", "There is no mailbox nearby", {}));
+        botAI->TellError("There is no mailbox nearby");
         return false;
     }
 

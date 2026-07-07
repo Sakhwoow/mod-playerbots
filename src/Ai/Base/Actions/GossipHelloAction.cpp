@@ -1,6 +1,7 @@
-﻿/*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
- * and/or modify it under version 3 of the License, or (at your option), any later version.
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
  */
 
 #include "GossipHelloAction.h"
@@ -8,7 +9,6 @@
 #include "Event.h"
 #include "GossipDef.h"
 #include "Playerbots.h"
-#include "PlayerbotTextMgr.h"
 
 bool GossipHelloAction::Execute(Event event)
 {
@@ -84,7 +84,7 @@ bool GossipHelloAction::ProcessGossip(int32 menuToSelect, bool silent)
     if (menuToSelect != -1 && !menu.GetItem(menuToSelect))
     {
         if (!silent)
-            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_unknown_gossip", "Unknown gossip option", {}));
+            botAI->TellError("Unknown gossip option");
         return false;
     }
 
@@ -139,7 +139,7 @@ bool GossipHelloAction::Execute(ObjectGuid guid, int32 menuToSelect, bool silent
     else if (!bot->PlayerTalkClass)
     {
         if (!silent)
-            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_need_talk_first", "I need to talk first", {}));
+            botAI->TellError("I need to talk first");
         return false;
     }
     else

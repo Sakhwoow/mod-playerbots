@@ -1,6 +1,7 @@
-﻿/*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
- * and/or modify it under version 3 of the License, or (at your option), any later version.
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
  */
 
 #include "GoAction.h"
@@ -10,7 +11,6 @@
 #include "Formations.h"
 #include "PathGenerator.h"
 #include "Playerbots.h"
-#include "PlayerbotTextMgr.h"
 #include "PositionValue.h"
 #include "ServerFacade.h"
 
@@ -61,7 +61,7 @@ bool GoAction::Execute(Event event)
         }
         else
         {
-            botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_clearing_travel", "Clearing travel target", {}));
+            botAI->TellMasterNoFacing("Clearing travel target");
             target->setTarget(TravelMgr::instance().nullTravelDestination, TravelMgr::instance().nullWorldPosition);
             target->setForced(false);
             return true;
@@ -79,7 +79,7 @@ bool GoAction::Execute(Event event)
                     if (ServerFacade::instance().IsDistanceGreaterThan(ServerFacade::instance().GetDistance2d(bot, go),
                                                              sPlayerbotAIConfig.reactDistance))
                     {
-                        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_too_far_go", "It is too far away", {}));
+                        botAI->TellError("It is too far away");
                         return false;
                     }
 
@@ -180,20 +180,20 @@ bool GoAction::Execute(Event event)
         if (ServerFacade::instance().IsDistanceGreaterThan(ServerFacade::instance().GetDistance2d(bot, x, y),
                                                  sPlayerbotAIConfig.reactDistance))
         {
-            botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_too_far_away_obj", "It is too far away", {}));
+            botAI->TellMaster("It is too far away");
             return false;
         }
 
         if (map->IsInWater(bot->GetPhaseMask(), x, y, z, bot->GetCollisionHeight()))
         {
-            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_in_water", "It is in water", {}));
+            botAI->TellError("It is in water");
             return false;
         }
 
         float ground = map->GetHeight(x, y, z + 0.5f);
         if (ground <= INVALID_HEIGHT)
         {
-            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_cant_go_there", "I can't go there", {}));
+            botAI->TellError("I can't go there");
             return false;
         }
 
@@ -213,7 +213,7 @@ bool GoAction::Execute(Event event)
         if (ServerFacade::instance().IsDistanceGreaterThan(ServerFacade::instance().GetDistance2d(bot, pos.x, pos.y),
                                                  sPlayerbotAIConfig.reactDistance))
         {
-            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_too_far_go", "It is too far away", {}));
+            botAI->TellError("It is too far away");
             return false;
         }
 
@@ -223,6 +223,6 @@ bool GoAction::Execute(Event event)
         return MoveNear(bot->GetMapId(), pos.x, pos.y, pos.z + 0.5f, sPlayerbotAIConfig.followDistance);
     }
 
-    botAI->TellMaster("Напиши 'go x,y', 'go [объект]', 'go юнит' или 'go позиция' и я туда пойду");
+    botAI->TellMaster("Whisper 'go x,y', 'go [game object]', 'go unit' or 'go position' and I will go there");
     return false;
 }

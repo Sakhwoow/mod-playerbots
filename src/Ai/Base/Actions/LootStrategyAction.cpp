@@ -1,6 +1,7 @@
-﻿/*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
- * and/or modify it under version 3 of the License, or (at your option), any later version.
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
  */
 
 #include "LootStrategyAction.h"
@@ -11,7 +12,6 @@
 #include "LootObjectStack.h"
 #include "LootStrategyValue.h"
 #include "Playerbots.h"
-#include "PlayerbotTextMgr.h"
 
 bool LootStrategyAction::Execute(Event event)
 {
@@ -80,12 +80,12 @@ bool LootStrategyAction::Execute(Event event)
                 if (j != alwaysLootItems.end())
                     alwaysLootItems.erase(j);
 
-                botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_loot_removed", "Item(s) removed from always loot list", {}));
+                botAI->TellMaster("Item(s) removed from always loot list");
             }
             else
             {
                 alwaysLootItems.insert(itemid);
-                botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_loot_added", "Item(s) added to always loot list", {}));
+                botAI->TellMaster("Item(s) added to always loot list");
             }
         }
     }

@@ -1,6 +1,7 @@
-﻿/*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
- * and/or modify it under version 3 of the License, or (at your option), any later version.
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
  */
 
 #include "TalkToQuestGiverAction.h"
@@ -14,13 +15,12 @@
 #include "StatsWeightCalculator.h"
 #include "WorldPacket.h"
 #include "BroadcastHelper.h"
-#include "PlayerbotTextMgr.h"
 
 bool TalkToQuestGiverAction::ProcessQuest(Quest const* quest, Object* questGiver)
 {
     bool isCompleted = false;
     std::ostringstream out;
-    out << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_quest", "Quest", {}) << " ";
+    out << "Quest ";
 
     QuestStatus status = bot->GetQuestStatus(quest->GetQuestId());
     Player* master = GetMaster();
@@ -52,13 +52,13 @@ bool TalkToQuestGiverAction::ProcessQuest(Quest const* quest, Object* questGiver
         isCompleted |= TurnInQuest(quest, questGiver, out);
         break;
     case QUEST_STATUS_INCOMPLETE:
-        out << "|cffff0000" << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_incompleted", "Incompleted", {}) << "|r";
+        out << "|cffff0000Incompleted|r";
         break;
     case QUEST_STATUS_NONE:
-        out << "|cff00ff00" << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_available", "Available", {}) << "|r";
+        out << "|cff00ff00Available|r";
         break;
     case QUEST_STATUS_FAILED:
-        out << "|cffff0000" << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_quest_failed", "Failed", {}) << "|r";
+        out << "|cffff0000Failed|r";
         break;
     default:
         break;
@@ -93,7 +93,7 @@ bool TalkToQuestGiverAction::TurnInQuest(Quest const* quest, Object* questGiver,
         const Quest* pQuest = sObjectMgr->GetQuestTemplate(questID);
         const std::string text_quest = ChatHelper::FormatQuest(pQuest);
         LOG_INFO("playerbots", "{} => Quest [ {} ] completed", bot->GetName(), pQuest->GetTitle());
-        bot->Say(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_quest_completed", "Quest completed %quest", {{"%quest", text_quest}}), LANG_UNIVERSAL);
+        bot->Say("Quest [ " + text_quest + " ] completed", LANG_UNIVERSAL);
     }
 
     return true;
@@ -286,13 +286,13 @@ bool TurnInQueryQuestAction::Execute(Event event)
         TurnInQuest(quest, object, out);
         break;
     case QUEST_STATUS_INCOMPLETE:
-        out << "|cffff0000" << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_incompleted", "Incompleted", {}) << "|r";
+        out << "|cffff0000Incompleted|r";
         break;
     case QUEST_STATUS_NONE:
-        out << "|cff00ff00" << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_available", "Available", {}) << "|r";
+        out << "|cff00ff00Available|r";
         break;
     case QUEST_STATUS_FAILED:
-        out << "|cffff0000" << PlayerbotTextMgr::instance().GetBotTextOrDefault("string_quest_failed", "Failed", {}) << "|r";
+        out << "|cffff0000Failed|r";
         break;
     case QUEST_STATUS_REWARDED:
         out << "|cffff0000Rewarded|r";

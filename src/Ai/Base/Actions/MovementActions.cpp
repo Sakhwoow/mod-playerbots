@@ -1,6 +1,7 @@
-﻿/*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
- * and/or modify it under version 3 of the License, or (at your option), any later version.
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
  */
 
 #include "MovementActions.h"
@@ -39,7 +40,6 @@
 #include "Unit.h"
 #include "Vehicle.h"
 #include "WaypointMovementGenerator.h"
-#include "PlayerbotTextMgr.h"
 
 MovementAction::MovementAction(PlayerbotAI* botAI, std::string const name) : Action(botAI, name)
 {
@@ -163,12 +163,12 @@ bool MovementAction::MoveToLOS(WorldObject* target, bool ranged)
     if (dest.isSet())
         return MoveTo(dest.mapId, dest.x, dest.y, dest.z);
     else
-        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_all_paths_no_los", "All paths not in LOS", {}));
+        botAI->TellError("All paths not in LOS");
 
     return false;
 }
 
-bool MovementAction::MoveTo(uint32 mapId, float x, float y, float z, bool idle, bool react, bool normal_only,
+bool MovementAction::MoveTo(uint32 mapId, float x, float y, float z, bool /*idle*/, bool /*react*/, bool normal_only,
                             bool exact_waypoint, MovementPriority priority, bool lessDelay, bool backwards)
 {
     UpdateMovementState();
@@ -1152,13 +1152,13 @@ bool MovementAction::Follow(Unit* target, float distance, float angle)
         if (bot->isDead() && botAI->GetMaster()->IsAlive())
         {
             bot->ResurrectPlayer(1.0f, false);
-            botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_i_live_again", "I live, again!", {}));
+            botAI->TellMasterNoFacing("I live, again!");
         }
         else
-            botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_stuck_following", "I am stuck while following", {}));
+            botAI->TellError("I am stuck while following");
 
         bot->CombatStop(true);
-        botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_i_will_there_soon", "I will there soon.", {}));
+        botAI->TellMasterNoFacing("I will there soon.");
         bot->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
         bot->TeleportTo(target->GetMapId(), target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(),
     target->GetOrientation()); return false;
@@ -1371,7 +1371,7 @@ bool MovementAction::Flee(Unit* target)
 
     if (!IsMovingAllowed())
     {
-        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_stuck_fleeing", "I am stuck while fleeing", {}));
+        botAI->TellError("I am stuck while fleeing");
         return false;
     }
 
@@ -1524,7 +1524,7 @@ bool MovementAction::Flee(Unit* target)
     float rx, ry, rz;
     if (!manager.CalculateDestination(&rx, &ry, &rz))
     {
-        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_nowhere_to_flee", "Nowhere to flee", {}));
+        botAI->TellError("Nowhere to flee");
         return false;
     }
 
@@ -1855,7 +1855,7 @@ bool FleeWithPetAction::Execute(Event /*event*/)
 
 bool AvoidAoeAction::isUseful()
 {
-    if (getMSTime() - moveInterval < lastMoveTimer)
+    if (getMSTime() - moveInterval < uint32(lastMoveTimer))
         return false;
 
     GuidVector traps = AI_VALUE(GuidVector, "nearest trap with damage");
@@ -2286,7 +2286,7 @@ bool MovementAction::CheckLastFlee(float curAngle, std::list<FleeInfo>& infoList
 
 bool CombatFormationMoveAction::isUseful()
 {
-    if (getMSTime() - moveInterval < lastMoveTimer)
+    if (getMSTime() - moveInterval < uint32(lastMoveTimer))
         return false;
 
     if (bot->GetCurrentSpell(CURRENT_CHANNELED_SPELL) != nullptr)
@@ -2543,7 +2543,7 @@ bool DisperseSetAction::Execute(Event event)
     if (text == "disable")
     {
         RESET_AI_VALUE(float, "disperse distance");
-        botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_disable_disperse", "Disable disperse", {}));
+        botAI->TellMasterNoFacing("Disable disperse");
         return true;
     }
     if (text == "enable" || text == "reset")

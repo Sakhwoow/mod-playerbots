@@ -1,6 +1,7 @@
-﻿/*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
- * and/or modify it under version 3 of the License, or (at your option), any later version.
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
  */
 
 #include "UseItemAction.h"
@@ -103,9 +104,9 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
     {
         uint32 count = item->GetCount();
         if (count > 1)
-            itemText += " (" + std::to_string(count) + " " + PlayerbotTextMgr::instance().GetBotTextOrDefault("string_available_count", "available", {}) + ")";
+            itemText += " (" + std::to_string(count) + " available)";
         else
-            itemText += " (" + PlayerbotTextMgr::instance().GetBotTextOrDefault("string_the_last_one", "the last one!", {}) + ")";
+            itemText += " (the last one!)";
     }
 
     if (goGuid)
@@ -178,7 +179,7 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
             packet << uint32(0);
             bot->GetSession()->HandleQuestgiverAcceptQuestOpcode(packet);
 
-            botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_got_quest", "Got quest %quest", {{"%quest", chat->FormatQuest(qInfo)}}));
+            botAI->TellMasterNoFacing("Got quest " + chat->FormatQuest(qInfo));
             return true;
         }
     }
@@ -220,7 +221,7 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
                 targetFlag = TARGET_FLAG_TRADE_ITEM;
                 packet << targetFlag << (uint8)1 << ObjectGuid((uint64)TRADE_SLOT_NONTRADED).WriteAsPacked();
                 targetSelected = true;
-                targetText = PlayerbotTextMgr::instance().GetBotTextOrDefault("string_target_traded", "traded item", {});
+                targetText = "traded item";
             }
             else
             {
@@ -249,9 +250,9 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
             targetSelected = true;
 
             if (unitTarget == bot || !unitTarget->IsInWorld() || unitTarget->IsDuringRemoveFromWorld())
-                targetText = PlayerbotTextMgr::instance().GetBotTextOrDefault("string_target_self", "self", {});
+                targetText = "self";
             else if (unitTarget->IsHostileTo(bot))
-                targetText = PlayerbotTextMgr::instance().GetBotTextOrDefault("string_target_self", "self", {});
+                targetText = "self";
             else
                 targetText = unitTarget->GetName();
         }
@@ -259,7 +260,7 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
         {
             packet << bot->GetPackGUID();
             targetSelected = true;
-            targetText = PlayerbotTextMgr::instance().GetBotTextOrDefault("string_target_self", "self", {});
+            targetText = "self";
         }
     }
 

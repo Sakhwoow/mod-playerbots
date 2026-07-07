@@ -1,6 +1,7 @@
-﻿/*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
- * and/or modify it under version 3 of the License, or (at your option), any later version.
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
  */
 
 #include "GenericActions.h"
@@ -116,7 +117,7 @@ bool TogglePetSpellAutoCastAction::Execute(Event /*event*/)
 
     // Debug message if pet spells have been toggled and debug is enabled
     if (toggled && sPlayerbotAIConfig.petChatCommandDebug == 1)
-        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_pet_autocast_toggled", "Pet autocast spells have been toggled.", {}));
+        botAI->TellMaster("Pet autocast spells have been toggled.");
 
     return toggled;
 }
@@ -225,7 +226,7 @@ bool SetPetStanceAction::Execute(Event /*event*/)
 
     // If debug is enabled in config, inform the master of the new stance
     if (sPlayerbotAIConfig.petChatCommandDebug == 1)
-        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_pet_stance_set", "Pet stance set to %stance (applied to all pets/guardians).", {{"%stance", stanceText}}));
+        botAI->TellMaster("Pet stance set to " + stanceText + " (applied to all pets/guardians).");
 
     return true;
 }

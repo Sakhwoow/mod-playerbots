@@ -1,6 +1,7 @@
-﻿/*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
- * and/or modify it under version 3 of the License, or (at your option), any later version.
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
  */
 
 #include <memory>
@@ -10,7 +11,6 @@
 #include "ReadyCheckAction.h"
 #include "Event.h"
 #include "Playerbots.h"
-#include "PlayerbotTextMgr.h"
 
 std::string const formatPercent(std::string const name, uint8 value, float percent)
 {
@@ -98,19 +98,19 @@ public:
         {
             if (!bot->GetUInt32Value(PLAYER_AMMO_ID))
             {
-                botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_out_of_ammo", "Out of ammo!", {}));
+                botAI->TellError("Out of ammo!");
                 return false;
             }
 
             if (!bot->GetPet())
             {
-                botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_no_pet", "No pet!", {}));
+                botAI->TellError("No pet!");
                 return false;
             }
 
             if (bot->GetPet()->GetHappinessState() == UNHAPPY)
             {
-                botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_pet_unhappy", "Pet is unhappy!", {}));
+                botAI->TellError("Pet is unhappy!");
                 return false;
             }
         }

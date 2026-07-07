@@ -1,13 +1,13 @@
-﻿/*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
- * and/or modify it under version 3 of the License, or (at your option), any later version.
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
  */
 
 #include "EmoteAction.h"
 
 #include "Event.h"
 #include "Playerbots.h"
-#include "PlayerbotTextMgr.h"
 #include "ServerFacade.h"
 
 std::map<std::string, uint32> EmoteActionBase::emotes;
@@ -164,7 +164,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             if (botAI->GetMaster() == source)
             {
                 botAI->ChangeStrategy("-follow,+stay", BOT_STATE_NON_COMBAT);
-                botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_stay", "Fine.. I'll stay right here..", {}));
+                botAI->TellMasterNoFacing("Fine.. I'll stay right here..");
             }
             break;
         case TEXT_EMOTE_BECKON:
@@ -172,7 +172,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             if (botAI->GetMaster() == source)
             {
                 botAI->ChangeStrategy("+follow", BOT_STATE_NON_COMBAT);
-                botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_follow", "Wherever you go, I'll follow..", {}));
+                botAI->TellMasterNoFacing("Wherever you go, I'll follow..");
             }
             break;
         case TEXT_EMOTE_WAVE:
@@ -181,12 +181,12 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
         case TEXT_EMOTE_HELLO:
         case TEXT_EMOTE_WELCOME:
         case TEXT_EMOTE_INTRODUCE:
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_wave", "Hey there!", {});
+            emoteText = "Hey there!";
             emoteId = EMOTE_ONESHOT_WAVE;
             textEmote = TEXT_EMOTE_HELLO;
             break;
         case TEXT_EMOTE_DANCE:
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_dance", "Shake what your mama gave you!", {});
+            emoteText = "Shake what your mama gave you!";
             emoteId = EMOTE_ONESHOT_DANCE;
             textEmote = TEXT_EMOTE_DANCE;
             break;
@@ -197,12 +197,12 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
         case TEXT_EMOTE_SMILE:
         case TEXT_EMOTE_LOVE:
             // case TEXT_EMOTE_HOLDHAND:
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_flirt", "Awwwww...", {});
+            emoteText = "Awwwww...";
             emoteId = EMOTE_ONESHOT_SHY;
             textEmote = TEXT_EMOTE_SHY;
             break;
         case TEXT_EMOTE_FLEX:
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_flex", "Hercules! Hercules!", {});
+            emoteText = "Hercules! Hercules!";
             emoteId = EMOTE_ONESHOT_APPLAUD;
             textEmote = TEXT_EMOTE_APPLAUD;
             break;
@@ -214,7 +214,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_REGRET:
             // case TEXT_EMOTE_SCOLD:
             // case TEXT_EMOTE_CROSSARMS:
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_angry", "Did I do thaaaaat?", {});
+            emoteText = "Did I do thaaaaat?";
             emoteId = EMOTE_ONESHOT_QUESTION;
             textEmote = TEXT_EMOTE_SHRUG;
             break;
@@ -224,24 +224,24 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
         case TEXT_EMOTE_NOSEPICK:
         case TEXT_EMOTE_SNIFF:
         case TEXT_EMOTE_STINK:
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_fart", "Wasn't me! Just sayin'..", {});
+            emoteText = "Wasn't me! Just sayin'..";
             emoteId = EMOTE_ONESHOT_POINT;
             textEmote = TEXT_EMOTE_POINT;
             break;
         case TEXT_EMOTE_JOKE:
             emoteId = EMOTE_ONESHOT_LAUGH;
             textEmote = TEXT_EMOTE_LAUGH;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_joke", "Oh.. was I not supposed to laugh so soon?", {});
+            emoteText = "Oh.. was I not supposed to laugh so soon?";
             break;
         case TEXT_EMOTE_CHICKEN:
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_chicken", "We'll see who's chicken soon enough!", {});
+            emoteText = "We'll see who's chicken soon enough!";
             emoteId = EMOTE_ONESHOT_RUDE;
             textEmote = TEXT_EMOTE_RUDE;
             break;
         case TEXT_EMOTE_APOLOGIZE:
             emoteId = EMOTE_ONESHOT_POINT;
             textEmote = TEXT_EMOTE_APOLOGIZE;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_apologize", "You damn right you're sorry!", {});
+            emoteText = "You damn right you're sorry!";
             break;
         case TEXT_EMOTE_APPLAUD:
         case TEXT_EMOTE_CLAP:
@@ -250,14 +250,14 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_GOLFCLAP:
             emoteId = EMOTE_ONESHOT_BOW;
             textEmote = TEXT_EMOTE_BOW;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_applaud", "Thank you.. Thank you.. I'm here all week.", {});
+            emoteText = "Thank you.. Thank you.. I'm here all week.";
             break;
         case TEXT_EMOTE_BEG:
         case TEXT_EMOTE_GROVEL:
         case TEXT_EMOTE_PLEAD:
             emoteId = EMOTE_ONESHOT_NO;
             textEmote = TEXT_EMOTE_NO;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_beg", "Beg all you want.. I have nothing for you.", {});
+            emoteText = "Beg all you want.. I have nothing for you.";
             break;
         case TEXT_EMOTE_BITE:
         case TEXT_EMOTE_POKE:
@@ -266,12 +266,12 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_PUNCH:
             emoteId = EMOTE_ONESHOT_ROAR;
             textEmote = TEXT_EMOTE_ROAR;
-            emoteYell = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_bite", "OUCH! Dammit, that hurt!", {});
+            emoteYell = "OUCH! Dammit, that hurt!";
             break;
         case TEXT_EMOTE_BORED:
             emoteId = EMOTE_ONESHOT_NO;
             textEmote = TEXT_EMOTE_NO;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_bored", "My job description doesn't include entertaining you..", {});
+            emoteText = "My job description doesn't include entertaining you..";
             break;
         case TEXT_EMOTE_BOW:
         case TEXT_EMOTE_CURTSEY:
@@ -282,13 +282,13 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
         case TEXT_EMOTE_SIT:
             emoteId = EMOTE_ONESHOT_EAT;
             textEmote = TEXT_EMOTE_EAT;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_brb", "Looks like time for an AFK break..", {});
+            emoteText = "Looks like time for an AFK break..";
             break;
         case TEXT_EMOTE_AGREE:
         case TEXT_EMOTE_NOD:
             emoteId = EMOTE_ONESHOT_EXCLAMATION;
             textEmote = TEXT_EMOTE_NOD;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_agree", "At least SOMEONE agrees with me!", {});
+            emoteText = "At least SOMEONE agrees with me!";
             break;
         case TEXT_EMOTE_AMAZE:
         case TEXT_EMOTE_COWER:
@@ -305,7 +305,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_PROUD:
             emoteId = EMOTE_ONESHOT_FLEX;
             textEmote = TEXT_EMOTE_FLEX;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_amaze", "Yes, Yes. I know I'm amazing..", {});
+            emoteText = "Yes, Yes. I know I'm amazing..";
             break;
         case TEXT_EMOTE_BLEED:
         case TEXT_EMOTE_MOURN:
@@ -314,22 +314,22 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_PULSE:
             emoteId = EMOTE_ONESHOT_KNEEL;
             textEmote = TEXT_EMOTE_KNEEL;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_bleed", "MEDIC! Stat!", {});
+            emoteText = "MEDIC! Stat!";
             break;
         case TEXT_EMOTE_BLINK:
             emoteId = EMOTE_ONESHOT_KICK;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_blink", "What? You got something in your eye?", {});
+            emoteText = "What? You got something in your eye?";
             break;
         case TEXT_EMOTE_BOUNCE:
         case TEXT_EMOTE_BARK:
             emoteId = EMOTE_ONESHOT_POINT;
             textEmote = TEXT_EMOTE_POINT;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_bounce", "Who's a good doggy? You're a good doggy!", {});
+            emoteText = "Who's a good doggy? You're a good doggy!";
             break;
         case TEXT_EMOTE_BYE:
             emoteId = EMOTE_ONESHOT_WAVE;
             textEmote = TEXT_EMOTE_WAVE;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_bye", "Umm.... wait! Where are you going?!", {});
+            emoteText = "Umm.... wait! Where are you going?!";
             break;
         case TEXT_EMOTE_CACKLE:
         case TEXT_EMOTE_LAUGH:
@@ -341,7 +341,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_SNORT:
             emoteId = EMOTE_ONESHOT_LAUGH;
             textEmote = TEXT_EMOTE_LAUGH;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_laugh", "Wait... what are we laughing at again?", {});
+            emoteText = "Wait... what are we laughing at again?";
             break;
         case TEXT_EMOTE_CONFUSED:
         case TEXT_EMOTE_CURIOUS:
@@ -361,7 +361,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
         case TEXT_EMOTE_EYEBROW:
             emoteId = EMOTE_ONESHOT_QUESTION;
             textEmote = TEXT_EMOTE_SHRUG;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_confused", "Don't look at  me.. I just work here", {});
+            emoteText = "Don't look at  me.. I just work here";
             break;
         case TEXT_EMOTE_COUGH:
         case TEXT_EMOTE_DROOL:
@@ -372,23 +372,23 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_SWEAT:
             emoteId = EMOTE_ONESHOT_POINT;
             textEmote = TEXT_EMOTE_POINT;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_cough", "Ewww! Keep your nasty germs over there!", {});
+            emoteText = "Ewww! Keep your nasty germs over there!";
             break;
         case TEXT_EMOTE_CRY:
             emoteId = EMOTE_ONESHOT_CRY;
             textEmote = TEXT_EMOTE_CRY;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_cry", "Don't you start crying or it'll make me start crying!", {});
+            emoteText = "Don't you start crying or it'll make me start crying!";
             break;
         case TEXT_EMOTE_CRACK:
             emoteId = EMOTE_ONESHOT_ROAR;
             textEmote = TEXT_EMOTE_ROAR;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_crack", "It's clobbering time!", {});
+            emoteText = "It's clobbering time!";
             break;
         case TEXT_EMOTE_EAT:
         case TEXT_EMOTE_DRINK:
             emoteId = EMOTE_ONESHOT_EAT;
             textEmote = TEXT_EMOTE_EAT;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_eat", "I hope you brought enough for the whole class...", {});
+            emoteText = "I hope you brought enough for the whole class...";
             break;
         case TEXT_EMOTE_GLOAT:
         case TEXT_EMOTE_MOCK:
@@ -396,19 +396,19 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
         case TEXT_EMOTE_EMBARRASS:
             emoteId = EMOTE_ONESHOT_CRY;
             textEmote = TEXT_EMOTE_CRY;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_gloat", "Doesn't mean you need to be an ass about it..", {});
+            emoteText = "Doesn't mean you need to be an ass about it..";
             break;
         case TEXT_EMOTE_HUNGRY:
             emoteId = EMOTE_ONESHOT_EAT;
             textEmote = TEXT_EMOTE_EAT;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_hungry", "What? You want some of this?", {});
+            emoteText = "What? You want some of this?";
             break;
         case TEXT_EMOTE_LAYDOWN:
         case TEXT_EMOTE_TIRED:
         case TEXT_EMOTE_YAWN:
             emoteId = EMOTE_ONESHOT_KNEEL;
             textEmote = TEXT_EMOTE_KNEEL;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_tired", "Is it break time already?", {});
+            emoteText = "Is it break time already?";
             break;
         case TEXT_EMOTE_MOAN:
         case TEXT_EMOTE_MOON:
@@ -423,7 +423,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_CHARM:
             emoteId = EMOTE_ONESHOT_NO;
             textEmote = TEXT_EMOTE_NO;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_sexy", "Keep it in your pants, boss..", {});
+            emoteText = "Keep it in your pants, boss..";
             break;
         case TEXT_EMOTE_NO:
         case TEXT_EMOTE_VETO:
@@ -431,23 +431,23 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
         case TEXT_EMOTE_DOUBT:
             emoteId = EMOTE_ONESHOT_QUESTION;
             textEmote = TEXT_EMOTE_SHRUG;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_no", "Aww.... why not?!", {});
+            emoteText = "Aww.... why not?!";
             break;
         case TEXT_EMOTE_PANIC:
             emoteId = EMOTE_ONESHOT_EXCLAMATION;
             textEmote = TEXT_EMOTE_CALM;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_panic", "Now is NOT the time to panic!", {});
+            emoteText = "Now is NOT the time to panic!";
             break;
         case TEXT_EMOTE_POINT:
             emoteId = EMOTE_ONESHOT_POINT;
             textEmote = TEXT_EMOTE_POINT;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_point", "What?! I can do that TOO!", {});
+            emoteText = "What?! I can do that TOO!";
             break;
         case TEXT_EMOTE_RUDE:
         case TEXT_EMOTE_RASP:
             emoteId = EMOTE_ONESHOT_RUDE;
             textEmote = TEXT_EMOTE_RASP;
-            emoteText = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_rude", "Right back at you, bub!", {});  // , LANG_UNIVERSAL;
+            emoteText = "Right back at you, bub!";  // , LANG_UNIVERSAL;
             break;
         case TEXT_EMOTE_ROAR:
         case TEXT_EMOTE_THREATEN:
@@ -469,7 +469,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             // case TEXT_EMOTE_SHAKEFIST:
             emoteId = EMOTE_ONESHOT_ROAR;
             textEmote = TEXT_EMOTE_ROAR;
-            emoteYell = PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_roar", "RAWR!", {});
+            emoteYell = "RAWR!";
             break;
         case TEXT_EMOTE_TALK:
             emoteId = EMOTE_ONESHOT_TALK;
@@ -580,36 +580,36 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
             break;
         /*case TEXT_EMOTE_BADFEELING:
             bot->HandleEmoteCommand(EMOTE_ONESHOT_QUESTION);
-            bot->Say(PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_say_stuck", "I'm just waiting for the ominous music now...", {}), LANG_UNIVERSAL);
+            bot->Say("I'm just waiting for the ominous music now...", LANG_UNIVERSAL);
             break;
         case TEXT_EMOTE_MAP:
             bot->HandleEmoteCommand(EMOTE_ONESHOT_NO);
-            bot->Say(PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_say_nope", "Noooooooo.. you just couldn't ask for directions, huh?", {}), LANG_UNIVERSAL);
+            bot->Say("Noooooooo.. you just couldn't ask for directions, huh?", LANG_UNIVERSAL);
             break;
         case TEXT_EMOTE_IDEA:
         case TEXT_EMOTE_THINK:
             bot->HandleEmoteCommand(EMOTE_ONESHOT_NO);
-            bot->Say(PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_say_genius", "Oh boy.. another genius idea...", {}), LANG_UNIVERSAL);
+            bot->Say("Oh boy.. another genius idea...", LANG_UNIVERSAL);
             break;
         case TEXT_EMOTE_OFFER:
             bot->HandleEmoteCommand(EMOTE_ONESHOT_NO);
-            bot->Say(PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_say_nothanks", "No thanks.. I had some back at the last village", {}), LANG_UNIVERSAL);
+            bot->Say("No thanks.. I had some back at the last village", LANG_UNIVERSAL);
             break;
         case TEXT_EMOTE_PET:
             bot->HandleEmoteCommand(EMOTE_ONESHOT_ROAR);
-            bot->Say(PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_say_dog", "Do I look like a dog to you?!", {}), LANG_UNIVERSAL);
+            bot->Say("Do I look like a dog to you?!", LANG_UNIVERSAL);
             break;
         case TEXT_EMOTE_ROLLEYES:
             bot->HandleEmoteCommand(EMOTE_ONESHOT_POINT);
-            bot->Say(PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_say_eyes", "Keep doing that and I'll roll those eyes right out of your head..", {}), LANG_UNIVERSAL);
+            bot->Say("Keep doing that and I'll roll those eyes right out of your head..", LANG_UNIVERSAL);
             break;
         case TEXT_EMOTE_SING:
             bot->HandleEmoteCommand(EMOTE_ONESHOT_APPLAUD);
-            bot->Say(PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_say_lovely", "Lovely... just lovely..", {}), LANG_UNIVERSAL);
+            bot->Say("Lovely... just lovely..", LANG_UNIVERSAL);
             break;
         case TEXT_EMOTE_COVEREARS:
             bot->HandleEmoteCommand(EMOTE_ONESHOT_EXCLAMATION);
-            bot->Yell(PlayerbotTextMgr::instance().GetBotTextOrDefault("emote_say_help", "You think that's going to help you?!", {}), LANG_UNIVERSAL);
+            bot->Yell("You think that's going to help you?!", LANG_UNIVERSAL);
             break;*/
         default:
             // return false;

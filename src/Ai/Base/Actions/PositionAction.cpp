@@ -1,13 +1,13 @@
-﻿/*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
- * and/or modify it under version 3 of the License, or (at your option), any later version.
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
  */
 
 #include "PositionAction.h"
 
 #include "Event.h"
 #include "Playerbots.h"
-#include "PlayerbotTextMgr.h"
 #include "PositionValue.h"
 
 void TellPosition(PlayerbotAI* botAI, std::string const name, PositionInfo pos)
@@ -53,7 +53,7 @@ bool PositionAction::Execute(Event event)
     std::vector<std::string> params = split(param, ' ');
     if (params.size() != 2)
     {
-        botAI->TellMaster("Напиши: position <имя> ?/set/reset");
+        botAI->TellMaster("Whisper position <name> ?/set/reset");
         return false;
     }
 
@@ -170,7 +170,7 @@ bool ReturnToStayPositionAction::isPossible()
         const float distance = bot->GetDistance(stayPosition.x, stayPosition.y, stayPosition.z);
         if (distance > sPlayerbotAIConfig.reactDistance)
         {
-            botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_stay_pos_too_far", "The stay position is too far to return. I am going to stay where I am now", {}));
+            botAI->TellMaster("The stay position is too far to return. I am going to stay where I am now");
 
             // Set the stay position to current position
             stayPosition.Set(bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(), bot->GetMapId());

@@ -1,13 +1,13 @@
-﻿/*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
- * and/or modify it under version 3 of the License, or (at your option), any later version.
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
  */
 
 #include "GuildBankAction.h"
 
 #include "GuildMgr.h"
 #include "PlayerbotAI.h"
-#include "PlayerbotTextMgr.h"
 #include "AiObjectContext.h"
 
 bool GuildBankAction::Execute(Event event)
@@ -18,7 +18,7 @@ bool GuildBankAction::Execute(Event event)
 
     if (!bot->GetGuildId() || (GetMaster() && GetMaster()->GetGuildId() != bot->GetGuildId()))
     {
-        botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_not_in_guild", "I'm not in your guild!", {}));
+        botAI->TellMaster("I'm not in your guild!");
         return false;
     }
 
@@ -32,7 +32,7 @@ bool GuildBankAction::Execute(Event event)
         return Execute(text, go);
     }
 
-    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_no_guild_bank", "Cannot find the guild bank nearby", {}));
+    botAI->TellMaster("Cannot find the guild bank nearby");
     return false;
 }
 
