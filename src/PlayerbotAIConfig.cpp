@@ -624,8 +624,6 @@ bool PlayerbotAIConfig::Initialize()
     addClassCommand = sConfigMgr->GetOption<int32>("AiPlayerbot.AddClassCommand", 1);
     addClassAccountPoolSize = sConfigMgr->GetOption<int32>("AiPlayerbot.AddClassAccountPoolSize", 50);
     maintenanceCommand = sConfigMgr->GetOption<int32>("AiPlayerbot.MaintenanceCommand", 1);
-    maintenanceCommandAltBots = sConfigMgr->GetOption<int32>("AiPlayerbot.MaintenanceCommandAltBots", 1);
-    maintenanceCommandRandomBots = sConfigMgr->GetOption<int32>("AiPlayerbot.MaintenanceCommandRandomBots", 1);
 
     altMaintenanceAttunementQs = sConfigMgr->GetOption<bool>("AiPlayerbot.AltMaintenanceAttunementQuests", true);
     altMaintenanceBags = sConfigMgr->GetOption<bool>("AiPlayerbot.AltMaintenanceBags", true);
@@ -649,12 +647,9 @@ bool PlayerbotAIConfig::Initialize()
 
     autoGearCommand = sConfigMgr->GetOption<int32>("AiPlayerbot.AutoGearCommand", 1);
     autoGearCommandAltBots = sConfigMgr->GetOption<int32>("AiPlayerbot.AutoGearCommandAltBots", 1);
-    autoGearCommandRandomBots = sConfigMgr->GetOption<int32>("AiPlayerbot.AutoGearCommandRandomBots", 1);
     autoGearBisCommand = sConfigMgr->GetOption<int32>("AiPlayerbot.AutoGearBisCommand", 0);
     autoGearQualityLimit = sConfigMgr->GetOption<int32>("AiPlayerbot.AutoGearQualityLimit", 3);
     autoGearScoreLimit = sConfigMgr->GetOption<int32>("AiPlayerbot.AutoGearScoreLimit", 0);
-    autoGearScoreLimitAltBots = sConfigMgr->GetOption<int32>("AiPlayerbot.AutoGearScoreLimitAltBots", 0);
-    autoGearScoreLimitRandomBots = sConfigMgr->GetOption<int32>("AiPlayerbot.AutoGearScoreLimitRandomBots", 0);
 
     randomBotXPRate = sConfigMgr->GetOption<float>("AiPlayerbot.RandomBotXPRate", 1.0);
     randomBotAllianceRatio = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotAllianceRatio", 50);
