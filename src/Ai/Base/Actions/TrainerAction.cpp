@@ -571,7 +571,8 @@ bool AutoGearAction::Execute(Event /*event*/)
     if (!sPlayerbotAIConfig.autoGearCommandAltBots &&
         !sPlayerbotAIConfig.IsInRandomAccountList(bot->GetSession()->GetAccountId()))
     {
-        botAI->TellError("You cannot use autogear on alt bots.");
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
+            "autogear_alt_bot_error", "You cannot use autogear on alt bots.", {}));
         return false;
     }
 
@@ -581,7 +582,7 @@ bool AutoGearAction::Execute(Event /*event*/)
                     : PlayerbotFactory::CalcMixedGearScore(sPlayerbotAIConfig.autoGearScoreLimit,
                                                            sPlayerbotAIConfig.autoGearQualityLimit);
     PlayerbotFactory factory(bot, bot->GetLevel(), sPlayerbotAIConfig.autoGearQualityLimit, gs);
-    factory.InitEquipment(true);
+    factory.InitEquipment(false);
     factory.InitAmmo();
     if (bot->GetLevel() >= sPlayerbotAIConfig.minEnchantingBotLevel)
     {
