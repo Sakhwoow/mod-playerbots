@@ -1007,7 +1007,10 @@ void PlayerbotAI::HandleCommand(uint32 type, std::string const text, Player* fro
         fromPlayer->SendDirectMessage(&data);
         return;
     }
-    if (!IsAllowedCommand(filtered) &&
+    // Unsecured commands (invite, who, etc.) only bypass the ALLOW_ALL check for whispers.
+    // Public channels (say, yell, general, trade) must pass ALLOW_ALL to prevent mass bot responses.
+    bool isPublicChannel = (type == CHAT_MSG_CHANNEL || type == CHAT_MSG_SAY || type == CHAT_MSG_YELL);
+    if ((!IsAllowedCommand(filtered) || isPublicChannel) &&
         (!GetSecurity()->CheckLevelFor(PLAYERBOT_SECURITY_ALLOW_ALL, type != CHAT_MSG_WHISPER, fromPlayer)))
         return;
 
