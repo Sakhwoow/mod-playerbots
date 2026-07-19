@@ -418,7 +418,7 @@ public:
     int32 maxAddedBots;
     int32 addClassCommand;
     int32 addClassAccountPoolSize;
-    int32 maintenanceCommand;
+    int32 maintenanceCommand, maintenanceCommandAltBots, maintenanceCommandRandomBots;
     bool altMaintenanceAttunementQs,
             altMaintenanceBags,
             altMaintenanceAmmo,
@@ -438,7 +438,7 @@ public:
             altMaintenanceGlyphs,
             altMaintenanceKeyring,
             altMaintenanceGemsEnchants;
-    int32 autoGearCommand, autoGearCommandAltBots, autoGearQualityLimit, autoGearScoreLimit;
+    int32 autoGearCommand, autoGearCommandAltBots, autoGearCommandRandomBots, autoGearQualityLimit, autoGearScoreLimit, autoGearScoreLimitAltBots, autoGearScoreLimitRandomBots;
     int32 autoGearBisCommand;
 
     uint32 useGroundMountAtMinLevel;

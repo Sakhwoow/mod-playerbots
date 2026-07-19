@@ -181,7 +181,19 @@ bool MaintenanceAction::Execute(Event /*event*/)
         return false;
     }
 
-    botAI->TellMaster("I'm maintaining");
+    if (botAI->IsAltBot() && !sPlayerbotAIConfig.maintenanceCommandAltBots)
+    {
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("maintenance_alt_bot_error", "You cannot use maintenance on alt bots.", {}));
+        return false;
+    }
+
+    if (!botAI->IsAltBot() && !sPlayerbotAIConfig.maintenanceCommandRandomBots)
+    {
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("maintenance_random_bot_error", "You cannot use maintenance on random bots.", {}));
+        return false;
+    }
+
+    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("maintenance_started", "I'm maintaining", {}));
     PlayerbotFactory factory(bot, bot->GetLevel());
 
     if (!botAI->IsAltBot())
@@ -568,18 +580,30 @@ bool AutoGearAction::Execute(Event /*event*/)
         return false;
     }
 
-    if (!sPlayerbotAIConfig.autoGearCommandAltBots &&
-        !sPlayerbotAIConfig.IsInRandomAccountList(bot->GetSession()->GetAccountId()))
+    bool const isAltBot = botAI->IsAltBot();
+    bool const isRandomBot = RandomPlayerbotMgr::instance().IsRandomBot(bot);
+
+    if (isAltBot && !sPlayerbotAIConfig.autoGearCommandAltBots)
     {
-        botAI->TellError("You cannot use autogear on alt bots.");
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("autogear_alt_bot_error", "You cannot use autogear on alt bots.", {}));
         return false;
     }
 
-    botAI->TellMaster("I'm auto gearing");
-    uint32 gs = sPlayerbotAIConfig.autoGearScoreLimit == 0
+    if (isRandomBot && !sPlayerbotAIConfig.autoGearCommandRandomBots)
+    {
+        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("autogear_random_bot_error", "You cannot use autogear on random bots.", {}));
+        return false;
+    }
+
+    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("autogear_started", "I'm auto gearing", {}));
+
+    int32 scoreLimitRaw = isAltBot    ? (sPlayerbotAIConfig.autoGearScoreLimitAltBots    ? sPlayerbotAIConfig.autoGearScoreLimitAltBots    : sPlayerbotAIConfig.autoGearScoreLimit)
+                        : isRandomBot ? (sPlayerbotAIConfig.autoGearScoreLimitRandomBots ? sPlayerbotAIConfig.autoGearScoreLimitRandomBots : sPlayerbotAIConfig.autoGearScoreLimit)
+                        : sPlayerbotAIConfig.autoGearScoreLimit;
+
+    uint32 gs = scoreLimitRaw == 0
                     ? 0
-                    : PlayerbotFactory::CalcMixedGearScore(sPlayerbotAIConfig.autoGearScoreLimit,
-                                                           sPlayerbotAIConfig.autoGearQualityLimit);
+                    : PlayerbotFactory::CalcMixedGearScore(scoreLimitRaw, sPlayerbotAIConfig.autoGearQualityLimit);
     PlayerbotFactory factory(bot, bot->GetLevel(), sPlayerbotAIConfig.autoGearQualityLimit, gs);
     factory.InitEquipment(true);
     factory.InitAmmo();

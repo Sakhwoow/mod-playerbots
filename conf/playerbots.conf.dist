@@ -536,6 +536,15 @@ AiPlayerbot.FleeingEnabled = 1
 # Default: 1 (enabled)
 AiPlayerbot.MaintenanceCommand = 1
 
+# Enable/Disable maintenance command for alt bots (player's own characters)
+# Set to 0 to block players from running maintenance on their alt bots entirely
+# Default: 1 (enabled)
+AiPlayerbot.MaintenanceCommandAltBots = 1
+
+# Enable/Disable maintenance command for random bots (bots roaming the world)
+# Default: 1 (enabled)
+AiPlayerbot.MaintenanceCommandRandomBots = 1
+
 # Enable/Disable specific maintenance command functionality for altbots
 # Disable to prevent players from giving free bags, spells, skill levels, etc. to their altbots
 # Default: 1 (enabled)
@@ -569,9 +578,21 @@ AiPlayerbot.AltMaintenanceKeyring = 1
 # Default: 1 (enabled)
 AiPlayerbot.AutoGearCommand = 1
 
-# Enable/Disable autogear command on altbots
+# Enable/Disable autogear command for alt bots (player's own characters)
 # Default: 1 (enabled)
 AiPlayerbot.AutoGearCommandAltBots = 1
+
+# Enable/Disable autogear command for random bots (bots roaming the world)
+# Default: 1 (enabled)
+AiPlayerbot.AutoGearCommandRandomBots = 1
+
+# Gear score limit for autogear on alt bots (0 = use AutoGearScoreLimit)
+# Default: 0
+AiPlayerbot.AutoGearScoreLimitAltBots = 0
+
+# Gear score limit for autogear on random bots (0 = use AutoGearScoreLimit)
+# Default: 0
+AiPlayerbot.AutoGearScoreLimitRandomBots = 0
 
 # If 1 (enabled) chat command: autogear bis, gives bots BiS gear from the playerbots_bis_gear table
 # whose item-level floor matches AutoGearScoreLimit (e.g. 290 = ICC, 245 = ToC,
