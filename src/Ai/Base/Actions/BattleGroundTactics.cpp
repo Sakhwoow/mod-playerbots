@@ -1727,6 +1727,9 @@ bool BGTactics::moveToStart(bool force)
     if (!force && bg->GetStatus() != STATUS_WAIT_JOIN)
         return false;
 
+    if (bg->isArena())
+        bg->ReadyMarkerClicked(bot);
+
     BattlegroundTypeId bgType = bg->GetBgTypeID();
     if (bgType == BATTLEGROUND_RB)
         bgType = bg->GetBgTypeID(true);
