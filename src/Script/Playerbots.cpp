@@ -24,6 +24,7 @@
 #include "DatabaseEnv.h"
 #include "DatabaseLoader.h"
 #include "GuildTaskMgr.h"
+#include "GroupScript.h"
 #include "PlayerScript.h"
 #include "PlayerbotAIConfig.h"
 #include "PlayerbotGuildMgr.h"
@@ -506,6 +507,31 @@ public:
     void OnBattlegroundEnd(Battleground* bg, TeamId /*winnerTeam*/) override { bgStrategies.erase(bg->GetInstanceID()); }
 };
 
+class PlayerbotGroupScript : public GroupScript
+{
+public:
+    PlayerbotGroupScript() : GroupScript("PlayerbotGroupScript", {GROUPHOOK_ON_REMOVE_MEMBER}) {}
+
+    void OnRemoveMember(Group* group, ObjectGuid guid, RemoveMethod /*method*/, ObjectGuid /*kicker*/, const char* /*reason*/) override
+    {
+        // Check if any real player (not a bot) remains after this removal
+        for (GroupReference* ref = group->GetFirstMember(); ref != nullptr; ref = ref->next())
+        {
+            Player* member = ref->GetSource();
+            if (member && member->GetGUID() != guid && !GET_PLAYERBOT_AI(member))
+                return;
+        }
+
+        // No real players left — teleport bots still in instances to their homebind
+        for (GroupReference* ref = group->GetFirstMember(); ref != nullptr; ref = ref->next())
+        {
+            Player* bot = ref->GetSource();
+            if (bot && bot->GetGUID() != guid && GET_PLAYERBOT_AI(bot) && bot->IsInInstance())
+                bot->TeleportToHomebind();
+        }
+    }
+};
+
 // Workaround for missing InitEnabledHooksIfNeeded for new BattlefieldScript in ScriptMgr
 class PlayerbotsBattlefieldScript : public BattlefieldScript
 {
@@ -526,6 +552,7 @@ void AddPlayerbotsScripts()
     new PlayerbotsBattlefieldScript();
     new PlayerbotsDatabaseScript();
     new PlayerbotsPlayerScript();
+    new PlayerbotGroupScript();
     new PlayerbotsMiscScript();
     new PlayerbotsServerScript();
     new PlayerbotsWorldScript();

@@ -2629,6 +2629,8 @@ void RandomPlayerbotMgr::OnPlayerLogout(Player* player)
             {
                 botAI->ResetStrategies();
             }
+            if (!bot->GetGroup() && bot->IsInInstance())
+                bot->TeleportToHomebind();
         }
     }
 
