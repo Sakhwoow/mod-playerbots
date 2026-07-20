@@ -40,7 +40,7 @@ bool HyjalSummitEraseTrackersAction::Execute(Event /*event*/)
                 erased = true;
         }
 
-        return erased;
+        return true;
     }
     else
     {
@@ -65,7 +65,7 @@ bool HyjalSummitEraseTrackersAction::Execute(Event /*event*/)
             doomfireTrails.erase(instanceId) > 0)
             erased = true;
 
-        return erased;
+        return true;
     }
 }
 
