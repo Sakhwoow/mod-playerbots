@@ -2629,8 +2629,8 @@ void RandomPlayerbotMgr::OnPlayerLogout(Player* player)
             {
                 botAI->ResetStrategies();
             }
-            if (!bot->GetGroup() && bot->IsInInstance())
-                bot->TeleportToHomebind();
+            if (!bot->GetGroup() && bot->GetMap() && (bot->GetMap()->IsDungeon() || bot->GetMap()->IsRaid()))
+                bot->TeleportTo(bot->m_homebindMapId, bot->m_homebindX, bot->m_homebindY, bot->m_homebindZ, bot->GetOrientation());
         }
     }
 

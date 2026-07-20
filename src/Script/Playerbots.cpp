@@ -526,8 +526,9 @@ public:
         for (GroupReference* ref = group->GetFirstMember(); ref != nullptr; ref = ref->next())
         {
             Player* bot = ref->GetSource();
-            if (bot && bot->GetGUID() != guid && GET_PLAYERBOT_AI(bot) && bot->IsInInstance())
-                bot->TeleportToHomebind();
+            if (bot && bot->GetGUID() != guid && GET_PLAYERBOT_AI(bot) &&
+                bot->GetMap() && (bot->GetMap()->IsDungeon() || bot->GetMap()->IsRaid()))
+                bot->TeleportTo(bot->m_homebindMapId, bot->m_homebindX, bot->m_homebindY, bot->m_homebindZ, bot->GetOrientation());
         }
     }
 };
