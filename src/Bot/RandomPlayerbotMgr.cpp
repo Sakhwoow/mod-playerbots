@@ -2399,15 +2399,13 @@ uint32 RandomPlayerbotMgr::SetEventValue(uint32 bot, std::string const& event, u
 {
     PlayerbotsDatabaseTransaction trans = PlayerbotsDatabase.BeginTransaction();
 
-    PlayerbotsDatabasePreparedStatement* stmt =
-        PlayerbotsDatabase.GetPreparedStatement(PLAYERBOTS_DEL_RANDOM_BOTS_BY_OWNER_AND_EVENT);
-    stmt->SetData(0, 0);
-    stmt->SetData(1, bot);
-    stmt->SetData(2, event.c_str());
-    trans->Append(stmt);
+    PlayerbotsDatabasePreparedStatement* stmt;
 
     if (value)
     {
+        // ON DUPLICATE KEY UPDATE makes DELETE unnecessary and eliminates the race condition
+        // where concurrent SetEventValue calls for the same (owner,bot,event) key cause
+        // [1062] Duplicate entry errors and deadlocks.
         stmt = PlayerbotsDatabase.GetPreparedStatement(PLAYERBOTS_INS_RANDOM_BOTS);
         stmt->SetData(0, 0);
         stmt->SetData(1, bot);
@@ -2421,6 +2419,14 @@ uint32 RandomPlayerbotMgr::SetEventValue(uint32 bot, std::string const& event, u
         else
             stmt->SetData(6);  // NULL
 
+        trans->Append(stmt);
+    }
+    else
+    {
+        stmt = PlayerbotsDatabase.GetPreparedStatement(PLAYERBOTS_DEL_RANDOM_BOTS_BY_OWNER_AND_EVENT);
+        stmt->SetData(0, 0);
+        stmt->SetData(1, bot);
+        stmt->SetData(2, event.c_str());
         trans->Append(stmt);
     }
 
