@@ -804,7 +804,7 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
         }
 
         if (QueryResult result = CharacterDatabase.Query(
-                "SELECT guid FROM characters WHERE account IN ({}) AND level >= 70", accountList))
+                "SELECT guid FROM characters WHERE account IN ({}) AND level >= 80", accountList))
         {
             do
             {
@@ -845,7 +845,7 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
                     if (sCharacterCache->GetCharacterArenaTeamIdByGuid(memberGuid, arenateam->GetSlot()) != 0)
                         continue;
                     CharacterCacheEntry const* entry = sCharacterCache->GetCharacterCacheByGuid(memberGuid);
-                    if (!entry || entry->Level < 70)
+                    if (!entry || entry->Level < 80)
                         continue;
                     if (Player::TeamIdForRace(entry->Race) != captainTeamId)
                         continue;
@@ -944,7 +944,7 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
         {
             Player* player = ObjectAccessor::FindConnectedPlayer(captain);
 
-            if (!arenateam && player && player->GetLevel() >= 70 &&
+            if (!arenateam && player && player->GetLevel() >= 80 &&
                 !(player->GetGuildId() && PlayerbotGuildMgr::instance().IsRealGuild(player->GetGuildId())) &&
                 !sPlayerbotAIConfig.realPlayerFriendBotGuids.count(captain.GetRawValue()))
                 availableCaptains.push_back(captain);
@@ -973,9 +973,9 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
             continue;
         }
 
-        if (player->GetLevel() < 70)
+        if (player->GetLevel() < 80)
         {
-            LOG_ERROR("playerbots", "Bot {} must be level 70 to create an arena team", captain.ToString().c_str());
+            LOG_ERROR("playerbots", "Bot {} must be level 80 to create an arena team", captain.ToString().c_str());
             continue;
         }
 
@@ -1056,7 +1056,7 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
             if (sCharacterCache->GetCharacterArenaTeamIdByGuid(memberGuid, arenateam->GetSlot()) != 0)
                 continue;
             CharacterCacheEntry const* entry = sCharacterCache->GetCharacterCacheByGuid(memberGuid);
-            if (!entry || entry->Level < 70)
+            if (!entry || entry->Level < 80)
                 continue;
             // Only same faction as captain
             if (Player::TeamIdForRace(entry->Race) != player->GetTeamId())

@@ -837,7 +837,7 @@ void PlayerbotFactory::Randomize(bool incremental)
     if (pmo)
         pmo->finish();
 
-    if (bot->GetLevel() >= 70)
+    if (bot->GetLevel() >= 80)
     {
         pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Arenas");
         // LOG_INFO("playerbots", "Initializing arena teams...");
@@ -4793,7 +4793,7 @@ void PlayerbotFactory::InitArenaTeam()
             continue;
         }
 
-        if (arenateam->GetMembersSize() < ((uint32)arenateam->GetType()) && bot->GetLevel() >= 70)
+        if (arenateam->GetMembersSize() < ((uint32)arenateam->GetType()) && bot->GetLevel() >= 80)
         {
             ObjectGuid capt = arenateam->GetCaptain();
             Player* botcaptain = ObjectAccessor::FindPlayer(capt);
