@@ -1369,6 +1369,20 @@ void RandomPlayerbotMgr::CheckLfgQueue()
     }
 
     LOG_DEBUG("playerbots", "LFG Queue check finished");
+
+    // Auto-click Ready Marker for bots in arena preparation so the match starts
+    // immediately instead of waiting the full 1-minute countdown.
+    for (auto const& [guid, player] : playerBots)
+    {
+        if (!player)
+            continue;
+        Battleground* bg = player->GetBattleground();
+        if (!bg || !bg->isArena() || bg->GetStatus() >= STATUS_IN_PROGRESS)
+            continue;
+        if (bg->GetStartDelayTime() <= BG_START_DELAY_15S)
+            continue;
+        bg->ReadyMarkerClicked(player);
+    }
 }
 
 void RandomPlayerbotMgr::CheckPlayers()
