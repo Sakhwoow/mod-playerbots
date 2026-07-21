@@ -836,6 +836,7 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
 
         uint32 index = urand(0, availableCaptains.size() - 1);
         ObjectGuid captain = availableCaptains[index];
+        availableCaptains.erase(availableCaptains.begin() + index);
         Player* player = ObjectAccessor::FindConnectedPlayer(captain);
         if (!player)
         {
@@ -912,8 +913,71 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
         // arenateam->SetStats(STAT_TYPE_GAMES_SEASON, urand(arenateam->GetStats().games_week,
         // arenateam->GetStats().games_week * 5)); arenateam->SetStats(STAT_TYPE_WINS_SEASON,
         // urand(arenateam->GetStats().wins_week, arenateam->GetStats().games
-        arenateam->SaveToDB();
 
+        // Add remaining members directly so the team is fully formed before going live
+        uint32 membersNeeded = (uint32)type - 1;
+        uint32 membersAdded = 0;
+        for (uint32 mi = 0; mi < availableCaptains.size() && membersAdded < membersNeeded; )
+        {
+            ObjectGuid memberGuid = availableCaptains[mi];
+            Player* memberPlayer = ObjectAccessor::FindConnectedPlayer(memberGuid);
+            if (!memberPlayer || memberPlayer->GetTeamId() != player->GetTeamId())
+            {
+                ++mi;
+                continue;
+            }
+
+            if (!sRandomPlayerbotMgr.IsSpecPvp(memberPlayer->GetGUID().GetCounter(), memberPlayer->getClass()))
+            {
+                uint8 cls = memberPlayer->getClass();
+                for (uint32 i = 0; i < MAX_SPECNO; ++i)
+                {
+                    std::string const& specName = sPlayerbotAIConfig.premadeSpecName[cls][i];
+                    if (!specName.empty() && specName.find("pvp") != std::string::npos)
+                    {
+                        sRandomPlayerbotMgr.SetValue(memberPlayer->GetGUID().GetCounter(), "specNo", i + 1);
+                        uint32 pvpGs = sPlayerbotAIConfig.autoGearScoreLimit == 0
+                            ? 0
+                            : PlayerbotFactory::CalcMixedGearScore(sPlayerbotAIConfig.autoGearScoreLimit,
+                                                                   sPlayerbotAIConfig.autoGearQualityLimit);
+                        PlayerbotFactory factory(memberPlayer, memberPlayer->GetLevel(),
+                                                 sPlayerbotAIConfig.autoGearQualityLimit, pvpGs);
+                        factory.InitEquipment(false, sPlayerbotAIConfig.twoRoundsGearInit);
+                        factory.Refresh();
+                        LOG_DEBUG("playerbots", "Assigned pvp spec '{}' to arena bot {}", specName, memberPlayer->GetName());
+                        break;
+                    }
+                }
+            }
+
+            if (arenateam->AddMember(memberGuid))
+            {
+                availableCaptains.erase(availableCaptains.begin() + mi);
+                ++membersAdded;
+            }
+            else
+            {
+                ++mi;
+            }
+        }
+
+        if (membersAdded < membersNeeded)
+            LOG_WARN("playerbots", "Arena team '{}' only got {}/{} members (not enough available bots of same faction)",
+                     arenaTeamName, membersAdded + 1, (uint32)type);
+
+        // Sync all member ratings and MMR to team rating now that the roster is complete
+        if (arenateam->GetMembersSize() >= (uint32)arenateam->GetType())
+        {
+            uint32 teamRating = arenateam->GetRating();
+            arenateam->SetRatingForAll(teamRating);
+            for (auto& member : arenateam->GetMembers())
+            {
+                member.MatchMakerRating = member.PersonalRating;
+                member.MaxMMR = std::max(member.MaxMMR, member.PersonalRating);
+            }
+        }
+
+        arenateam->SaveToDB(true);
         sArenaTeamMgr->AddArenaTeam(arenateam);
         sPlayerbotAIConfig.randomBotArenaTeams.push_back(arenateam->GetId());
     }
