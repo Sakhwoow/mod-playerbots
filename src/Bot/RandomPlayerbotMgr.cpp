@@ -1892,14 +1892,16 @@ void RandomPlayerbotMgr::Init()
                     ObjectGuid::Create<HighGuid::Player>(guid).GetRawValue());
             } while (result->NextRow());
 
-            LOG_INFO("playerbots", "Loaded {} arena team bot GUIDs for always-online protection",
+            LOG_INFO("playerbots", "Загружено {} GUID-ов ботов арена-команд (защита от офлайна)",
                      sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.size());
         }
     }
+}
 
-    // Fill existing arena teams and populate randomBotArenaTeams at startup.
-    // Must run here because InitArenaTeam() only fires when a bot randomizes,
-    // which may not happen on every restart.
+void RandomPlayerbotMgr::InitArenaTeams()
+{
+    // sArenaTeamMgr is fully loaded by the time OnStartup() fires.
+    // Called from OnStartup so existing teams are filled before any bot randomizes.
     RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_2v2, sPlayerbotAIConfig.randomBotArenaTeam2v2Count);
     RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_3v3, sPlayerbotAIConfig.randomBotArenaTeam3v3Count);
     RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_5v5, sPlayerbotAIConfig.randomBotArenaTeam5v5Count);

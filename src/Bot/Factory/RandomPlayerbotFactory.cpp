@@ -901,12 +901,12 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
                 if (membersAdded > 0)
                 {
                     needSave = true;
-                    LOG_INFO("playerbots", "Filled incomplete arena team '{}' with {} new member(s) ({}/{})",
+                    LOG_INFO("playerbots", "Арена-команда '{}': добавлено {} участников ({}/{})",
                              arenateam->GetName(), membersAdded, arenateam->GetMembersSize(), (uint32)type);
                 }
 
                 if (arenateam->GetMembersSize() < (uint32)arenateam->GetType())
-                    LOG_WARN("playerbots", "Arena team '{}' still incomplete: {}/{} members",
+                    LOG_WARN("playerbots", "Арена-команда '{}' всё ещё неполная: {}/{} участников",
                              arenateam->GetName(), arenateam->GetMembersSize(), (uint32)type);
             }
 

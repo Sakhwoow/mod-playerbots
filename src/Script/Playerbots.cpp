@@ -332,6 +332,7 @@ class PlayerbotsWorldScript : public WorldScript
 public:
     PlayerbotsWorldScript() : WorldScript("PlayerbotsWorldScript", {
         WORLDHOOK_ON_BEFORE_WORLD_INITIALIZED,
+        WORLDHOOK_ON_STARTUP,
         WORLDHOOK_ON_UPDATE
     }) {}
 
@@ -365,6 +366,14 @@ public:
         PlayerbotSpellRepository::Instance().Initialize();
 
         LOG_INFO("server.loading", "Playerbots World Thread Processor initialized");
+    }
+
+    void OnStartup() override
+    {
+        // sArenaTeamMgr is fully loaded here (after SetInitialWorldSettings).
+        // Fill existing arena teams and populate randomBotArenaTeams.
+        if (sPlayerbotAIConfig.enabled)
+            sRandomPlayerbotMgr.InitArenaTeams();
     }
 
     void OnUpdate(uint32 diff) override

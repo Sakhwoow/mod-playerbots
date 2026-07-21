@@ -170,6 +170,7 @@ public:
 
     void PrepareAddclassCache();
     void Init();
+    void InitArenaTeams();
     std::map<uint8, std::unordered_set<ObjectGuid>> addclassCache;
 
     // Account type management
