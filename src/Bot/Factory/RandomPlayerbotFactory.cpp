@@ -914,20 +914,37 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
         // arenateam->GetStats().games_week * 5)); arenateam->SetStats(STAT_TYPE_WINS_SEASON,
         // urand(arenateam->GetStats().wins_week, arenateam->GetStats().games
 
+        // Build a member pool from ALL random bots (online or offline).
+        // AddMember() handles offline bots via sCharacterCache, so we don't need them online.
+        // We only need the captain to be online (required by ArenaTeam::Create).
+        GuidVector availableMembers;
+        for (uint32 botId : randomBots)
+        {
+            ObjectGuid memberGuid = ObjectGuid::Create<HighGuid::Player>(botId);
+            if (memberGuid == captain)
+                continue;
+            // Skip bots already in a team of this slot
+            if (sCharacterCache->GetCharacterArenaTeamIdByGuid(memberGuid, arenateam->GetSlot()) != 0)
+                continue;
+            CharacterCacheEntry const* entry = sCharacterCache->GetCharacterCacheByGuid(memberGuid);
+            if (!entry || entry->Level < 70)
+                continue;
+            // Only same faction as captain
+            if (Player::TeamIdForRace(entry->Race) != player->GetTeamId())
+                continue;
+            availableMembers.push_back(memberGuid);
+        }
+
         // Add remaining members directly so the team is fully formed before going live
         uint32 membersNeeded = (uint32)type - 1;
         uint32 membersAdded = 0;
-        for (uint32 mi = 0; mi < availableCaptains.size() && membersAdded < membersNeeded; )
+        for (uint32 mi = 0; mi < availableMembers.size() && membersAdded < membersNeeded; )
         {
-            ObjectGuid memberGuid = availableCaptains[mi];
-            Player* memberPlayer = ObjectAccessor::FindConnectedPlayer(memberGuid);
-            if (!memberPlayer || memberPlayer->GetTeamId() != player->GetTeamId())
-            {
-                ++mi;
-                continue;
-            }
+            ObjectGuid memberGuid = availableMembers[mi];
 
-            if (!sRandomPlayerbotMgr.IsSpecPvp(memberPlayer->GetGUID().GetCounter(), memberPlayer->getClass()))
+            // Assign PVP spec only if the bot is currently online
+            Player* memberPlayer = ObjectAccessor::FindConnectedPlayer(memberGuid);
+            if (memberPlayer && !sRandomPlayerbotMgr.IsSpecPvp(memberPlayer->GetGUID().GetCounter(), memberPlayer->getClass()))
             {
                 uint8 cls = memberPlayer->getClass();
                 for (uint32 i = 0; i < MAX_SPECNO; ++i)
@@ -952,7 +969,11 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
 
             if (arenateam->AddMember(memberGuid))
             {
-                availableCaptains.erase(availableCaptains.begin() + mi);
+                availableMembers.erase(availableMembers.begin() + mi);
+                // Remove from captains pool so they won't become a captain later
+                availableCaptains.erase(
+                    std::remove(availableCaptains.begin(), availableCaptains.end(), memberGuid),
+                    availableCaptains.end());
                 ++membersAdded;
             }
             else
