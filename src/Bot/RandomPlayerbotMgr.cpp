@@ -1896,6 +1896,13 @@ void RandomPlayerbotMgr::Init()
                      sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.size());
         }
     }
+
+    // Fill existing arena teams and populate randomBotArenaTeams at startup.
+    // Must run here because InitArenaTeam() only fires when a bot randomizes,
+    // which may not happen on every restart.
+    RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_2v2, sPlayerbotAIConfig.randomBotArenaTeam2v2Count);
+    RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_3v3, sPlayerbotAIConfig.randomBotArenaTeam3v3Count);
+    RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_5v5, sPlayerbotAIConfig.randomBotArenaTeam5v5Count);
 }
 
 void RandomPlayerbotMgr::RandomTeleportForLevel(Player* bot)

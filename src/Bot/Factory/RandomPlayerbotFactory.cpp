@@ -823,7 +823,9 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
         if (arenateam)
         {
             ++arenaTeamNumber;
-            sPlayerbotAIConfig.randomBotArenaTeams.push_back(arenateam->GetId());
+            auto& teams = sPlayerbotAIConfig.randomBotArenaTeams;
+            if (std::find(teams.begin(), teams.end(), arenateam->GetId()) == teams.end())
+                teams.push_back(arenateam->GetId());
 
             bool needSave = false;
 
@@ -1119,7 +1121,11 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
 
         arenateam->SaveToDB(true);
         sArenaTeamMgr->AddArenaTeam(arenateam);
-        sPlayerbotAIConfig.randomBotArenaTeams.push_back(arenateam->GetId());
+        {
+            auto& teams = sPlayerbotAIConfig.randomBotArenaTeams;
+            if (std::find(teams.begin(), teams.end(), arenateam->GetId()) == teams.end())
+                teams.push_back(arenateam->GetId());
+        }
 
         for (auto const& member : arenateam->GetMembers())
             sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.insert(member.Guid.GetRawValue());

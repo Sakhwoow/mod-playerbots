@@ -4744,16 +4744,30 @@ void PlayerbotFactory::InitArenaTeam()
     if (!sPlayerbotAIConfig.IsInRandomAccountList(bot->GetSession()->GetAccountId()))
         return;
 
-    // Currently the teams are only remade after a server restart and if deleteRandomBotArenaTeams = 1
-    // This is because randomBotArenaTeams is only empty on server restart.
-    // A manual reinitalization (.playerbots rndbot init) is also required after the teams have been deleted.
-    if (sPlayerbotAIConfig.randomBotArenaTeams.empty())
+    // Count existing tracked teams per type; if any type is under its target count,
+    // run CreateRandomArenaTeams to create the missing ones (bots are now online so
+    // captains are available). Existing teams were already filled in RandomPlayerbotMgr::Init().
     {
-        // Teams are kept across restarts; DeleteRandomBotArenaTeams now means "reset ratings on restart"
-        // rather than full deletion. Rating reset happens inside CreateRandomArenaTeams when existing teams are found.
-        RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_2v2, sPlayerbotAIConfig.randomBotArenaTeam2v2Count);
-        RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_3v3, sPlayerbotAIConfig.randomBotArenaTeam3v3Count);
-        RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_5v5, sPlayerbotAIConfig.randomBotArenaTeam5v5Count);
+        uint32 have2v2 = 0, have3v3 = 0, have5v5 = 0;
+        for (uint32 teamId : sPlayerbotAIConfig.randomBotArenaTeams)
+        {
+            if (ArenaTeam* t = sArenaTeamMgr->GetArenaTeamById(teamId))
+            {
+                switch (ArenaType(t->GetType()))
+                {
+                    case ARENA_TYPE_2v2: ++have2v2; break;
+                    case ARENA_TYPE_3v3: ++have3v3; break;
+                    case ARENA_TYPE_5v5: ++have5v5; break;
+                    default: break;
+                }
+            }
+        }
+        if (have2v2 < sPlayerbotAIConfig.randomBotArenaTeam2v2Count)
+            RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_2v2, sPlayerbotAIConfig.randomBotArenaTeam2v2Count);
+        if (have3v3 < sPlayerbotAIConfig.randomBotArenaTeam3v3Count)
+            RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_3v3, sPlayerbotAIConfig.randomBotArenaTeam3v3Count);
+        if (have5v5 < sPlayerbotAIConfig.randomBotArenaTeam5v5Count)
+            RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_5v5, sPlayerbotAIConfig.randomBotArenaTeam5v5Count);
     }
 
     std::vector<uint32> arenateams;
