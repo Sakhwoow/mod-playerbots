@@ -10,6 +10,7 @@
 #include "DatabaseEnv.h"
 #include "Event.h"
 #include "GuildPackets.h"
+#include "PlayerbotAIConfig.h"
 #include "PlayerbotGuildMgr.h"
 #include "PlayerbotSecurity.h"
 #include "PlayerbotTextMgr.h"
@@ -48,6 +49,10 @@ bool GuildAcceptAction::Execute(Event event)
     {
         botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
             "guild_accept_declined", "Sorry, I don't want to join your guild :(", {}));
+        accept = false;
+    }
+    else if (sPlayerbotAIConfig.IsArenaTeamBot(bot->GetGUID()))
+    {
         accept = false;
     }
     else if (sPlayerbotAIConfig.IsRandomBotAccount(bot->GetSession()->GetAccountId()))

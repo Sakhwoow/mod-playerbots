@@ -4749,29 +4749,8 @@ void PlayerbotFactory::InitArenaTeam()
     // A manual reinitalization (.playerbots rndbot init) is also required after the teams have been deleted.
     if (sPlayerbotAIConfig.randomBotArenaTeams.empty())
     {
-        if (sPlayerbotAIConfig.deleteRandomBotArenaTeams)
-        {
-            LOG_INFO("playerbots", "Deleting random bot arena teams...");
-
-            std::vector<ArenaTeam*> toDisband;
-            for (auto& kv : sArenaTeamMgr->GetArenaTeams())
-            {
-                ArenaTeam* arenateam = kv.second;
-                ObjectGuid captainGuid = arenateam->GetCaptain();
-                if (!captainGuid || !captainGuid.IsPlayer())
-                    continue;
-                CharacterCacheEntry const* entry = sCharacterCache->GetCharacterCacheByGuid(captainGuid);
-                if (!entry)
-                    continue;
-                if (sPlayerbotAIConfig.IsRandomBotAccount(entry->AccountId))
-                    toDisband.push_back(arenateam);
-            }
-            for (ArenaTeam* team : toDisband)
-                team->Disband(nullptr);
-
-            LOG_INFO("playerbots", "Random bot arena teams deleted");
-        }
-
+        // Teams are kept across restarts; DeleteRandomBotArenaTeams now means "reset ratings on restart"
+        // rather than full deletion. Rating reset happens inside CreateRandomArenaTeams when existing teams are found.
         RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_2v2, sPlayerbotAIConfig.randomBotArenaTeam2v2Count);
         RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_3v3, sPlayerbotAIConfig.randomBotArenaTeam3v3Count);
         RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_5v5, sPlayerbotAIConfig.randomBotArenaTeam5v5Count);

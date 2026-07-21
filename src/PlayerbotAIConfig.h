@@ -9,6 +9,7 @@
 
 #include <mutex>
 #include <unordered_map>
+#include <unordered_set>
 #include <set>
 #include <vector>
 #include <map>
@@ -16,6 +17,7 @@
 #include <string>
 
 #include "DBCEnums.h"
+#include "ObjectGuid.h"
 #include "SharedDefines.h"
 
 enum class BotCheatMask : uint32
@@ -90,6 +92,7 @@ public:
     bool Initialize();
     bool IsInRandomAccountList(uint32 id);
     bool IsRandomBotAccount(uint32 id);
+    bool IsArenaTeamBot(ObjectGuid guid) const { return randomBotArenaTeamMemberGuids.count(guid.GetRawValue()) > 0; }
     bool IsInRandomQuestItemList(uint32 id);
     bool IsPvpProhibited(uint32 zoneId, uint32 areaId);
     bool IsInPvpProhibitedZone(uint32 id);
@@ -399,6 +402,7 @@ public:
     uint32 randomBotArenaTeam5v5Count;
     bool deleteRandomBotArenaTeams;
     std::vector<uint32> randomBotArenaTeams;
+    std::unordered_set<uint64> randomBotArenaTeamMemberGuids;
 
     uint32 selfBotLevel;
     bool downgradeMaxLevelBot;

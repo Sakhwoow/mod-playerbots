@@ -1515,6 +1515,13 @@ bool RandomPlayerbotMgr::ProcessBot(uint32 bot)
     uint32 logout = GetEventValue(bot, "logout");
     if (player && !logout && !isValid)
     {
+        // Arena team bots always stay online
+        if (sPlayerbotAIConfig.IsArenaTeamBot(player->GetGUID()))
+        {
+            SetEventValue(bot, "add", 1, urand(60, 120));
+            return false;
+        }
+
         // Не выгоняем гильдейского бота пока реальный игрок в гильдии онлайн и минимум не набран
         if (sPlayerbotAIConfig.guildBotMinOnline && player->GetGuildId())
         {
@@ -1860,6 +1867,35 @@ void RandomPlayerbotMgr::Init()
         sRandomPlayerbotMgr.LoadBattleMastersCache();
 
     PlayerbotsDatabase.Execute("DELETE FROM playerbots_random_bots WHERE event = 'add'");
+
+    // Pre-load arena team bot GUIDs so "always online" protection works before InitArenaTeam() runs
+    if (!sPlayerbotAIConfig.randomBotAccounts.empty())
+    {
+        std::string accountList;
+        for (uint32 acctId : sPlayerbotAIConfig.randomBotAccounts)
+        {
+            if (!accountList.empty())
+                accountList += ',';
+            accountList += std::to_string(acctId);
+        }
+
+        if (QueryResult result = CharacterDatabase.Query(
+                "SELECT atm.guid FROM arena_team_member atm "
+                "JOIN arena_team ateam ON ateam.arenaTeamId = atm.arenaTeamId "
+                "JOIN characters c ON ateam.captainGuid = c.guid "
+                "WHERE c.account IN ({})", accountList))
+        {
+            do
+            {
+                uint32 guid = result->Fetch()[0].Get<uint32>();
+                sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.insert(
+                    ObjectGuid::Create<HighGuid::Player>(guid).GetRawValue());
+            } while (result->NextRow());
+
+            LOG_INFO("playerbots", "Loaded {} arena team bot GUIDs for always-online protection",
+                     sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.size());
+        }
+    }
 }
 
 void RandomPlayerbotMgr::RandomTeleportForLevel(Player* bot)

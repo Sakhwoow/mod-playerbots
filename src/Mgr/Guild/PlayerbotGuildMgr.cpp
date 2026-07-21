@@ -462,8 +462,15 @@ public:
 
     bool CanGuildAddMember(Guild* guild, Player* player, uint8& /*plRank*/) override
     {
+        if (!player)
+            return true;
+
+        // Arena team bots are never allowed to join guilds
+        if (sPlayerbotAIConfig.IsArenaTeamBot(player->GetGUID()))
+            return false;
+
         uint32 maxBots = sPlayerbotAIConfig.maxBotsInRealGuild;
-        if (maxBots == 0 || !player)
+        if (maxBots == 0)
             return true;
 
         if (!PlayerbotGuildMgr::instance().IsRealGuild(guild->GetId()))

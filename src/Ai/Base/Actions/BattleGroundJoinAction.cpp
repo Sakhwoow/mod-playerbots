@@ -360,12 +360,18 @@ bool BGJoinAction::isUseful()
     bgList.clear();
     ratedList.clear();
 
+    bool isArenaBotOnly = sPlayerbotAIConfig.IsArenaTeamBot(bot->GetGUID());
+
     for (int bracket = BG_BRACKET_ID_FIRST; bracket < MAX_BATTLEGROUND_BRACKETS; ++bracket)
     {
         for (int queueType = BATTLEGROUND_QUEUE_AV; queueType < MAX_BATTLEGROUND_QUEUE_TYPES; ++queueType)
         {
             BattlegroundQueueTypeId queueTypeId = BattlegroundQueueTypeId(queueType);
             BattlegroundBracketId bracketId = BattlegroundBracketId(bracket);
+
+            // Arena team bots only queue for arena, not regular BGs
+            if (isArenaBotOnly && !BattlegroundMgr::BGArenaType(queueTypeId))
+                continue;
 
             if (!canJoinBg(queueTypeId, bracketId))
                 continue;

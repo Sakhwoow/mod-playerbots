@@ -40,6 +40,28 @@ bool AcceptInvitationAction::Execute(Event event)
         return false;
     }
 
+    // Arena team bots don't accept party invites from real players
+    if (sRandomPlayerbotMgr.IsRandomBot(bot) && sPlayerbotAIConfig.IsArenaTeamBot(bot->GetGUID()))
+    {
+        if (!sRandomPlayerbotMgr.IsRandomBot(inviter))
+        {
+            WorldPacket data(SMSG_GROUP_DECLINE, 10);
+            data << bot->GetName();
+            inviter->SendDirectMessage(&data);
+
+            std::string msg = PlayerbotTextMgr::instance().GetBotTextOrDefault(
+                "arena_bot_invite_declined",
+                "Извини, я тренировочный бот для арены и не вступаю в группы.", {});
+            WorldPacket whisper;
+            ChatHandler::BuildChatPacket(whisper, CHAT_MSG_WHISPER, LANG_UNIVERSAL,
+                bot, nullptr, msg.c_str());
+            inviter->SendDirectMessage(&whisper);
+
+            bot->UninviteFromGroup();
+            return false;
+        }
+    }
+
     // Bots in real player guilds only accept invites from the same guild
     if (sRandomPlayerbotMgr.IsRandomBot(bot))
     {
