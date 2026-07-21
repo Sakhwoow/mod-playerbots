@@ -1102,7 +1102,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
 
         if (GET_PLAYERBOT_AI(master))
         {
-            messages.push_back("Disable player botAI");
+            messages.push_back("ИИ бота отключён");
             delete GET_PLAYERBOT_AI(master);
             applyBotTitle(master, false);
         }
@@ -1112,7 +1112,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
             messages.push_back("You do not have permission to enable player botAI");
         else
         {
-            messages.push_back("Enable player botAI");
+            messages.push_back("ИИ бота включён");
             PlayerbotsMgr::instance().AddPlayerbotData(master, true);
             GET_PLAYERBOT_AI(master)->SetMaster(master);
             PlayerbotRepository::instance().Load(GET_PLAYERBOT_AI(master));
