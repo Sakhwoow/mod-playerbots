@@ -878,6 +878,7 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
                     PlayerbotFactory factory(player, player->GetLevel(),
                                             sPlayerbotAIConfig.autoGearQualityLimit, pvpGs);
                     factory.InitEquipment(false, sPlayerbotAIConfig.twoRoundsGearInit);
+                    factory.Refresh();
                     LOG_DEBUG("playerbots", "Assigned pvp spec '{}' to arena bot {}", specName, player->GetName());
                     break;
                 }
