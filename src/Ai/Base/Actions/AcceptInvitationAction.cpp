@@ -6,6 +6,8 @@
 
 #include "AcceptInvitationAction.h"
 
+#include "ArenaTeam.h"
+#include "ArenaTeamMgr.h"
 #include "Event.h"
 #include "ObjectAccessor.h"
 #include "PlayerbotAIConfig.h"
@@ -40,25 +42,49 @@ bool AcceptInvitationAction::Execute(Event event)
         return false;
     }
 
-    // Arena team bots don't accept party invites from real players
+    // Arena team bots don't accept party invites from real players,
+    // UNLESS the inviter shares an arena team with this bot (e.g. real player
+    // is captain of a team that includes this bot as a member).
     if (sRandomPlayerbotMgr.IsRandomBot(bot) && sPlayerbotAIConfig.IsArenaTeamBot(bot->GetGUID()))
     {
         if (!sRandomPlayerbotMgr.IsRandomBot(inviter))
         {
-            WorldPacket data(SMSG_GROUP_DECLINE, 10);
-            data << bot->GetName();
-            inviter->SendDirectMessage(&data);
+            bool isTeammate = false;
+            for (uint8 slot = 0; slot < MAX_ARENA_SLOT && !isTeammate; ++slot)
+            {
+                uint32 teamId = inviter->GetArenaTeamId(slot);
+                if (!teamId)
+                    continue;
+                ArenaTeam* team = sArenaTeamMgr->GetArenaTeamById(teamId);
+                if (!team)
+                    continue;
+                for (auto const& member : team->GetMembers())
+                {
+                    if (member.Guid == bot->GetGUID())
+                    {
+                        isTeammate = true;
+                        break;
+                    }
+                }
+            }
 
-            std::string msg = PlayerbotTextMgr::instance().GetBotTextOrDefault(
-                "arena_bot_invite_declined",
-                "Извини, я тренировочный бот для арены и не вступаю в группы.", {});
-            WorldPacket whisper;
-            ChatHandler::BuildChatPacket(whisper, CHAT_MSG_WHISPER, LANG_UNIVERSAL,
-                bot, nullptr, msg.c_str());
-            inviter->SendDirectMessage(&whisper);
+            if (!isTeammate)
+            {
+                WorldPacket data(SMSG_GROUP_DECLINE, 10);
+                data << bot->GetName();
+                inviter->SendDirectMessage(&data);
 
-            bot->UninviteFromGroup();
-            return false;
+                std::string msg = PlayerbotTextMgr::instance().GetBotTextOrDefault(
+                    "arena_bot_invite_declined",
+                    "Извини, я тренировочный бот для арены и не вступаю в группы.", {});
+                WorldPacket whisper;
+                ChatHandler::BuildChatPacket(whisper, CHAT_MSG_WHISPER, LANG_UNIVERSAL,
+                    bot, nullptr, msg.c_str());
+                inviter->SendDirectMessage(&whisper);
+
+                bot->UninviteFromGroup();
+                return false;
+            }
         }
     }
 

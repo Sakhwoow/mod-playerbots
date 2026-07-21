@@ -1900,11 +1900,52 @@ void RandomPlayerbotMgr::Init()
 
 void RandomPlayerbotMgr::InitArenaTeams()
 {
+    // Replace approximate Init() preload with a clean, fully-filtered set.
+    sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.clear();
+    sPlayerbotAIConfig.realPlayerFriendBotGuids.clear();
+
+    // Find all bots that appear in any real (non-rndbot) player's friend list.
+    // These bots must not be treated as pure arena bots.
+    if (!sPlayerbotAIConfig.randomBotAccounts.empty())
+    {
+        std::string botAccountList;
+        for (uint32 acctId : sPlayerbotAIConfig.randomBotAccounts)
+        {
+            if (!botAccountList.empty())
+                botAccountList += ',';
+            botAccountList += std::to_string(acctId);
+        }
+
+        if (QueryResult result = CharacterDatabase.Query(
+                "SELECT DISTINCT cs.friend FROM character_social cs "
+                "JOIN characters c ON c.guid = cs.guid "
+                "WHERE cs.flags & 1 AND c.account NOT IN ({})",
+                botAccountList))
+        {
+            uint32 count = 0;
+            do
+            {
+                uint32 rawGuid = result->Fetch()[0].Get<uint32>();
+                sPlayerbotAIConfig.realPlayerFriendBotGuids.insert(
+                    ObjectGuid::Create<HighGuid::Player>(rawGuid).GetRawValue());
+                ++count;
+            } while (result->NextRow());
+
+            if (count > 0)
+                LOG_INFO("playerbots",
+                         "Найдено {} ботов в списках друзей реальных игроков — арена-командами не станут",
+                         count);
+        }
+    }
+
     // sArenaTeamMgr is fully loaded by the time OnStartup() fires.
     // Called from OnStartup so existing teams are filled before any bot randomizes.
     RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_2v2, sPlayerbotAIConfig.randomBotArenaTeam2v2Count);
     RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_3v3, sPlayerbotAIConfig.randomBotArenaTeam3v3Count);
     RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_5v5, sPlayerbotAIConfig.randomBotArenaTeam5v5Count);
+
+    LOG_INFO("playerbots", "Инициализация арена-команд завершена: {} ботов под защитой",
+             sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.size());
 }
 
 void RandomPlayerbotMgr::RandomTeleportForLevel(Player* bot)

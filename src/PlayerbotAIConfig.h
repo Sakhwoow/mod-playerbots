@@ -403,6 +403,8 @@ public:
     bool deleteRandomBotArenaTeams;
     std::vector<uint32> randomBotArenaTeams;
     std::unordered_set<uint64> randomBotArenaTeamMemberGuids;
+    // Bots in real players' friend lists: ineligible for arena-bot assignment/protection
+    std::unordered_set<uint64> realPlayerFriendBotGuids;
 
     uint32 selfBotLevel;
     bool downgradeMaxLevelBot;

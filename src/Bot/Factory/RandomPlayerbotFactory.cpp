@@ -851,6 +851,8 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
                         continue;
                     if (entry->GuildId && PlayerbotGuildMgr::instance().IsRealGuild(entry->GuildId))
                         continue;
+                    if (sPlayerbotAIConfig.realPlayerFriendBotGuids.count(memberGuid.GetRawValue()))
+                        continue;
                     availableMembers.push_back(memberGuid);
                 }
 
@@ -910,9 +912,17 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
                              arenateam->GetName(), arenateam->GetMembersSize(), (uint32)type);
             }
 
-            // Populate member guid set after potential fill (captures all current + new members)
+            // Populate member guid set — skip guild bots and friend-list bots (they must not
+            // receive arena-bot always-online protection or invite-blocking behaviour).
             for (auto const& member : arenateam->GetMembers())
+            {
+                CharacterCacheEntry const* mEntry = sCharacterCache->GetCharacterCacheByGuid(member.Guid);
+                if (mEntry && mEntry->GuildId && PlayerbotGuildMgr::instance().IsRealGuild(mEntry->GuildId))
+                    continue;
+                if (sPlayerbotAIConfig.realPlayerFriendBotGuids.count(member.Guid.GetRawValue()))
+                    continue;
                 sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.insert(member.Guid.GetRawValue());
+            }
 
             if (sPlayerbotAIConfig.deleteRandomBotArenaTeams)
             {
@@ -935,7 +945,8 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
             Player* player = ObjectAccessor::FindConnectedPlayer(captain);
 
             if (!arenateam && player && player->GetLevel() >= 70 &&
-                !(player->GetGuildId() && PlayerbotGuildMgr::instance().IsRealGuild(player->GetGuildId())))
+                !(player->GetGuildId() && PlayerbotGuildMgr::instance().IsRealGuild(player->GetGuildId())) &&
+                !sPlayerbotAIConfig.realPlayerFriendBotGuids.count(captain.GetRawValue()))
                 availableCaptains.push_back(captain);
         }
     }
@@ -1053,6 +1064,9 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
             // Skip bots that belong to guilds with real players
             if (entry->GuildId && PlayerbotGuildMgr::instance().IsRealGuild(entry->GuildId))
                 continue;
+            // Skip bots on real players' friend lists
+            if (sPlayerbotAIConfig.realPlayerFriendBotGuids.count(memberGuid.GetRawValue()))
+                continue;
             availableMembers.push_back(memberGuid);
         }
 
@@ -1128,7 +1142,14 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
         }
 
         for (auto const& member : arenateam->GetMembers())
+        {
+            CharacterCacheEntry const* mEntry = sCharacterCache->GetCharacterCacheByGuid(member.Guid);
+            if (mEntry && mEntry->GuildId && PlayerbotGuildMgr::instance().IsRealGuild(mEntry->GuildId))
+                continue;
+            if (sPlayerbotAIConfig.realPlayerFriendBotGuids.count(member.Guid.GetRawValue()))
+                continue;
             sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.insert(member.Guid.GetRawValue());
+        }
     }
 
     LOG_DEBUG("playerbots", "{} random bot {}vs{} arena teams available", arenaTeamNumber, type, type);
