@@ -7,6 +7,7 @@
 #include "RandomPlayerbotFactory.h"
 
 #include "AccountMgr.h"
+#include "PlayerbotGuildMgr.h"
 #include "ArenaTeamMgr.h"
 #include "DatabaseEnv.h"
 #include "PlayerbotAI.h"
@@ -817,7 +818,8 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
         {
             Player* player = ObjectAccessor::FindConnectedPlayer(captain);
 
-            if (!arenateam && player && player->GetLevel() >= 70)
+            if (!arenateam && player && player->GetLevel() >= 70 &&
+                !(player->GetGuildId() && PlayerbotGuildMgr::instance().IsRealGuild(player->GetGuildId())))
                 availableCaptains.push_back(captain);
         }
     }
@@ -931,6 +933,9 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
                 continue;
             // Only same faction as captain
             if (Player::TeamIdForRace(entry->Race) != player->GetTeamId())
+                continue;
+            // Skip bots that belong to guilds with real players
+            if (entry->GuildId && PlayerbotGuildMgr::instance().IsRealGuild(entry->GuildId))
                 continue;
             availableMembers.push_back(memberGuid);
         }
