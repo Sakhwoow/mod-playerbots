@@ -44,7 +44,7 @@ bool ArenaTeamAcceptAction::Execute(Event event)
         WorldPacket data(CMSG_ARENA_TEAM_ACCEPT);
         bot->GetSession()->HandleArenaTeamAcceptOpcode(data);
         std::string text = PlayerbotTextMgr::instance().GetBotTextOrDefault(
-            "arena_team_thanks_for_invite", "Thanks for the invite!", {});
+            "arena_team_thanks_for_invite", "Спасибо за приглашение!", {});
         bot->Say(text, LANG_UNIVERSAL);
         LOG_INFO("playerbots", "Bot {} <{}> accepts Arena Team invite", bot->GetGUID().ToString().c_str(),
                  bot->GetName().c_str());

@@ -89,7 +89,7 @@ bool PetitionSignAction::Execute(Event event)
         WorldPacket data(CMSG_PETITION_SIGN, 20);
         data << petitionGuid << unk;
         bot->GetSession()->HandlePetitionSignOpcode(data);
-        bot->Say("Thanks for the invite!", LANG_UNIVERSAL);
+        bot->Say("Спасибо за приглашение!", LANG_UNIVERSAL);
         LOG_INFO("playerbots", "Bot {} <{}> accepts {} invite", bot->GetGUID().ToString().c_str(),
                  bot->GetName().c_str(), isArena ? "Arena" : "Guild");
         return true;
