@@ -871,8 +871,13 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
                 if (!specName.empty() && specName.find("pvp") != std::string::npos)
                 {
                     sRandomPlayerbotMgr.SetValue(player->GetGUID().GetCounter(), "specNo", i + 1);
-                    PlayerbotFactory factory(player, player->GetLevel());
-                    factory.Refresh();
+                    uint32 pvpGs = sPlayerbotAIConfig.autoGearScoreLimit == 0
+                        ? 0
+                        : PlayerbotFactory::CalcMixedGearScore(sPlayerbotAIConfig.autoGearScoreLimit,
+                                                               sPlayerbotAIConfig.autoGearQualityLimit);
+                    PlayerbotFactory factory(player, player->GetLevel(),
+                                            sPlayerbotAIConfig.autoGearQualityLimit, pvpGs);
+                    factory.InitEquipment(false, sPlayerbotAIConfig.twoRoundsGearInit);
                     LOG_DEBUG("playerbots", "Assigned pvp spec '{}' to arena bot {}", specName, player->GetName());
                     break;
                 }
