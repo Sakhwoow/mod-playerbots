@@ -514,6 +514,15 @@ public:
     }
 
     void OnBattlegroundEnd(Battleground* bg, TeamId /*winnerTeam*/) override { bgStrategies.erase(bg->GetInstanceID()); }
+
+    void OnBattlegroundAddPlayer(Battleground* bg, Player* player) override
+    {
+        if (!bg->isArena() || bg->GetStatus() >= STATUS_IN_PROGRESS)
+            return;
+        if (!GET_PLAYERBOT_AI(player))
+            return;
+        bg->ReadyMarkerClicked(player);
+    }
 };
 
 class PlayerbotGroupScript : public GroupScript
