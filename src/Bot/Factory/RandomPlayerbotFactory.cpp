@@ -863,24 +863,33 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
                     ObjectGuid memberGuid = availableMembers[mi];
 
                     Player* memberPlayer = ObjectAccessor::FindConnectedPlayer(memberGuid);
-                    if (memberPlayer && !sRandomPlayerbotMgr.IsSpecPvp(memberPlayer->GetGUID().GetCounter(), memberPlayer->getClass()))
+                    CharacterCacheEntry const* memberEntry = sCharacterCache->GetCharacterCacheByGuid(memberGuid);
+                    uint8 cls = memberPlayer ? memberPlayer->getClass() : (memberEntry ? memberEntry->Class : 0);
+                    if (cls && !sRandomPlayerbotMgr.IsSpecPvp(memberGuid.GetCounter(), cls))
                     {
-                        uint8 cls = memberPlayer->getClass();
                         for (uint32 i = 0; i < MAX_SPECNO; ++i)
                         {
                             std::string const& specName = sPlayerbotAIConfig.premadeSpecName[cls][i];
                             if (!specName.empty() && specName.find("pvp") != std::string::npos)
                             {
-                                sRandomPlayerbotMgr.SetValue(memberPlayer->GetGUID().GetCounter(), "specNo", i + 1);
-                                uint32 pvpGs = sPlayerbotAIConfig.autoGearScoreLimit == 0
-                                    ? 0
-                                    : PlayerbotFactory::CalcMixedGearScore(sPlayerbotAIConfig.autoGearScoreLimit,
-                                                                           sPlayerbotAIConfig.autoGearQualityLimit);
-                                PlayerbotFactory factory(memberPlayer, memberPlayer->GetLevel(),
-                                                         sPlayerbotAIConfig.autoGearQualityLimit, pvpGs);
-                                factory.InitEquipment(false, sPlayerbotAIConfig.twoRoundsGearInit);
-                                factory.Refresh();
-                                LOG_DEBUG("playerbots", "Assigned pvp spec '{}' to arena bot {}", specName, memberPlayer->GetName());
+                                // Always write specNo — works for offline bots too; gear uses pvp weights on next randomize
+                                sRandomPlayerbotMgr.SetValue(memberGuid.GetCounter(), "specNo", i + 1);
+                                if (memberPlayer)
+                                {
+                                    uint32 pvpGs = sPlayerbotAIConfig.autoGearScoreLimit == 0
+                                        ? 0
+                                        : PlayerbotFactory::CalcMixedGearScore(sPlayerbotAIConfig.autoGearScoreLimit,
+                                                                               sPlayerbotAIConfig.autoGearQualityLimit);
+                                    PlayerbotFactory factory(memberPlayer, memberPlayer->GetLevel(),
+                                                             sPlayerbotAIConfig.autoGearQualityLimit, pvpGs);
+                                    factory.InitEquipment(false, sPlayerbotAIConfig.twoRoundsGearInit);
+                                    factory.Refresh();
+                                    LOG_DEBUG("playerbots", "Assigned pvp spec '{}' and gear to online arena bot {}", specName, memberPlayer->GetName());
+                                }
+                                else
+                                {
+                                    LOG_DEBUG("playerbots", "Assigned pvp spec '{}' to offline arena bot {} (gear on next randomize)", specName, memberGuid.GetCounter());
+                                }
                                 break;
                             }
                         }
