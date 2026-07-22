@@ -118,6 +118,7 @@ public:
     void OnPlayerLogout(Player* player);
     void OnPlayerLogin(Player* player);
     void EnsureGuildBotsOnline(uint32 guildId);
+    void EnsureArenaBotsOnline();
     uint32 GetOnlineGuildBotCount(uint32 guildId);
     bool HasRealPlayerInGuild(uint32 guildId);
     void OnPlayerLoginError(uint32 bot);

@@ -2051,6 +2051,10 @@ void RandomPlayerbotMgr::Randomize(Player* bot)
     if (PlayerbotGuildMgr::instance().IsRealGuild(bot))
         return;
 
+    for (uint32 slot = 0; slot < MAX_ARENA_SLOT; ++slot)
+        if (bot->GetArenaTeamId(slot))
+            return;
+
     if (bot->GetLevel() < 3 || (bot->GetLevel() < 56 && bot->getClass() == CLASS_DEATH_KNIGHT))
     {
         RandomizeFirst(bot);
@@ -2879,6 +2883,11 @@ void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId)
                 uint32 cGuildId = candidate->GetGuildId();
                 if (cGuildId && HasRealPlayerInGuild(cGuildId))
                     continue;
+                bool candidateInArena = false;
+                for (uint32 slot = 0; slot < MAX_ARENA_SLOT; ++slot)
+                    if (candidate->GetArenaTeamId(slot)) { candidateInArena = true; break; }
+                if (candidateInArena)
+                    continue;
 
                 LogoutPlayerBot(guid);
                 kicked = true;
@@ -2898,6 +2907,59 @@ void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId)
         toLogin--;
 
     } while (result->NextRow());
+}
+
+void RandomPlayerbotMgr::EnsureArenaBotsOnline()
+{
+    auto const& arenaGuids = sPlayerbotAIConfig.randomBotArenaTeamMemberGuids;
+    if (arenaGuids.empty())
+        return;
+
+    uint32 maxAllowed = GetEventValue(0, "bot_count");
+    if (!maxAllowed)
+        maxAllowed = sPlayerbotAIConfig.maxRandomBots;
+
+    for (uint64 rawGuid : arenaGuids)
+    {
+        ObjectGuid botGUID = ObjectGuid(rawGuid);
+        if (GetPlayerBot(botGUID))
+            continue;
+
+        if ((uint32)playerBots.size() >= maxAllowed)
+        {
+            bool kicked = false;
+            for (auto const& [guid, candidate] : playerBots)
+            {
+                if (!IsRandomBot(candidate))
+                    continue;
+                if (candidate->GetGroup())
+                    continue;
+                uint32 cGuildId = candidate->GetGuildId();
+                if (cGuildId && HasRealPlayerInGuild(cGuildId))
+                    continue;
+                bool candidateInArena = false;
+                for (uint32 slot = 0; slot < MAX_ARENA_SLOT; ++slot)
+                    if (candidate->GetArenaTeamId(slot)) { candidateInArena = true; break; }
+                if (candidateInArena)
+                    continue;
+
+                LogoutPlayerBot(guid);
+                kicked = true;
+                break;
+            }
+            if (!kicked)
+                break;
+        }
+
+        uint32 charGuid = botGUID.GetCounter();
+        if (std::find(currentBots.begin(), currentBots.end(), charGuid) == currentBots.end())
+            currentBots.push_back(charGuid);
+
+        SetEventValue(charGuid, "add", 1, sPlayerbotAIConfig.maxRandomBotInWorldTime);
+        AddPlayerBot(botGUID, 0);
+
+        LOG_DEBUG("playerbots", "EnsureArenaBotsOnline: logging in arena bot {}", charGuid);
+    }
 }
 
 void RandomPlayerbotMgr::OnPlayerLogin(Player* player)
@@ -2996,6 +3058,8 @@ void RandomPlayerbotMgr::OnPlayerLogin(Player* player)
         {
             EnsureGuildBotsOnline(player->GetGuildId());
         }
+
+        EnsureArenaBotsOnline();
     }
 }
 
