@@ -1211,7 +1211,7 @@ void RandomPlayerbotMgr::CheckBgQueue()
             if (bot->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
                 ++equipped;
 
-        if (equipped >= 5)
+        if (equipped >= 10)
             continue;
 
         uint32 pvpGs = sPlayerbotAIConfig.autoGearScoreLimit == 0
