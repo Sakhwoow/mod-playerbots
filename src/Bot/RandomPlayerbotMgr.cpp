@@ -1172,6 +1172,29 @@ void RandomPlayerbotMgr::CheckBgQueue()
         updateBGInstanceCount(BATTLEGROUND_QUEUE_WS, wsBrackets, randomBotAutoJoinBGWSCount);
     }
 
+    // Fallback: click Ready Marker for every bot in arena prep, including alt-bots
+    // that enter via the group leader's acceptance and may miss OnBattlegroundAddPlayer.
+    {
+        std::set<uint32> visited;
+        for (auto const& [guid, player] : playerBots)
+        {
+            if (!player)
+                continue;
+            Battleground* bg = player->GetBattleground();
+            if (!bg || !bg->isArena() || bg->GetStatus() >= STATUS_IN_PROGRESS)
+                continue;
+            if (bg->GetStartDelayTime() <= BG_START_DELAY_15S)
+                continue;
+            if (!visited.insert(bg->GetInstanceID()).second)
+                continue;
+            for (auto const& [pGuid, pPlayer] : bg->GetPlayers())
+            {
+                if (pPlayer && GET_PLAYERBOT_AI(pPlayer))
+                    bg->ReadyMarkerClicked(pPlayer);
+            }
+        }
+    }
+    LOG_DEBUG("playerbots", "BG Queue check finished");
     LogBattlegroundInfo();
 }
 
@@ -1249,7 +1272,6 @@ void RandomPlayerbotMgr::LogBattlegroundInfo()
                      bgInfo.bgHordePlayerCount + bgInfo.bgHordeBotCount, bgInfo.bgInstanceCount, bgInfo.activeBgQueue);
         }
     }
-    LOG_DEBUG("playerbots", "BG Queue check finished");
 }
 
 void RandomPlayerbotMgr::CheckLfgQueue()

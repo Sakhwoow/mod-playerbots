@@ -252,13 +252,17 @@ bool BGJoinAction::shouldJoinBg(BattlegroundQueueTypeId queueTypeId, Battlegroun
         uint32 activeRatedArenaQueue =
             sRandomPlayerbotMgr.BattlegroundData[queueTypeId][bracketId].activeRatedArenaQueue;
 
-        bool isRated = (ratedArenaBotCount + ratedArenaPlayerCount) <
-                       (BracketSize * (activeRatedArenaQueue + ratedArenaInstanceCount));
+        // When a real player is waiting, queue up to 5 bot teams for variety.
+        uint32 ratedArenaTarget = BracketSize * (activeRatedArenaQueue * 5 + ratedArenaInstanceCount);
+        bool isRated = (ratedArenaBotCount + ratedArenaPlayerCount) < ratedArenaTarget;
 
         if (isRated)
         {
-            if (sArenaTeamMgr->GetArenaTeamByCaptain(bot->GetGUID(), type))
+            ArenaTeam* arenateam = sArenaTeamMgr->GetArenaTeamByCaptain(bot->GetGUID(), type);
+            if (arenateam)
             {
+                // Clear previous-opponents so the matchmaker never blocks a rematch.
+                arenateam->SetPreviousOpponents(0);
                 sRandomPlayerbotMgr.BattlegroundData[queueTypeId][bracketId].ratedArenaBotCount += TeamSize;
                 ratedList.push_back(queueTypeId);
                 return true;
@@ -589,13 +593,17 @@ bool FreeBGJoinAction::shouldJoinBg(BattlegroundQueueTypeId queueTypeId, Battleg
         uint32 activeRatedArenaQueue =
             sRandomPlayerbotMgr.BattlegroundData[queueTypeId][bracketId].activeRatedArenaQueue;
 
-        bool isRated = (ratedArenaBotCount + ratedArenaPlayerCount) <
-                       (BracketSize * (activeRatedArenaQueue + ratedArenaInstanceCount));
+        // When a real player is waiting, queue up to 5 bot teams for variety.
+        uint32 ratedArenaTarget = BracketSize * (activeRatedArenaQueue * 5 + ratedArenaInstanceCount);
+        bool isRated = (ratedArenaBotCount + ratedArenaPlayerCount) < ratedArenaTarget;
 
         if (isRated)
         {
-            if (sArenaTeamMgr->GetArenaTeamByCaptain(bot->GetGUID(), type))
+            ArenaTeam* arenateam = sArenaTeamMgr->GetArenaTeamByCaptain(bot->GetGUID(), type);
+            if (arenateam)
             {
+                // Clear previous-opponents so the matchmaker never blocks a rematch.
+                arenateam->SetPreviousOpponents(0);
                 sRandomPlayerbotMgr.BattlegroundData[queueTypeId][bracketId].ratedArenaBotCount += TeamSize;
                 ratedList.push_back(queueTypeId);
                 return true;
