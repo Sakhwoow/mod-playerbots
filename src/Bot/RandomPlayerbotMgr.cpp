@@ -1194,6 +1194,37 @@ void RandomPlayerbotMgr::CheckBgQueue()
             }
         }
     }
+    // Equip naked arena bots that are currently in the open world.
+    // Offline bots at startup only get their pvp specNo set (gear deferred to "next randomize"),
+    // but Randomize() skips InBattleground(), so bots that loop arena→queue→arena are never equipped.
+    // This catches them during the brief window they spend outside a BG.
+    for (auto const& [guid, bot] : playerBots)
+    {
+        if (!bot || bot->InBattleground())
+            continue;
+
+        if (!sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.count(bot->GetGUID().GetRawValue()))
+            continue;
+
+        uint32 equipped = 0;
+        for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
+            if (bot->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
+                ++equipped;
+
+        if (equipped >= 5)
+            continue;
+
+        uint32 pvpGs = sPlayerbotAIConfig.autoGearScoreLimit == 0
+            ? 0
+            : PlayerbotFactory::CalcMixedGearScore(sPlayerbotAIConfig.autoGearScoreLimit,
+                                                   sPlayerbotAIConfig.autoGearQualityLimit);
+        PlayerbotFactory factory(bot, bot->GetLevel(),
+                                 sPlayerbotAIConfig.autoGearQualityLimit, pvpGs);
+        factory.InitEquipment(false, sPlayerbotAIConfig.twoRoundsGearInit);
+        factory.Refresh();
+        LOG_INFO("playerbots", "Re-equipped naked arena bot {} with PVP gear", bot->GetName());
+    }
+
     LOG_DEBUG("playerbots", "BG Queue check finished");
     LogBattlegroundInfo();
 }
