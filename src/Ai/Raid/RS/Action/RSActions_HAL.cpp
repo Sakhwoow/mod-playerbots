@@ -175,7 +175,13 @@ bool RsHalionAvoidConesAction::Execute(Event )
 
     Position const& spot = usesA ? RS_HALION_METEOR_SPOT_A : RS_HALION_METEOR_SPOT_B;
 
-    if (bot->GetExactDist2d(spot.GetPositionX(), spot.GetPositionY()) <= RS_HALION_LINE_LEASH)
+    float const minDist = melee ? RS_HALION_LINE_MELEE_MIN : RS_HALION_LINE_RANGED_MIN;
+    float const maxDist = melee ? RS_HALION_LINE_MELEE_MAX : RS_HALION_LINE_RANGED_MAX;
+
+    float const distToBoss = bot->GetExactDist2d(bossX, bossY);
+    bool const inBand = distToBoss >= minDist && distToBoss <= maxDist;
+
+    if (bot->GetExactDist2d(spot.GetPositionX(), spot.GetPositionY()) <= RS_HALION_LINE_LEASH && inBand)
         return false;
 
     float const lineX = spot.GetPositionX() - bossX;
@@ -187,18 +193,12 @@ bool RsHalionAvoidConesAction::Execute(Event )
     float const ux = lineX / lineLen;
     float const uy = lineY / lineLen;
 
-    float const minDist = melee ? RS_HALION_LINE_MELEE_MIN : RS_HALION_LINE_RANGED_MIN;
-    float const maxDist = melee ? RS_HALION_LINE_MELEE_MAX : RS_HALION_LINE_RANGED_MAX;
-
-    float const distToBoss = bot->GetExactDist2d(bossX, bossY);
-
     float const botDX = bot->GetPositionX() - bossX;
     float const botDY = bot->GetPositionY() - bossY;
     float const along = botDX * ux + botDY * uy;
     float const offset = std::fabs(botDX * uy - botDY * ux);
 
     bool const onLine = along > 0.0f && offset <= RS_HALION_LINE_OFFSET_OK;
-    bool const inBand = distToBoss >= minDist && distToBoss <= maxDist;
 
     if (onLine && inBand)
         return false;
