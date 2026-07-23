@@ -1450,6 +1450,26 @@ bool RandomPlayerbotMgr::ProcessBot(uint32 bot)
     {
         if (!player || !player->GetGroup())
         {
+            // Arena team bots always stay online
+            if (player && sPlayerbotAIConfig.IsArenaTeamBot(player->GetGUID()))
+            {
+                SetEventValue(bot, "add", 1, urand(60, 120));
+                return false;
+            }
+
+            // Keep guild bot online while a real player is in the guild and the minimum isn't met
+            if (player && sPlayerbotAIConfig.guildBotMinOnline && player->GetGuildId())
+            {
+                uint32 guildId = player->GetGuildId();
+                if (PlayerbotGuildMgr::instance().IsRealGuild(guildId) &&
+                    HasRealPlayerInGuild(guildId) &&
+                    GetOnlineGuildBotCount(guildId) <= sPlayerbotAIConfig.guildBotMinOnline)
+                {
+                    SetEventValue(bot, "add", 1, urand(60, 120));
+                    return false;
+                }
+            }
+
             if (player)
                 LOG_DEBUG("playerbots", "Bot #{} {}:{} <{}>: log out", bot, IsAlliance(player->getRace()) ? "A" : "H",
                           player->GetLevel(), player->GetName().c_str());
@@ -1531,38 +1551,6 @@ bool RandomPlayerbotMgr::ProcessBot(uint32 bot)
         randomTime = urand(sPlayerbotAIConfig.minRandomBotReviveTime, sPlayerbotAIConfig.maxRandomBotReviveTime);
         SetEventValue(bot, "update", 1, randomTime);
 
-        return true;
-    }
-
-    uint32 logout = GetEventValue(bot, "logout");
-    if (player && !logout && !isValid)
-    {
-        // Arena team bots always stay online
-        if (sPlayerbotAIConfig.IsArenaTeamBot(player->GetGUID()))
-        {
-            SetEventValue(bot, "add", 1, urand(60, 120));
-            return false;
-        }
-
-        // Не выгоняем гильдейского бота пока реальный игрок в гильдии онлайн и минимум не набран
-        if (sPlayerbotAIConfig.guildBotMinOnline && player->GetGuildId())
-        {
-            uint32 guildId = player->GetGuildId();
-            if (PlayerbotGuildMgr::instance().IsRealGuild(guildId) &&
-                HasRealPlayerInGuild(guildId) &&
-                GetOnlineGuildBotCount(guildId) <= sPlayerbotAIConfig.guildBotMinOnline)
-            {
-                SetEventValue(bot, "add", 1, urand(60, 120));
-                return false;
-            }
-        }
-
-        LOG_DEBUG("playerbots", "Bot #{} {}:{} <{}>: log out", bot, IsAlliance(player->getRace()) ? "A" : "H",
-                  player->GetLevel(), player->GetName().c_str());
-        LogoutPlayerBot(botGUID);
-        currentBots.remove(bot);
-        SetEventValue(bot, "logout", 1,
-                      urand(sPlayerbotAIConfig.minRandomBotInWorldTime, sPlayerbotAIConfig.maxRandomBotInWorldTime));
         return true;
     }
 
