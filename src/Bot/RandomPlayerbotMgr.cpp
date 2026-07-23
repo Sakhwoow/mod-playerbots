@@ -1968,6 +1968,31 @@ void RandomPlayerbotMgr::InitArenaTeams()
     RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_3v3, sPlayerbotAIConfig.randomBotArenaTeam3v3Count);
     RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_5v5, sPlayerbotAIConfig.randomBotArenaTeam5v5Count);
 
+    // Remove arena bots from real player friend lists so they aren't excluded next restart.
+    if (!sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.empty() && !sPlayerbotAIConfig.randomBotAccounts.empty())
+    {
+        std::string arenaGuidList;
+        for (uint64 rawGuid : sPlayerbotAIConfig.randomBotArenaTeamMemberGuids)
+        {
+            if (!arenaGuidList.empty())
+                arenaGuidList += ',';
+            arenaGuidList += std::to_string(ObjectGuid(rawGuid).GetCounter());
+        }
+        std::string botAccountList;
+        for (uint32 acctId : sPlayerbotAIConfig.randomBotAccounts)
+        {
+            if (!botAccountList.empty())
+                botAccountList += ',';
+            botAccountList += std::to_string(acctId);
+        }
+        CharacterDatabase.Execute(
+            "DELETE cs FROM character_social cs "
+            "JOIN characters c ON c.guid = cs.guid "
+            "WHERE cs.friend IN ({}) AND cs.flags & 1 AND c.account NOT IN ({})",
+            arenaGuidList, botAccountList);
+        LOG_INFO("playerbots", "Очищены записи арена-ботов из списков друзей реальных игроков");
+    }
+
     LOG_INFO("playerbots", "Инициализация арена-команд завершена: {} ботов под защитой",
              sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.size());
 }
@@ -2809,6 +2834,23 @@ void RandomPlayerbotMgr::OnBotLoginInternal(Player* const bot)
         factory.InitEquipment(false, true);
         factory.Refresh();
         LOG_INFO("playerbots", "Arena bot {} equipped with PVP gear on login", bot->GetName());
+
+        // Remove this arena bot from any real player's friend list.
+        if (!sPlayerbotAIConfig.randomBotAccounts.empty())
+        {
+            std::string botAccountList;
+            for (uint32 acctId : sPlayerbotAIConfig.randomBotAccounts)
+            {
+                if (!botAccountList.empty())
+                    botAccountList += ',';
+                botAccountList += std::to_string(acctId);
+            }
+            CharacterDatabase.Execute(
+                "DELETE cs FROM character_social cs "
+                "JOIN characters c ON c.guid = cs.guid "
+                "WHERE cs.friend = {} AND cs.flags & 1 AND c.account NOT IN ({})",
+                bot->GetGUID().GetCounter(), botAccountList);
+        }
     }
 }
 
