@@ -2640,6 +2640,12 @@ bool RandomPlayerbotMgr::HandlePlayerbotConsoleCommand(ChatHandler* /*handler*/,
         return true;
     }
 
+    if (cmd == "arena")
+    {
+        sRandomPlayerbotMgr.InitArenaTeams();
+        return true;
+    }
+
     std::map<std::string, ConsoleCommandHandler> handlers;
     // handlers["initmin"] = &RandomPlayerbotMgr::RandomizeMin;
     handlers["init"] = &RandomPlayerbotMgr::RandomizeFirst;
