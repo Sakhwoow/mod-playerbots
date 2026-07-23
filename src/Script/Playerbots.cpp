@@ -18,6 +18,7 @@
 #include "Playerbots.h"
 #include "PlayerbotTextMgr.h"
 
+#include "AllBattlegroundScript.h"
 #include "BattlefieldScript.h"
 #include "Channel.h"
 #include "Config.h"
@@ -514,15 +515,6 @@ public:
     }
 
     void OnBattlegroundEnd(Battleground* bg, TeamId /*winnerTeam*/) override { bgStrategies.erase(bg->GetInstanceID()); }
-
-    void OnBattlegroundAddPlayer(Battleground* bg, Player* player) override
-    {
-        if (!bg->isArena() || bg->GetStatus() >= STATUS_IN_PROGRESS)
-            return;
-        if (!GET_PLAYERBOT_AI(player))
-            return;
-        bg->ReadyMarkerClicked(player);
-    }
 };
 
 class PlayerbotGroupScript : public GroupScript
@@ -558,6 +550,22 @@ public:
     PlayerbotsBattlefieldScript() : BattlefieldScript("PlayerbotsBattlefieldScript") { }
 };
 
+class PlayerbotsBattlegroundScript : public AllBattlegroundScript
+{
+public:
+    PlayerbotsBattlegroundScript() : AllBattlegroundScript("PlayerbotsBattlegroundScript",
+        {ALLBATTLEGROUNDHOOK_ON_BATTLEGROUND_ADD_PLAYER}) {}
+
+    void OnBattlegroundAddPlayer(Battleground* bg, Player* player) override
+    {
+        if (!bg->isArena() || bg->GetStatus() >= STATUS_IN_PROGRESS)
+            return;
+        if (!GET_PLAYERBOT_AI(player))
+            return;
+        bg->ReadyMarkerClicked(player);
+    }
+};
+
 void AddPlayerbotsSecureLoginScripts();
 
 void AddSC_MagtheridonBotScripts();
@@ -568,6 +576,7 @@ void AddSC_RubySanctumBotScripts();
 
 void AddPlayerbotsScripts()
 {
+    new PlayerbotsBattlegroundScript();
     new PlayerbotsBattlefieldScript();
     new PlayerbotsDatabaseScript();
     new PlayerbotsPlayerScript();
