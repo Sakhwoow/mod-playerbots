@@ -1903,9 +1903,11 @@ void RandomPlayerbotMgr::Init()
 
         if (QueryResult result = CharacterDatabase.Query(
                 "SELECT atm.guid FROM arena_team_member atm "
-                "JOIN arena_team ateam ON ateam.arenaTeamId = atm.arenaTeamId "
-                "JOIN characters c ON ateam.captainGuid = c.guid "
-                "WHERE c.account IN ({})", accountList))
+                "WHERE NOT EXISTS ("
+                "  SELECT 1 FROM arena_team_member atm2 "
+                "  JOIN characters c ON c.guid = atm2.guid "
+                "  WHERE atm2.arenaTeamId = atm.arenaTeamId "
+                "  AND c.account NOT IN ({}))", accountList))
         {
             do
             {
@@ -2804,7 +2806,7 @@ void RandomPlayerbotMgr::OnBotLoginInternal(Player* const bot)
             : PlayerbotFactory::CalcMixedGearScore(sPlayerbotAIConfig.autoGearScoreLimit,
                                                    sPlayerbotAIConfig.autoGearQualityLimit);
         PlayerbotFactory factory(bot, bot->GetLevel(), sPlayerbotAIConfig.autoGearQualityLimit, pvpGs);
-        factory.InitEquipment(false, sPlayerbotAIConfig.twoRoundsGearInit);
+        factory.InitEquipment(false, true);
         factory.Refresh();
         LOG_INFO("playerbots", "Arena bot {} equipped with PVP gear on login", bot->GetName());
     }

@@ -822,6 +822,19 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
         ArenaTeam* arenateam = sArenaTeamMgr->GetArenaTeamByCaptain(captain, type);
         if (arenateam)
         {
+            // Skip teams that have any non-bot member (real player joined).
+            bool isPureBotTeam = true;
+            for (auto const& member : arenateam->GetMembers())
+            {
+                if (std::find(randomBots.begin(), randomBots.end(), member.Guid.GetCounter()) == randomBots.end())
+                {
+                    isPureBotTeam = false;
+                    break;
+                }
+            }
+            if (!isPureBotTeam)
+                continue;
+
             ++arenaTeamNumber;
             auto& teams = sPlayerbotAIConfig.randomBotArenaTeams;
             if (std::find(teams.begin(), teams.end(), arenateam->GetId()) == teams.end())
