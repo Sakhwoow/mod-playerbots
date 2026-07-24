@@ -10,6 +10,7 @@
 #include <WorldSessionMgr.h>
 
 #include <algorithm>
+#include <set>
 #include <boost/thread/thread.hpp>
 #include <cstdlib>
 #include <ctime>
@@ -391,6 +392,25 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
     {
         if (time(nullptr) > (LfgCheckTimer + 30))
             sRandomPlayerbotMgr.CheckLfgQueue();
+    }
+
+    if (sPlayerbotAIConfig.guildBotMinOnline && !players.empty() &&
+        time(nullptr) > (GuildBotCheckTimer + 30))
+    {
+        GuildBotCheckTimer = time(nullptr);
+        std::set<uint32> checkedGuilds;
+        for (Player* player : players)
+        {
+            if (!player || !player->IsInWorld())
+                continue;
+            uint32 guildId = player->GetGuildId();
+            if (guildId && checkedGuilds.find(guildId) == checkedGuilds.end() &&
+                PlayerbotGuildMgr::instance().IsRealGuild(guildId))
+            {
+                checkedGuilds.insert(guildId);
+                EnsureGuildBotsOnline(guildId);
+            }
+        }
     }
 
     if (sPlayerbotAIConfig.randomBotAutologin && time(nullptr) > (printStatsTimer + 300))
