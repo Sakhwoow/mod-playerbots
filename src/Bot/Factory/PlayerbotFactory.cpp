@@ -692,8 +692,13 @@ void PlayerbotFactory::Randomize(bool incremental)
     if (!incremental || !sPlayerbotAIConfig.equipAndSpecPersistence ||
         bot->GetLevel() < sPlayerbotAIConfig.equipAndSpecPersistenceLevel)
     {
-        uint32 specIndex = InitTalentsTree();
-        sRandomPlayerbotMgr.SetValue(bot->GetGUID().GetCounter(), "specNo", specIndex + 1);
+        uint32 existingSpec = sRandomPlayerbotMgr.GetValue(bot->GetGUID().GetCounter(), "specNo");
+        if (!sPlayerbotAIConfig.equipAndSpecPersistence || existingSpec == 0 ||
+            bot->GetLevel() < sPlayerbotAIConfig.equipAndSpecPersistenceLevel)
+        {
+            uint32 specIndex = InitTalentsTree();
+            sRandomPlayerbotMgr.SetValue(bot->GetGUID().GetCounter(), "specNo", specIndex + 1);
+        }
     }
     if (botAI)
     {
