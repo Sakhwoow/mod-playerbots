@@ -1473,7 +1473,7 @@ bool RandomPlayerbotMgr::ProcessBot(uint32 bot)
             // Arena team bots always stay online
             if (player && sPlayerbotAIConfig.IsArenaTeamBot(player->GetGUID()))
             {
-                SetEventValue(bot, "add", 1, urand(60, 120));
+                SetEventValue(bot, "add", 1, sPlayerbotAIConfig.maxRandomBotInWorldTime);
                 return false;
             }
 
@@ -1485,7 +1485,7 @@ bool RandomPlayerbotMgr::ProcessBot(uint32 bot)
                     HasRealPlayerInGuild(guildId) &&
                     GetOnlineGuildBotCount(guildId) <= sPlayerbotAIConfig.guildBotMinOnline)
                 {
-                    SetEventValue(bot, "add", 1, urand(60, 120));
+                    SetEventValue(bot, "add", 1, sPlayerbotAIConfig.maxRandomBotInWorldTime);
                     return false;
                 }
             }
@@ -2873,7 +2873,7 @@ uint32 RandomPlayerbotMgr::GetOnlineGuildBotCount(uint32 guildId)
     uint32 count = 0;
     for (auto const& [guid, bot] : playerBots)
     {
-        if (IsRandomBot(bot) && bot->GetGuildId() == guildId)
+        if (IsRandomBot(bot) && bot->GetGuildId() == guildId && bot->IsInWorld())
             count++;
     }
     return count;
