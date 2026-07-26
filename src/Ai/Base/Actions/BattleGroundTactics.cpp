@@ -4287,6 +4287,14 @@ bool ArenaTactics::Execute(Event /*event*/)
     if (bot->isMoving())
         return false;
 
+    // Ring of Valor: bot may be underground after WAIT_JOIN teleport; bring them up to the arena floor.
+    if (bg->GetBgTypeID() == BATTLEGROUND_RV && bot->GetPositionZ() < 10.0f)
+    {
+        bot->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
+        bot->TeleportTo(bg->GetMapId(), 764.65f + frand(-2, +2), -283.85f + frand(-2, +2), 28.28f, bot->GetOrientation());
+        return true;
+    }
+
     // startup phase
     if (bg->GetStartDelayTime() > 0)
         return false;
