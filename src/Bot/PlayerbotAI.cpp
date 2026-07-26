@@ -4443,8 +4443,13 @@ Player* PlayerbotAI::FindNewMaster()
             continue;
 
         PlayerbotAI* memberBotAI = GET_PLAYERBOT_AI(member);
-        if ((!memberBotAI || memberBotAI->IsRealPlayer()) && !bot->InBattleground())
+        // Skip selfbot players (master == bot) — they follow the bot group leader,
+        // not the other way around. Only a non-selfbot real player overrides bot master.
+        bool isSelfBot = memberBotAI && memberBotAI->IsRealPlayer();
+        if (!memberBotAI && !bot->InBattleground())
             return member;
+        if (isSelfBot && !bot->InBattleground())
+            continue;
 
         if (bot->InBattleground() && bot->GetBattleground() &&
             bot->GetBattleground()->GetBgTypeID() == BATTLEGROUND_AV && !GET_PLAYERBOT_AI(member) &&
