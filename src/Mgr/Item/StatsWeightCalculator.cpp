@@ -649,6 +649,8 @@ void StatsWeightCalculator::CalculateItemTypePenalty(ItemTemplate const* proto)
             // spec without double hand
             // enhancement, rogue, ice dk, unholy dk, shield tank, fury warrior without titan's grip but with duel wield
             if (((cls == CLASS_SHAMAN && tab == SHAMAN_TAB_ENHANCEMENT && player_->CanDualWield()) ||
+                 (cls == CLASS_SHAMAN && tab == SHAMAN_TAB_ELEMENTAL) ||
+                 (cls == CLASS_SHAMAN && tab == SHAMAN_TAB_RESTORATION) ||
                  (cls == CLASS_ROGUE) || (cls == CLASS_DEATH_KNIGHT && tab == DEATH_KNIGHT_TAB_FROST) ||
                  (cls == CLASS_WARRIOR && tab == WARRIOR_TAB_FURY && !player_->CanTitanGrip() &&
                   player_->CanDualWield()) ||

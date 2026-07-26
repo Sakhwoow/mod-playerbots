@@ -219,8 +219,9 @@ bool SummonAction::Teleport(Player* summoner, Player* player, bool preserveAuras
                 }
 
                 bool revive =
-                    sPlayerbotAIConfig.reviveBotWhenSummoned == 2 ||
-                    (sPlayerbotAIConfig.reviveBotWhenSummoned == 1 && !summoner->IsInCombat() && summoner->IsAlive());
+                    !summoner->InArena() &&
+                    (sPlayerbotAIConfig.reviveBotWhenSummoned == 2 ||
+                    (sPlayerbotAIConfig.reviveBotWhenSummoned == 1 && !summoner->IsInCombat() && summoner->IsAlive()));
 
                 if (bot->isDead() && revive)
                 {
