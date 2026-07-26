@@ -173,6 +173,16 @@ bool RsHalionAvoidConesAction::Execute(Event )
         usesA = true;
     botUsesSpotA[botGuid] = usesA;
 
+    // When switching spots, route through the tail waypoint to avoid walking through the cleave zone
+    Position const& otherSpot = usesA ? RS_HALION_METEOR_SPOT_B : RS_HALION_METEOR_SPOT_A;
+    if (bot->GetExactDist2d(otherSpot.GetPositionX(), otherSpot.GetPositionY()) <= RS_HALION_LINE_LEASH &&
+        bot->GetExactDist2d(RS_HALION_METEOR_MID.GetPositionX(), RS_HALION_METEOR_MID.GetPositionY()) > 4.0f)
+    {
+        return MoveTo(bot->GetMapId(), RS_HALION_METEOR_MID.GetPositionX(), RS_HALION_METEOR_MID.GetPositionY(),
+                      RS_HALION_METEOR_MID.GetPositionZ(), false, false, false, true,
+                      MovementPriority::MOVEMENT_COMBAT, true);
+    }
+
     Position const& spot = usesA ? RS_HALION_METEOR_SPOT_A : RS_HALION_METEOR_SPOT_B;
 
     float const minDist = melee ? RS_HALION_LINE_MELEE_MIN : RS_HALION_LINE_RANGED_MIN;
@@ -524,6 +534,20 @@ bool RsHalionP2AvoidConesAction::Execute(Event )
     Unit* boss = RsHalionTwilightBoss(botAI);
     if (!boss)
         return false;
+
+    // If twilight tank is a real player, fixate dark breath on them —
+    // RsHalionP2TankPositionAction only executes for bots, not real players
+    if (botAI->HasCheat(BotCheatMask::raid))
+    {
+        Player* twilightTank = RsHalionTwilightTank(botAI);
+        if (twilightTank && !sPlayerbotsMgr.GetPlayerbotAI(twilightTank))
+        {
+            ThreatManager& mgr = boss->GetThreatMgr();
+            if (boss->GetVictim() != twilightTank)
+                mgr.AddThreat(twilightTank, 1000000.0f, nullptr, true, true);
+            mgr.FixateTarget(twilightTank);
+        }
+    }
 
     if (RsHalionPortalCommit(botAI, bot))
         return false;
