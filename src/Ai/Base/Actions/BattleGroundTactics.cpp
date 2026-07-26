@@ -4267,7 +4267,19 @@ bool ArenaTactics::Execute(Event /*event*/)
         return BGStatusAction::LeaveBG(botAI);
 
     if (bg->GetStatus() != STATUS_IN_PROGRESS)
+    {
+        // Ring of Valor: bots spawn in underground tunnels. If they crawl up to the arena floor, teleport them back.
+        if (bg->GetStatus() == STATUS_WAIT_JOIN && bg->GetBgTypeID() == BATTLEGROUND_RV && bot->GetPositionZ() > 10.0f)
+        {
+            Position const* startPos = bg->GetTeamStartPosition(bot->GetBgTeamId());
+            if (startPos)
+            {
+                bot->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
+                bot->TeleportTo(bg->GetMapId(), startPos->GetPositionX(), startPos->GetPositionY(), startPos->GetPositionZ(), startPos->GetOrientation());
+            }
+        }
         return false;
+    }
 
     if (bot->isDead())
         return false;
