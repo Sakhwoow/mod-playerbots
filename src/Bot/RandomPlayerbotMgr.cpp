@@ -1192,8 +1192,8 @@ void RandomPlayerbotMgr::CheckBgQueue()
         updateBGInstanceCount(BATTLEGROUND_QUEUE_WS, wsBrackets, randomBotAutoJoinBGWSCount);
     }
 
-    // Fallback: click Ready Marker for every bot in arena prep, including alt-bots
-    // that enter via the group leader's acceptance and may miss OnBattlegroundAddPlayer.
+    // Fallback: speed up arena start for instances with bots, including alt-bots
+    // that enter via group leader acceptance and may miss OnBattlegroundAddPlayer.
     {
         std::set<uint32> visited;
         for (auto const& [guid, player] : playerBots)
@@ -1205,13 +1205,12 @@ void RandomPlayerbotMgr::CheckBgQueue()
                 continue;
             if (bg->GetStartDelayTime() <= BG_START_DELAY_15S)
                 continue;
+            if (bg->GetStartingEventFlags() & BG_STARTING_EVENT_3)
+                continue;
             if (!visited.insert(bg->GetInstanceID()).second)
                 continue;
-            for (auto const& [pGuid, pPlayer] : bg->GetPlayers())
-            {
-                if (pPlayer && GET_PLAYERBOT_AI(pPlayer))
-                    bg->ReadyMarkerClicked(pPlayer);
-            }
+            bg->AddStartingEventFlag(BG_STARTING_EVENT_2);
+            bg->SetStartDelayTime(BG_START_DELAY_15S);
         }
     }
     LOG_DEBUG("playerbots", "BG Queue check finished");
