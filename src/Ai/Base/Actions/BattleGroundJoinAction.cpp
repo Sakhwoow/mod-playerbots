@@ -1001,32 +1001,19 @@ bool BGStatusAction::Execute(Event event)
 
         if (isArena)
         {
-            isArena = true;
             BattlegroundQueue& bgQueue = sBattlegroundMgr->GetBattlegroundQueue(queueTypeId);
 
             GroupQueueInfo ginfo;
-            if (!bgQueue.GetPlayerGroupInfoData(bot->GetGUID(), &ginfo))
+            if (bgQueue.GetPlayerGroupInfoData(bot->GetGUID(), &ginfo))
             {
-                LOG_ERROR("playerbots", "Bot {} {}:{} <{}>: Missing QueueInfo for {} {}",
-                          bot->GetGUID().ToString().c_str(), bot->GetTeamId() == TEAM_ALLIANCE ? "A" : "H",
-                          bot->GetLevel(), bot->GetName(), isArena ? "Arena" : "BG", _bgType);
-                return false;
-            }
-
-            if (ginfo.IsInvitedToBGInstanceGUID)
-            {
-                // BattlegroundMgr::GetBattleground() does not return battleground if bgTypeId==BATTLEGROUND_AA
-                Battleground* bg = sBattlegroundMgr->GetBattleground(
-                    ginfo.IsInvitedToBGInstanceGUID, _bgTypeId == BATTLEGROUND_AA ? BATTLEGROUND_TYPE_NONE : _bgTypeId);
-                if (!bg)
+                if (ginfo.IsInvitedToBGInstanceGUID)
                 {
-                    LOG_ERROR("playerbots", "Bot {} {}:{} <{}>: Missing QueueInfo for {} {}",
-                              bot->GetGUID().ToString().c_str(), bot->GetTeamId() == TEAM_ALLIANCE ? "A" : "H",
-                              bot->GetLevel(), bot->GetName(), isArena ? "Arena" : "BG", _bgType);
-                    return false;
+                    // BattlegroundMgr::GetBattleground() does not return battleground if bgTypeId==BATTLEGROUND_AA
+                    Battleground* bg = sBattlegroundMgr->GetBattleground(
+                        ginfo.IsInvitedToBGInstanceGUID, _bgTypeId == BATTLEGROUND_AA ? BATTLEGROUND_TYPE_NONE : _bgTypeId);
+                    if (bg)
+                        _bgTypeId = bg->GetBgTypeID();
                 }
-
-                _bgTypeId = bg->GetBgTypeID();
             }
         }
 
