@@ -2923,37 +2923,6 @@ void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId)
         if (GetPlayerBot(botGUID))
             continue;
 
-        uint32 maxAllowed = GetEventValue(0, "bot_count");
-        if (!maxAllowed)
-            maxAllowed = sPlayerbotAIConfig.maxRandomBots;
-
-        // Если лимит заполнен — выкидываем обычного бота без группы и без гильдии реального игрока
-        if ((uint32)playerBots.size() >= maxAllowed)
-        {
-            bool kicked = false;
-            for (auto const& [guid, candidate] : playerBots)
-            {
-                if (!IsRandomBot(candidate))
-                    continue;
-                if (candidate->GetGroup())
-                    continue;
-                uint32 cGuildId = candidate->GetGuildId();
-                if (cGuildId && HasRealPlayerInGuild(cGuildId))
-                    continue;
-                bool candidateInArena = false;
-                for (uint32 slot = 0; slot < MAX_ARENA_SLOT; ++slot)
-                    if (candidate->GetArenaTeamId(slot)) { candidateInArena = true; break; }
-                if (candidateInArena)
-                    continue;
-
-                LogoutPlayerBot(guid);
-                kicked = true;
-                break;
-            }
-            if (!kicked)
-                break;
-        }
-
         if (std::find(currentBots.begin(), currentBots.end(), charGuid) == currentBots.end())
             currentBots.push_back(charGuid);
 
