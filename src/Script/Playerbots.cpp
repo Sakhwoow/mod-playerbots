@@ -19,6 +19,8 @@
 #include "PlayerbotTextMgr.h"
 
 #include "AllBattlegroundScript.h"
+#include "ArenaTeam.h"
+#include "Battleground.h"
 #include "BattlefieldScript.h"
 #include "Channel.h"
 #include "Config.h"
@@ -552,6 +554,8 @@ public:
 
 class PlayerbotsBattlegroundScript : public AllBattlegroundScript
 {
+    std::unordered_map<uint32, std::unordered_set<ObjectGuid>> _readyBots;
+
 public:
     PlayerbotsBattlegroundScript() : AllBattlegroundScript("PlayerbotsBattlegroundScript",
         {ALLBATTLEGROUNDHOOK_ON_BATTLEGROUND_ADD_PLAYER}) {}
@@ -560,9 +564,24 @@ public:
     {
         if (!bg->isArena() || bg->GetStatus() >= STATUS_IN_PROGRESS)
             return;
-        if (!GET_PLAYERBOT_AI(player))
+        if (!GET_PLAYERBOT_AI(player) || player->IsSpectator())
             return;
-        bg->ReadyMarkerClicked(player);
+        if (bg->GetStartDelayTime() <= BG_START_DELAY_15S || (bg->GetStartingEventFlags() & BG_STARTING_EVENT_3))
+            return;
+
+        uint32 instanceId = bg->GetInstanceID();
+        _readyBots[instanceId].insert(player->GetGUID());
+
+        uint32 count = static_cast<uint32>(_readyBots[instanceId].size());
+        uint32 req = ArenaTeam::GetReqPlayersForType(bg->GetArenaType());
+        ChatHandler(player->GetSession()).SendNotification("Вы готовы {}/{}", count, req);
+
+        if (count >= req)
+        {
+            _readyBots.erase(instanceId);
+            bg->AddStartingEventFlag(BG_STARTING_EVENT_2);
+            bg->SetStartDelayTime(BG_START_DELAY_15S);
+        }
     }
 };
 
