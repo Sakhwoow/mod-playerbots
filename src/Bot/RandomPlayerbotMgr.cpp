@@ -1614,12 +1614,24 @@ bool RandomPlayerbotMgr::ProcessBot(Player* bot)
         return false;
     }
 
-    // leave group if leader is rndbot
+    // leave group if leader is rndbot and no real player (even offline) remains in the group
     Group* group = bot->GetGroup();
     if (group && !group->isLFGGroup() && IsRandomBot(group->GetLeader()))
     {
-        botAI->LeaveOrDisbandGroup();
-        LOG_INFO("playerbots", "Bot {} remove from group since leader is random bot.", bot->GetName().c_str());
+        bool hasRealPlayer = false;
+        for (Group::MemberSlotList::const_iterator i = group->GetMemberSlots().begin(); i != group->GetMemberSlots().end(); ++i)
+        {
+            if (!IsRandomBot(i->guid.GetCounter()))
+            {
+                hasRealPlayer = true;
+                break;
+            }
+        }
+        if (!hasRealPlayer)
+        {
+            botAI->LeaveOrDisbandGroup();
+            LOG_INFO("playerbots", "Bot {} remove from group since leader is random bot.", bot->GetName().c_str());
+        }
     }
 
     // only randomize and teleport idle bots
