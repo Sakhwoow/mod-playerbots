@@ -173,11 +173,13 @@ public:
 
         uint32 const id = spellInfo->Id;
 
-        // Frost Breath P1/P2 for non-tank bots only
+        // Frost Breath P1/P2: only the main tank takes damage.
+        // OT bots stand with the raid (east) and are not in the tank position;
+        // if the boss drifts east they would take the full cone — zero it for them too.
         // (69649 = P1, 73061 = P2, 71807/73060 = heroic variants)
         if (id == 69649 || id == 73061 || id == 71807 || id == 73060)
         {
-            if (!ai->IsTank(target->ToPlayer()))
+            if (!PlayerbotAI::IsMainTank(target->ToPlayer()))
                 damage = 0;
             return;
         }
