@@ -98,10 +98,12 @@ bool RsHalionTankPositionAction::Execute(Event )
         }
     }
 
-    if (botAI->HasCheat(BotCheatMask::raid) && boss->GetVictim() != bot)
+    if (botAI->HasCheat(BotCheatMask::raid))
     {
         ThreatManager& mgr = boss->GetThreatMgr();
-        mgr.AddThreat(bot, 1000000.0f, nullptr, true, true);
+        if (boss->GetVictim() != bot)
+            mgr.AddThreat(bot, 1000000.0f, nullptr, true, true);
+        mgr.FixateTarget(bot);
     }
 
     bool const committed = RsHalionTankMeteorCommitted(botAI);
