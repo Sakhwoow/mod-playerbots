@@ -6,12 +6,14 @@
 
 #include "RSScripts.h"
 #include "Player.h"
+#include "Playerbots.h"
 #include "RSActions.h"
 #include "RSTriggers.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
 #include "SpellInfo.h"
 #include "Timer.h"
+#include "UnitScript.h"
 #include "Vehicle.h"
 #include <algorithm>
 #include <cmath>
@@ -535,7 +537,61 @@ private:
     }
 };
 
+// Dark Breath (Twilight Halion) immunity for real players in the twilight realm.
+//
+// HandleBreathGodMode gives RS_SPELL_MAGIC_BARRIER to bot non-tanks while the breath
+// is casting — but skips real players entirely. If a bot tank is alive in the twilight
+// realm, the real player is never the intended target; this hook zeroes the damage as a
+// safety net for the gap between fixate updates and the breath actually landing.
+class RsHalionDarkBreathImmunity : public UnitScript
+{
+public:
+    RsHalionDarkBreathImmunity() : UnitScript("RsHalionDarkBreathImmunity") { }
+
+    void ModifySpellDamageTaken(Unit* target, Unit* /*attacker*/, int32& damage,
+                                SpellInfo const* spellInfo) override
+    {
+        if (!target || !spellInfo || damage <= 0)
+            return;
+        if (!target->IsPlayer())
+            return;
+
+        uint32 const id = spellInfo->Id;
+        if (id != SPELL_DARK_BREATH && id != SPELL_DARK_BREATH_25N &&
+            id != SPELL_DARK_BREATH_10H && id != SPELL_DARK_BREATH_25H)
+            return;
+
+        Player* player = target->ToPlayer();
+        // Bot non-tanks already get RS_SPELL_MAGIC_BARRIER from HandleBreathGodMode.
+        if (sPlayerbotsMgr.GetPlayerbotAI(player))
+            return;
+
+        // Only protect real players who are in the twilight realm.
+        if (!RsHalionInTwilight(player))
+            return;
+
+        // Zero damage only when a bot tank is present in the twilight realm and can absorb
+        // the breath instead. If no bot tank exists the real player may be tanking intentionally.
+        Map* map = player->GetMap();
+        if (!map)
+            return;
+
+        Map::PlayerList const& players = map->GetPlayers();
+        for (Map::PlayerList::const_iterator it = players.begin(); it != players.end(); ++it)
+        {
+            Player* member = it->GetSource();
+            if (!member || !member->IsAlive() || !RsHalionInTwilight(member))
+                continue;
+            if (!sPlayerbotsMgr.GetPlayerbotAI(member) || !PlayerbotAI::IsTank(member))
+                continue;
+            damage = 0;
+            return;
+        }
+    }
+};
+
 void AddSC_RubySanctumBotScripts()
 {
     new RsHalionRootScript();
+    new RsHalionDarkBreathImmunity();
 }

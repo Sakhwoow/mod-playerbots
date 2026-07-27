@@ -859,6 +859,15 @@ inline Player* RsHalionTwilightTankUncached(PlayerbotAI* botAI)
         return (PlayerbotAI::IsTank(bot) && bot->IsAlive() && RsHalionInTwilight(bot)) ? bot : nullptr;
     }
 
+    // Prefer bot tanks over real players. A real player with a tank spec would otherwise
+    // be selected by GUID order, forcing dark breath onto them unintentionally.
+    Player* botTank = RsHalionPickTank(group, [](Player* member)
+    {
+        return RsHalionInTwilight(member) && sPlayerbotsMgr.GetPlayerbotAI(member) != nullptr;
+    });
+    if (botTank)
+        return botTank;
+
     return RsHalionPickTank(group, [](Player* member) { return RsHalionInTwilight(member); });
 }
 
