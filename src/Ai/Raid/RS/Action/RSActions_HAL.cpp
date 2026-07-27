@@ -246,6 +246,14 @@ bool RsHalionCombustionAction::Execute(Event )
         if (RsHalionCombustionReturning(bot))
         {
             Position const& rally = RsHalionMeteorSpot(bot->GetInstanceId());
+
+            // If the meteor pool is still covering the rally spot, wait in place —
+            // moving into the pool and back creates an infinite oscillation loop.
+            std::vector<Unit*> pools;
+            RsHalionCollectHazardPools(bot, pools);
+            if (!RsHalionSpotClearOfPools(pools, rally.GetPositionX(), rally.GetPositionY()))
+                return false;
+
             return MoveTo(bot->GetMapId(), rally.GetPositionX(), rally.GetPositionY(), rally.GetPositionZ(),
                           false, false, false, true, MovementPriority::MOVEMENT_FORCED);
         }
@@ -535,12 +543,15 @@ bool RsHalionP2AvoidConesAction::Execute(Event )
     if (!boss)
         return false;
 
-    // If twilight tank is a real player, fixate dark breath on them —
-    // RsHalionP2TankPositionAction only executes for bots, not real players
+    // Keep dark breath fixated on the twilight tank every tick.
+    // P2TankPositionAction only runs for bot tanks; if the bot tank is temporarily
+    // outside the twilight realm (portal transit) the fixate can lapse, causing
+    // the boss to breathe at a random raid member. Maintaining it here covers that gap
+    // regardless of whether the twilight tank is a bot or a real player.
     if (botAI->HasCheat(BotCheatMask::raid))
     {
         Player* twilightTank = RsHalionTwilightTank(botAI);
-        if (twilightTank && !sPlayerbotsMgr.GetPlayerbotAI(twilightTank))
+        if (twilightTank)
         {
             ThreatManager& mgr = boss->GetThreatMgr();
             if (boss->GetVictim() != twilightTank)
