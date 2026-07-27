@@ -40,87 +40,16 @@ bool IccSindragosaGroupPositionAction::Execute(Event /*event*/)
     return false;
 }
 
-bool IccSindragosaGroupPositionAction::HandleTankPositioning(Unit* boss)
+bool IccSindragosaGroupPositionAction::HandleTankPositioning(Unit* /*boss*/)
 {
-    float const distBossToCenter = boss->GetExactDist2d(ICC_SINDRAGOSA_CENTER_POSITION);
-    float const distToTankPos = bot->GetExactDist2d(ICC_SINDRAGOSA_TANK_POSITION);
-
-    // Compute how far the boss orientation deviates from east (PI/2)
-    float const targetOrientation = fmod(float(M_PI) / 2.0f + 2.0f * float(M_PI), 2.0f * float(M_PI));
-    float const currentOrientation = fmod(boss->GetOrientation() + 2.0f * float(M_PI), 2.0f * float(M_PI));
-    float orientationDiff = currentOrientation - targetOrientation;
-
-    // Clamp difference to [-PI, PI]
-    if (orientationDiff > float(M_PI))
-        orientationDiff -= 2.0f * float(M_PI);
-    else if (orientationDiff < -float(M_PI))
-        orientationDiff += 2.0f * float(M_PI);
-
-    // Stage 1: Drag boss toward the arena centre when it has drifted too far
-    if (distBossToCenter > 16.0f && distToTankPos <= 20.0f)
-    {
-        float const dirX = ICC_SINDRAGOSA_CENTER_POSITION.GetPositionX() - boss->GetPositionX();
-        float const dirY = ICC_SINDRAGOSA_CENTER_POSITION.GetPositionY() - boss->GetPositionY();
-
-        // Step 4 yards past centre to keep the boss moving through it
-        float const moveX = ICC_SINDRAGOSA_CENTER_POSITION.GetPositionX() + (dirX / distBossToCenter) * 8.0f;
-        float const moveY = ICC_SINDRAGOSA_CENTER_POSITION.GetPositionY() + (dirY / distBossToCenter) * 8.0f;
-
-        return MoveTo(bot->GetMapId(), moveX, moveY, boss->GetPositionZ(), false, false, false, false,
-                      MovementPriority::MOVEMENT_FORCED, true, false);
-    }
-
-    // Stage 2: Walk toward the designated tank position
-    if (distToTankPos > 10.0f)
-    {
-        Position const& botPos = bot->GetPosition();
-        Position const& tankPos = ICC_SINDRAGOSA_TANK_POSITION;
-
-        float const dx = tankPos.GetPositionX() - botPos.GetPositionX();
-        float const dy = tankPos.GetPositionY() - botPos.GetPositionY();
-        float const distance = std::hypot(dx, dy);
-
-        // Advance one yard at a time for smooth pathing
-        float const scale = 1.0f / distance;
-        float const targetX = botPos.GetPositionX() + dx * scale;
-        float const targetY = botPos.GetPositionY() + dy * scale;
-
-        return MoveTo(bot->GetMapId(), targetX, targetY, bot->GetPositionZ(), false, false, false, true,
-                      MovementPriority::MOVEMENT_COMBAT, true, false);
-    }
-
-    // Stage 3: Arc around the boss to correct its facing toward east
-    if (std::abs(orientationDiff) > 0.15f)
-    {
-        float const centerX = boss->GetPositionX();
-        float const centerY = boss->GetPositionY();
-        float const radius = std::max(2.0f, bot->GetExactDist2d(centerX, centerY));
-
-        float angle = atan2(bot->GetPositionY() - centerY, bot->GetPositionX() - centerX);
-
-        // Negative diff → step counterclockwise (north); positive → clockwise (south)
-        static constexpr float ARC_STEP = 0.125f;
-        angle += (orientationDiff < 0) ? ARC_STEP : -ARC_STEP;
-
-        float const moveX = centerX + radius * cos(angle);
-        float const moveY = centerY + radius * sin(angle);
-
-        return MoveTo(bot->GetMapId(), moveX, moveY, bot->GetPositionZ(), false, false, false, false,
-                      MovementPriority::MOVEMENT_FORCED, true, false);
-    }
-
-    // Stage 4: Fine-tune Y-axis alignment with the tank position
-    float const yDiff = std::abs(bot->GetPositionY() - ICC_SINDRAGOSA_TANK_POSITION.GetPositionY());
-    if (yDiff > 2.0f)
-    {
-        Position const& botPos = bot->GetPosition();
-        Position const& tankPos = ICC_SINDRAGOSA_TANK_POSITION;
-
-        float const newY = botPos.GetPositionY() + (tankPos.GetPositionY() > botPos.GetPositionY() ? 1.0f : -1.0f);
-
-        return MoveTo(bot->GetMapId(), botPos.GetPositionX(), newY, botPos.GetPositionZ(), false, false, false, false,
-                      MovementPriority::MOVEMENT_FORCED, true, false);
-    }
+    // Hold at the designated tank position north of the arena. The boss follows
+    // the tank and naturally faces north, keeping Frost Breath away from the
+    // raid stacked to the east. All orientation-correction stages are omitted:
+    // they caused continuous micro-movement that rotated the boss unpredictably.
+    if (bot->GetExactDist2d(ICC_SINDRAGOSA_TANK_POSITION) > 4.0f)
+        return MoveTo(bot->GetMapId(), ICC_SINDRAGOSA_TANK_POSITION.GetPositionX(),
+                      ICC_SINDRAGOSA_TANK_POSITION.GetPositionY(), ICC_SINDRAGOSA_TANK_POSITION.GetPositionZ(),
+                      false, false, false, false, MovementPriority::MOVEMENT_COMBAT);
 
     return false;
 }
