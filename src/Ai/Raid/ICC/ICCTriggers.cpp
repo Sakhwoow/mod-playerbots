@@ -972,7 +972,7 @@ bool IccValithriaDreamCloudTrigger::IsActive()
 //SINDRAGOSA
 bool IccSindragosaGroupPositionTrigger::IsActive()
 {
-    Unit* boss = bot->FindNearestCreature(NPC_SINDRAGOSA, 200.0f);  // sindra
+    Unit* boss = AI_VALUE2(Unit*, "find target", "sindragosa");
     if (!boss)
         return false;
 
@@ -1029,7 +1029,7 @@ bool IccSindragosaGroupPositionTrigger::IsActive()
 
 bool IccSindragosaFrostBeaconTrigger::IsActive()
 {
-    Unit* boss = bot->FindNearestCreature(NPC_SINDRAGOSA, 200.0f);
+    Unit* boss = AI_VALUE2(Unit*, "find target", "sindragosa");
     if (!boss)
         return false;
 
@@ -1062,7 +1062,7 @@ bool IccSindragosaHotTrigger::IsActive()
     if (bot->HasAura(SPELL_FROST_BEACON))
         return false;
 
-    Unit* boss = bot->FindNearestCreature(NPC_SINDRAGOSA, 200.0f);
+    Unit* boss = AI_VALUE2(Unit*, "find target", "sindragosa");
     if (!boss)
         return false;
 
@@ -1284,7 +1284,7 @@ bool IccSindragosaTankSwapPositionTrigger::IsActive()
 
 bool IccSindragosaFrostBombTrigger::IsActive()
 {
-    Unit* boss = bot->FindNearestCreature(NPC_SINDRAGOSA, 200.0f);
+    Unit* boss = AI_VALUE2(Unit*, "find target", "sindragosa");
     if (!boss)
         return false;
 

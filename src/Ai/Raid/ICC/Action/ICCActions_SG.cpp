@@ -407,7 +407,7 @@ uint32 IccSindragosaFrostBeaconAction::s_nextFlareMs = 0;  // deprecated, kept f
 
 bool IccSindragosaFrostBeaconAction::Execute(Event /*event*/)
 {
-    Unit* boss = bot->FindNearestCreature(NPC_SINDRAGOSA, 200.0f);
+    Unit* boss = AI_VALUE2(Unit*, "find target", "sindragosa");
     if (!boss)
         return false;
 
@@ -1150,14 +1150,13 @@ bool IccSindragosaFrostBombAction::CollectContext(FrostBombContext& ctx) const
 {
     constexpr uint32 tombEntries[] = {NPC_TOMB1, NPC_TOMB2, NPC_TOMB3, NPC_TOMB4};
 
-    std::list<Unit*> units;
-    float const range = 200.0f;
-    Acore::AnyUnitInObjectRangeCheck check(bot, range);
-    Acore::UnitListSearcher<Acore::AnyUnitInObjectRangeCheck> searcher(bot, units, check);
-    Cell::VisitObjects(bot, searcher, range);
-
-    for (Unit* unit : units)
+    // Use the per-tick cached target list instead of a raw 200-yard grid scan.
+    // Cell::VisitObjects(200.0f) touched ~576 grid cells per bot per tick;
+    // with 25 bots running this during the air phase that caused server lag.
+    GuidVector const& targets = AI_VALUE(GuidVector, "possible targets no los");
+    for (auto const& guid : targets)
     {
+        Unit* unit = botAI->GetUnit(guid);
         if (!unit || !unit->IsAlive())
             continue;
 
