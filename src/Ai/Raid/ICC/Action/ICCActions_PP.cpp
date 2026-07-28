@@ -139,27 +139,6 @@ bool IccPutricideGrowingOozePuddleAction::Execute(Event /*event*/)
         return true;
     }
 
-    // Phase 3: DPS bots hold fire while puddles remain so they don't run through
-    // them chasing the boss; resume once the abomination clears the field.
-    if (!botAI->IsMainTank(bot))
-    {
-        Unit* bossP3 = AI_VALUE2(Unit*, "find target", "professor putricide");
-        if (bossP3 && bossP3->HealthBelowPct(35))
-        {
-            GuidVector const npcs = AI_VALUE(GuidVector, "nearest hostile npcs");
-            for (auto const& g : npcs)
-            {
-                Unit* u = botAI->GetUnit(g);
-                if (u && u->IsAlive() && u->GetEntry() == NPC_GROWING_OOZE_PUDDLE)
-                {
-                    bot->AttackStop();
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-
     // Main tank rotation kite: when one or more active Growing Ooze Puddles
     // sit close to the boss, walk the boss to a position safe from ALL of
     // them. Tank picks an angle around the boss whose forward arc clears
@@ -269,15 +248,6 @@ bool IccPutricideGrowingOozePuddleAction::Execute(Event /*event*/)
             }
         }
 
-        // Phase 3: MT moves to gate anchor and holds; abomination handles puddles.
-        if (boss && boss->HealthBelowPct(35))
-        {
-            if (bot->GetExactDist2d(ICC_PUTRICIDE_GATE_POSITION) > 8.0f)
-                return MoveTo(bot->GetMapId(), ICC_PUTRICIDE_GATE_POSITION.GetPositionX(),
-                              ICC_PUTRICIDE_GATE_POSITION.GetPositionY(), ICC_PUTRICIDE_GATE_POSITION.GetPositionZ(),
-                              false, false, false, true, MovementPriority::MOVEMENT_COMBAT);
-            return false;
-        }
     }
 
     Unit* closestPuddle = FindClosestThreateningPuddle();
