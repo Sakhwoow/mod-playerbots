@@ -11,6 +11,7 @@
 #include "RSTriggers.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
+#include "SpellAuraEffects.h"
 #include "SpellInfo.h"
 #include "Timer.h"
 #include "UnitScript.h"
