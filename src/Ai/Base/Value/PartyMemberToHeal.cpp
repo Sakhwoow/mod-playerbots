@@ -133,6 +133,7 @@ bool PartyMemberToHeal::Check(Unit* player)
     //     ServerFacade::instance().GetDistance2d(bot, player) < (player->IsPlayer() && botAI->IsTank((Player*)player) ? 50.0f
     //     : 40.0f);
     return player->GetMapId() == bot->GetMapId() && !player->IsCharmed() &&
+           bot->InSamePhase(player) &&
            bot->GetDistance2d(player) < sPlayerbotAIConfig.healDistance * 2 && bot->IsWithinLOSInMap(player);
 }
 

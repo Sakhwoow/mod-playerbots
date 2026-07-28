@@ -2139,6 +2139,17 @@ AiPlayerbot.RandomClassSpecIndex.11.6 = 6
 # Default: 1 (enabled)
 AiPlayerbot.EnableICCBuffs = 1
 
+# Ruby Sanctum bot damage tuning (Halion encounter, all difficulties).
+# Only affects bots, not real players.
+#
+# Bonus damage dealt by bots (%). 0 = disabled.
+# Default: 0
+AiPlayerbot.RSBotDamageBonus = 0
+
+# Damage reduction for tank bots (%). 0 = disabled.
+# Default: 40
+AiPlayerbot.RSBotDamageTaken = 40
+
 #
 #
 ####################################################################################################

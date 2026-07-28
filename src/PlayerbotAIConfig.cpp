@@ -266,6 +266,11 @@ bool PlayerbotAIConfig::Initialize()
 
     EnableICCBuffs = sConfigMgr->GetOption<bool>("AiPlayerbot.EnableICCBuffs", true);
 
+    //////////////////////////// RS
+
+    RSBotDamageBonus = sConfigMgr->GetOption<int>("AiPlayerbot.RSBotDamageBonus", 0);
+    RSBotDamageTaken = sConfigMgr->GetOption<int>("AiPlayerbot.RSBotDamageTaken", 40);
+
     //////////////////////////// Professions
     classMatchingProfessionChance =
         std::min<uint32>(100, sConfigMgr->GetOption<uint32>("AiPlayerbot.ClassMatchingProfessionChance", 30));

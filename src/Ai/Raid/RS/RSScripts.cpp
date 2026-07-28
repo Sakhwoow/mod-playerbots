@@ -135,14 +135,34 @@ private:
             return;
         last = now;
 
+        // SPELL_EXPERIENCED (ICC spell reused): +% damage done
+        constexpr uint32 RS_BOT_DMG_BONUS_SPELL = 71188;
+
         Map::PlayerList const& players = creature->GetMap()->GetPlayers();
         for (Map::PlayerList::const_iterator it = players.begin(); it != players.end(); ++it)
         {
             Player* player = it->GetSource();
-            if (!player || !player->IsAlive() || !GET_PLAYERBOT_AI(player) || !PlayerbotAI::IsTank(player))
+            if (!player || !player->IsAlive() || !GET_PLAYERBOT_AI(player))
                 continue;
-            if (!player->HasAura(RS_SPELL_PAIN_SUPPRESION))
-                player->AddAura(RS_SPELL_PAIN_SUPPRESION, player);
+
+            if (int const bonus = sPlayerbotAIConfig.RSBotDamageBonus; bonus > 0)
+            {
+                if (!player->HasAura(RS_BOT_DMG_BONUS_SPELL))
+                    if (Aura* aura = player->AddAura(RS_BOT_DMG_BONUS_SPELL, player))
+                        if (AuraEffect* eff = aura->GetEffect(0))
+                            eff->ChangeAmount(bonus);
+            }
+
+            if (!PlayerbotAI::IsTank(player))
+                continue;
+
+            if (int const reduction = sPlayerbotAIConfig.RSBotDamageTaken; reduction > 0)
+            {
+                if (!player->HasAura(RS_SPELL_PAIN_SUPPRESION))
+                    if (Aura* aura = player->AddAura(RS_SPELL_PAIN_SUPPRESION, player))
+                        if (AuraEffect* eff = aura->GetEffect(0))
+                            eff->ChangeAmount(-reduction);
+            }
         }
     }
 
