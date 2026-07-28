@@ -139,13 +139,22 @@ bool IccPutricideGrowingOozePuddleAction::Execute(Event /*event*/)
         return true;
     }
 
+    // Phase 3: non-MT bots stack on MT; individual puddle avoidance is
+    // suppressed so the group stays tight for healing.
+    if (!botAI->IsMainTank(bot))
+    {
+        Unit* bossP3 = AI_VALUE2(Unit*, "find target", "professor putricide");
+        if (bossP3 && bossP3->HealthBelowPct(35))
+            return false;
+    }
+
     // Main tank rotation kite: when one or more active Growing Ooze Puddles
     // sit close to the boss, walk the boss to a position safe from ALL of
     // them. Tank picks an angle around the boss whose forward arc clears
     // every nearby puddle. Boss turns to face the tank, rotating its frontal
     // cone away from the puddle field. Stack bots line up behind the boss.
-    // Phase 3: skip kite (MT idles near boss). Flee logic below still runs so
-    // MT steps out of puddles.
+    // Phase 3: skip kite (MT holds position near boss). Flee logic below
+    // still runs so MT steps out of puddles that land on it.
     if (botAI->IsMainTank(bot))
     {
         Unit* boss = AI_VALUE2(Unit*, "find target", "professor putricide");
@@ -288,11 +297,11 @@ Unit* IccPutricideGrowingOozePuddleAction::FindClosestThreateningPuddle()
     if (npcs.empty())
         return nullptr;
 
-    // Phase 3: MT anchors at gate; abomination handles all puddles.
     Unit* boss = AI_VALUE2(Unit*, "find target", "professor putricide");
-    if (botAI->IsMainTank(bot) && boss && boss->HealthBelowPct(35))
-        return nullptr;
-    bool const isMainTank = botAI->IsMainTank(bot);
+    // In P3 the kite loop is disabled (boss holds position), but MT still
+    // avoids puddles that land on it — treat as non-tank so the safe radius
+    // matches a regular bot and MT doesn't over-react to distant puddles.
+    bool const isMainTank = botAI->IsMainTank(bot) && !(boss && boss->HealthBelowPct(35));
 
     Unit* closestPuddle = nullptr;
     float closestDistance = FLT_MAX;
