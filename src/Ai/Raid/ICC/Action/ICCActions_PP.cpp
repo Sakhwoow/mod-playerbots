@@ -454,16 +454,15 @@ Position IccPutricideGrowingOozePuddleAction::CalculateSafeMovePosition(Unit* cl
     // Relief scan: the strict loop above can fail entirely when the bot is
     // wedged against a wall (e.g. boxed in by two puddles plus the arena
     // wall) — none of the 8 candidates clear every check. Scan a finer ring
-    // and keep only positions with a clear line of sight, picking the one
-    // furthest from the puddle. This guarantees MoveTo() is never aimed at
-    // an unreachable point; without it, the radial-fallback below can point
-    // straight into a wall, and the pathing engine reroutes back through the
-    // puddle field every tick (the reported "stuck running through lava"
-    // oscillation).
+    // with two-pass selection: prefer positions clear of ALL puddles first,
+    // fall back to positions clear of only closestPuddle. Without the
+    // all-clear pass, the relief result can land inside another puddle which
+    // immediately re-triggers the flee, causing "zashli-vyshli" oscillation.
     {
         constexpr int numReliefAngles = 16;
-        bool foundRelief = false;
-        float reliefX = 0.0f, reliefY = 0.0f, bestReliefDist = -1.0f;
+        float allClearX = 0.0f, allClearY = 0.0f, bestAllClearDist = -1.0f;
+        float singleClearX = 0.0f, singleClearY = 0.0f, bestSingleClearDist = -1.0f;
+
         for (int i = 0; i < numReliefAngles; ++i)
         {
             float angle = (2.0f * static_cast<float>(M_PI) * i) / numReliefAngles;
@@ -489,13 +488,46 @@ Position IccPutricideGrowingOozePuddleAction::CalculateSafeMovePosition(Unit* cl
                     continue;
             }
 
-            if (candDist > bestReliefDist)
+            // Check if destination is inside another puddle or path crosses one.
+            // Skip path check when already inside closestPuddle — the path from
+            // inside always "crosses" it and would reject all outward candidates.
+            bool const otherPuddleClear =
+                !IsPositionTooCloseToOtherPuddles(testX, testY, closestPuddle) &&
+                (insidePuddle || !PathCrossesAnyPuddle(botX, botY, testX, testY, closestPuddle));
+
+            if (otherPuddleClear)
             {
-                bestReliefDist = candDist;
-                reliefX = testX;
-                reliefY = testY;
-                foundRelief = true;
+                if (candDist > bestAllClearDist)
+                {
+                    bestAllClearDist = candDist;
+                    allClearX = testX;
+                    allClearY = testY;
+                }
             }
+            else
+            {
+                if (candDist > bestSingleClearDist)
+                {
+                    bestSingleClearDist = candDist;
+                    singleClearX = testX;
+                    singleClearY = testY;
+                }
+            }
+        }
+
+        float reliefX = 0.0f, reliefY = 0.0f;
+        bool foundRelief = false;
+        if (bestAllClearDist >= 0.0f)
+        {
+            reliefX = allClearX;
+            reliefY = allClearY;
+            foundRelief = true;
+        }
+        else if (bestSingleClearDist >= 0.0f)
+        {
+            reliefX = singleClearX;
+            reliefY = singleClearY;
+            foundRelief = true;
         }
 
         if (foundRelief)
