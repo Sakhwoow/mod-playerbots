@@ -604,6 +604,51 @@ bool IccSindragosaFrostBeaconAction::HandleNonBeaconedPlayer(const Unit* boss)
         return botAI->IsHeal(bot);  // Continue for healers, wait for others
     }
 
+    // Ground phase — if Ice Tombs are alive and Blistering Cold is not active,
+    // DPS bots attack the nearest tomb to free the trapped player.
+    // Healers are excluded so they keep healing through the phase.
+    if (!IsBossFlying(boss) && !botAI->IsHeal(bot))
+    {
+        bool const isBlisteringCold = boss->HasUnitState(UNIT_STATE_CASTING) &&
+            (boss->FindCurrentSpellBySpellId(SPELL_BLISTERING_COLD1) ||
+             boss->FindCurrentSpellBySpellId(SPELL_BLISTERING_COLD2) ||
+             boss->FindCurrentSpellBySpellId(SPELL_BLISTERING_COLD3) ||
+             boss->FindCurrentSpellBySpellId(SPELL_BLISTERING_COLD4));
+
+        if (!isBlisteringCold)
+        {
+            static constexpr std::array<uint32, 4> tombEntries = {NPC_TOMB1, NPC_TOMB2, NPC_TOMB3, NPC_TOMB4};
+            Unit* nearestTomb = nullptr;
+            float nearestTombDist = FLT_MAX;
+            for (uint32 entry : tombEntries)
+            {
+                if (Creature* tomb = bot->FindNearestCreature(entry, 100.0f))
+                {
+                    if (tomb->IsAlive())
+                    {
+                        float d = bot->GetExactDist2d(tomb);
+                        if (d < nearestTombDist)
+                        {
+                            nearestTombDist = d;
+                            nearestTomb = tomb;
+                        }
+                    }
+                }
+            }
+
+            if (nearestTomb)
+            {
+                bot->SetTarget(nearestTomb->GetGUID());
+                if (nearestTombDist > INTERACTION_DISTANCE + 1.0f)
+                    return MoveTo(bot->GetMapId(), nearestTomb->GetPositionX(), nearestTomb->GetPositionY(),
+                                  nearestTomb->GetPositionZ(), false, false, false, true,
+                                  MovementPriority::MOVEMENT_COMBAT);
+                bot->Attack(nearestTomb, true);
+                return true;
+            }
+        }
+    }
+
     // Ground phase - position based on role and avoid beaconed players
     bool const isRanged = botAI->IsRanged(bot) && !botAI->IsHeal(bot) /*(bot->GetExactDist2d(ICC_SINDRAGOSA_RANGED_POSITION.GetPositionX(),ICC_SINDRAGOSA_RANGED_POSITION.GetPositionY()) <
                           bot->GetExactDist2d(ICC_SINDRAGOSA_MELEE_POSITION.GetPositionX(),ICC_SINDRAGOSA_MELEE_POSITION.GetPositionY()))*/;
@@ -663,15 +708,72 @@ bool IccSindragosaBlisteringColdAction::Execute(Event /*event*/)
     if (botAI->IsMainTank(bot))
         return false;
 
+    // Beaconed bots must stay at tomb positions to form Ice Tombs.
+    // Overriding them here (ACTION_EMERGENCY priority) would pull them away
+    // before the tomb spawns, leaving no LoS shelter for anyone.
+    if (bot->HasAura(SPELL_FROST_BEACON) || bot->HasAura(SPELL_ICE_TOMB))
+        return false;
+
     float const dist = bot->GetExactDist2d(boss->GetPositionX(), boss->GetPositionY());
 
     // Already beyond 33 yards — safe from Blistering Cold (radius 20 yards).
     if (dist >= 33.0f)
         return false;
 
-    // Run to the far east wall position — guaranteed > 20 yards from the boss
-    // regardless of where the tank has positioned Sindragosa in the arena.
-    // This was the original working logic before commit 5dc778ef reversed it.
+    // If Ice Tombs are already present, hide directly behind the nearest one.
+    // The tomb acts as a LoS blocker — position = tomb + normalize(boss→tomb)*5y.
+    // This is the correct mechanic and avoids the long sprint to the east wall.
+    static constexpr std::array<uint32, 4> tombEntries = {NPC_TOMB1, NPC_TOMB2, NPC_TOMB3, NPC_TOMB4};
+    Unit* nearestTomb = nullptr;
+    float nearestTombDist = FLT_MAX;
+    for (uint32 entry : tombEntries)
+    {
+        if (Creature* tomb = bot->FindNearestCreature(entry, 100.0f))
+        {
+            if (tomb->IsAlive())
+            {
+                float d = bot->GetExactDist2d(tomb);
+                if (d < nearestTombDist)
+                {
+                    nearestTombDist = d;
+                    nearestTomb = tomb;
+                }
+            }
+        }
+    }
+
+    if (nearestTomb)
+    {
+        float bx = boss->GetPositionX();
+        float by = boss->GetPositionY();
+        float tx = nearestTomb->GetPositionX();
+        float ty = nearestTomb->GetPositionY();
+        float ddx = tx - bx;
+        float ddy = ty - by;
+        float len = std::sqrt(ddx * ddx + ddy * ddy);
+        if (len > 0.01f)
+        {
+            ddx /= len;
+            ddy /= len;
+        }
+        float safeX = tx + ddx * 5.0f;
+        float safeY = ty + ddy * 5.0f;
+        float safeZ = nearestTomb->GetPositionZ();
+        bot->UpdateAllowedPositionZ(safeX, safeY, safeZ);
+
+        if (bot->GetExactDist2d(safeX, safeY) <= 0.5f)
+            return false;
+
+        bot->InterruptNonMeleeSpells(true);
+        bot->AttackStop();
+        if (!bot->HasAura(SPELL_NITRO_BOOSTS))
+            bot->AddAura(SPELL_NITRO_BOOSTS, bot);
+
+        return MoveTo(bot->GetMapId(), safeX, safeY, safeZ, false, false, false, true,
+                     MovementPriority::MOVEMENT_FORCED, true, false);
+    }
+
+    // No tombs yet — run to the far east wall (guaranteed > 20 yards from boss).
     const Position& safePos = ICC_SINDRAGOSA_BLISTERING_COLD_POSITION;
 
     if (bot->GetExactDist2d(safePos) <= 0.1f)
