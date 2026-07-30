@@ -1614,6 +1614,34 @@ bool RandomPlayerbotMgr::ProcessBot(Player* bot)
         return false;
     }
 
+    // if bot is in a dungeon/raid instance with no real player in that same instance, leave and go home
+    if (bot->GetMap() && (bot->GetMap()->IsDungeon() || bot->GetMap()->IsRaid()))
+    {
+        bool realPlayerInInstance = false;
+        Group* instanceGroup = bot->GetGroup();
+        if (instanceGroup)
+        {
+            for (GroupReference* ref = instanceGroup->GetFirstMember(); ref != nullptr; ref = ref->next())
+            {
+                Player* member = ref->GetSource();
+                if (member && !GET_PLAYERBOT_AI(member) && member->GetMap() == bot->GetMap())
+                {
+                    realPlayerInInstance = true;
+                    break;
+                }
+            }
+        }
+        if (!realPlayerInInstance)
+        {
+            LOG_INFO("playerbots", "Bot {} is in instance {} without a real player, teleporting home.",
+                     bot->GetName().c_str(), bot->GetMap()->GetMapName());
+            if (instanceGroup)
+                botAI->LeaveOrDisbandGroup();
+            bot->TeleportTo(bot->m_homebindMapId, bot->m_homebindX, bot->m_homebindY, bot->m_homebindZ, bot->GetOrientation());
+            return true;
+        }
+    }
+
     // leave group if leader is rndbot and no real player (even offline) remains in the group
     Group* group = bot->GetGroup();
     if (group && !group->isLFGGroup() && IsRandomBot(group->GetLeader()))
