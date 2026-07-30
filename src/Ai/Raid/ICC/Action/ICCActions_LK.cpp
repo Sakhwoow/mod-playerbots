@@ -4123,7 +4123,23 @@ bool IccLichKingAddsAction::HandleVileSpiritMechanics()
             if (HasOldSpirits())
                 return false;
 
-            sharedSlot = -1;
+            // Only abandon slot if a genuinely safer alternative exists.
+            // Spirits pass through slots without permanently blocking them, so
+            // switching slots unnecessarily causes rapid oscillation between positions.
+            bool betterExists = false;
+            for (int pri : SLOT_PRIORITY)
+            {
+                if (pri == sharedSlot)
+                    continue;
+                if (IsSlotSafeFromDefile(slots[pri]) && IsSlotSafeFromSpirits(slots[pri]))
+                {
+                    betterExists = true;
+                    break;
+                }
+            }
+            if (betterExists)
+                sharedSlot = -1;
+            // else: hold current slot — spirits will pass through shortly
         }
         else if (sharedSlot == 1)
         {
@@ -4154,7 +4170,17 @@ bool IccLichKingAddsAction::HandleVileSpiritMechanics()
         }
 
         if (sharedSlot < 0)
-            return false;
+        {
+            // All spirit slots are covered by Defile. Converge to platform center
+            // as a last resort — spirits always approach from the platform edges,
+            // so the center gives maximum reaction time. Prevents bots wandering
+            // into random combat positions and oscillating back to failed slots.
+            return MoveTo(bot->GetMapId(),
+                          ICC_LICH_KING_CENTER_POSITION.GetPositionX(),
+                          ICC_LICH_KING_CENTER_POSITION.GetPositionY(),
+                          ICC_LICH_KING_CENTER_POSITION.GetPositionZ(),
+                          false, false, false, true, MovementPriority::MOVEMENT_FORCED);
+        }
     }
 
     if (sharedSlot < 0 || sharedSlot >= 3)
