@@ -261,7 +261,21 @@ bool IccPutricideGrowingOozePuddleAction::Execute(Event /*event*/)
 
     Unit* closestPuddle = FindClosestThreateningPuddle();
     if (!closestPuddle)
+    {
+        // Bot is currently safe. Prevent combat AI from immediately walking
+        // the bot back through a puddle: if the direct path to the boss
+        // crosses any puddle, hold position instead. Bots can still cast
+        // spells from here; only movement to the boss is suppressed.
+        // Tanks are exempt — the kite logic above already manages them.
+        if (!botAI->IsTank(bot))
+        {
+            Unit* nearBoss = AI_VALUE2(Unit*, "find target", "professor putricide");
+            if (nearBoss && PathCrossesAnyPuddle(bot->GetPositionX(), bot->GetPositionY(),
+                                                  nearBoss->GetPositionX(), nearBoss->GetPositionY(), nullptr))
+                return true;
+        }
         return false;
+    }
 
     Position movePosition = CalculateSafeMovePosition(closestPuddle);
 
