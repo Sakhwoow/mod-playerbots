@@ -749,9 +749,14 @@ bool IccBpcBallOfFlameAction::Execute(Event /*event*/)
     bool const hasBallOfFlame = ballOfFlameUnit && (ballOfFlameUnit->GetVictim() == bot);
     bool const hasInfernoFlame = infernoFlameUnit && (infernoFlameUnit->GetVictim() == bot);
 
+    Difficulty const raidDiff = bot->GetRaidDifficulty();
+    bool const is25Man = (raidDiff == RAID_DIFFICULTY_25MAN_NORMAL || raidDiff == RAID_DIFFICULTY_25MAN_HEROIC);
+
     float infernoDist = infernoFlameUnit ? infernoFlameUnit->GetDistance2d(boss) : 0.0f;
-    // Hunters excluded — they can DPS from range without needing to soak
-    if (infernoFlameUnit && infernoDist > 2.0f && infernoDist <= 10.0f && !hasInfernoFlame &&
+    // Soak logic: move non-targeted bot toward Ball of Inferno Flame to absorb it.
+    // Disabled on 25-player: Empowered Flame hits ~73k and kills anyone who isn't
+    // the original target — soaking is suicidal at that damage level.
+    if (!is25Man && infernoFlameUnit && infernoDist > 2.0f && infernoDist <= 10.0f && !hasInfernoFlame &&
         bot->getClass() != CLASS_HUNTER)
     {
         if (!botAI->IsTank(bot) && infernoFlameUnit->GetVictim() != bot)
@@ -783,9 +788,13 @@ bool IccBpcBallOfFlameAction::Execute(Event /*event*/)
         }
     }
 
-    // If victim of ball of flame, keep at least 15f from other party members
+    // If victim of ball of flame, run away from party. Use Nitro Boosts for speed —
+    // the ball chases at ~100% run speed and will catch a bot without the boost.
     if (hasBallOfFlame || hasInfernoFlame)
     {
+        if (!bot->HasAura(SPELL_NITRO_BOOSTS))
+            bot->AddAura(SPELL_NITRO_BOOSTS, bot);
+
         static float const SAFE_DIST = 15.0f;
         GuidVector members = AI_VALUE(GuidVector, "group members");
         for (auto const& memberGuid : members)
