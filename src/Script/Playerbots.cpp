@@ -1,33 +1,16 @@
-﻿/*
- * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
+/*
+ * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
+ * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
 
 #include "Playerbots.h"
-#include "PlayerbotTextMgr.h"
 
-#include "AllBattlegroundScript.h"
-#include "ArenaTeam.h"
-#include "Battleground.h"
 #include "BattlefieldScript.h"
 #include "Channel.h"
 #include "Config.h"
 #include "DatabaseEnv.h"
 #include "DatabaseLoader.h"
 #include "GuildTaskMgr.h"
-#include "GroupScript.h"
 #include "PlayerScript.h"
 #include "PlayerbotAIConfig.h"
 #include "PlayerbotGuildMgr.h"
@@ -104,12 +87,23 @@ public:
             PlayerbotsMgr::instance().AddPlayerbotData(player, false);
             sRandomPlayerbotMgr.OnPlayerLogin(player);
 
+            // Before modifying the following messages, please make sure it does not violate the AGPLv3.0 license
+            // especially if you are distributing a repack or hosting a public server
+            // e.g. you can replace the URL with your own repository,
+            // but it should be publicly accessible and include all modifications you've made
+            if (sPlayerbotAIConfig.enabled)
+            {
+                ChatHandler(player->GetSession()).SendSysMessage(
+                    "|cff00ff00This server runs with |cff00ccffmod-playerbots|r "
+                    "|cffcccccchttps://github.com/mod-playerbots/mod-playerbots|r");
+            }
+
             if (sPlayerbotAIConfig.enabled || sPlayerbotAIConfig.randomBotAutologin)
             {
                 std::string maxAllowedBotCount = std::to_string(sRandomPlayerbotMgr.GetMaxAllowedBotCount());
 
                 ChatHandler(player->GetSession()).SendSysMessage(
-                    PlayerbotTextMgr::instance().GetBotTextOrDefault("string_configured_bots", "|cff00ff00Боты:|r На сервере настроено %count ботов.", {{"%count", maxAllowedBotCount}}));
+                    "|cff00ff00Playerbots:|r The server is configured with " + maxAllowedBotCount + " bots.");
             }
         }
     }
@@ -253,7 +247,7 @@ public:
         if (playerbotMgr != nullptr && channel->GetFlags() & 0x18)
             playerbotMgr->HandleCommand(type, msg);
 
-        sRandomPlayerbotMgr.HandleCommand(type, msg, player, channel->GetName());
+        sRandomPlayerbotMgr.HandleCommand(type, msg, player);
 
         return true;
     }
@@ -335,7 +329,6 @@ class PlayerbotsWorldScript : public WorldScript
 public:
     PlayerbotsWorldScript() : WorldScript("PlayerbotsWorldScript", {
         WORLDHOOK_ON_BEFORE_WORLD_INITIALIZED,
-        WORLDHOOK_ON_STARTUP,
         WORLDHOOK_ON_UPDATE
     }) {}
 
@@ -369,14 +362,6 @@ public:
         PlayerbotSpellRepository::Instance().Initialize();
 
         LOG_INFO("server.loading", "Playerbots World Thread Processor initialized");
-    }
-
-    void OnStartup() override
-    {
-        // sArenaTeamMgr is fully loaded here (after SetInitialWorldSettings).
-        // Fill existing arena teams and populate randomBotArenaTeams.
-        if (sPlayerbotAIConfig.enabled)
-            sRandomPlayerbotMgr.InitArenaTeams();
     }
 
     void OnUpdate(uint32 diff) override
@@ -519,70 +504,11 @@ public:
     void OnBattlegroundEnd(Battleground* bg, TeamId /*winnerTeam*/) override { bgStrategies.erase(bg->GetInstanceID()); }
 };
 
-class PlayerbotGroupScript : public GroupScript
-{
-public:
-    PlayerbotGroupScript() : GroupScript("PlayerbotGroupScript", {GROUPHOOK_ON_REMOVE_MEMBER}) {}
-
-    void OnRemoveMember(Group* group, ObjectGuid guid, RemoveMethod /*method*/, ObjectGuid /*kicker*/, const char* /*reason*/) override
-    {
-        // Check if any real player (not a bot) remains after this removal
-        for (GroupReference* ref = group->GetFirstMember(); ref != nullptr; ref = ref->next())
-        {
-            Player* member = ref->GetSource();
-            if (member && member->GetGUID() != guid && !GET_PLAYERBOT_AI(member))
-                return;
-        }
-
-        // No real players left — teleport bots still in instances to their homebind
-        for (GroupReference* ref = group->GetFirstMember(); ref != nullptr; ref = ref->next())
-        {
-            Player* bot = ref->GetSource();
-            if (bot && bot->GetGUID() != guid && GET_PLAYERBOT_AI(bot) &&
-                bot->GetMap() && (bot->GetMap()->IsDungeon() || bot->GetMap()->IsRaid()))
-                bot->TeleportTo(bot->m_homebindMapId, bot->m_homebindX, bot->m_homebindY, bot->m_homebindZ, bot->GetOrientation());
-        }
-    }
-};
-
 // Workaround for missing InitEnabledHooksIfNeeded for new BattlefieldScript in ScriptMgr
 class PlayerbotsBattlefieldScript : public BattlefieldScript
 {
 public:
     PlayerbotsBattlefieldScript() : BattlefieldScript("PlayerbotsBattlefieldScript") { }
-};
-
-class PlayerbotsBattlegroundScript : public AllBattlegroundScript
-{
-    std::unordered_map<uint32, std::unordered_set<ObjectGuid>> _readyBots;
-
-public:
-    PlayerbotsBattlegroundScript() : AllBattlegroundScript("PlayerbotsBattlegroundScript",
-        {ALLBATTLEGROUNDHOOK_ON_BATTLEGROUND_ADD_PLAYER}) {}
-
-    void OnBattlegroundAddPlayer(Battleground* bg, Player* player) override
-    {
-        if (!bg->isArena() || bg->GetStatus() >= STATUS_IN_PROGRESS)
-            return;
-        if (!GET_PLAYERBOT_AI(player) || player->IsSpectator())
-            return;
-        if (bg->GetStartDelayTime() <= BG_START_DELAY_15S || (bg->GetStartingEventFlags() & BG_STARTING_EVENT_3))
-            return;
-
-        uint32 instanceId = bg->GetInstanceID();
-        _readyBots[instanceId].insert(player->GetGUID());
-
-        uint32 count = static_cast<uint32>(_readyBots[instanceId].size());
-        uint32 req = ArenaTeam::GetReqPlayersForType(bg->GetArenaType());
-        ChatHandler(player->GetSession()).SendNotification("Вы готовы {}/{}", count, req);
-
-        if (count >= req)
-        {
-            _readyBots.erase(instanceId);
-            bg->AddStartingEventFlag(BG_STARTING_EVENT_2);
-            bg->SetStartDelayTime(BG_START_DELAY_15S);
-        }
-    }
 };
 
 void AddPlayerbotsSecureLoginScripts();
@@ -595,11 +521,9 @@ void AddSC_RubySanctumBotScripts();
 
 void AddPlayerbotsScripts()
 {
-    new PlayerbotsBattlegroundScript();
     new PlayerbotsBattlefieldScript();
     new PlayerbotsDatabaseScript();
     new PlayerbotsPlayerScript();
-    new PlayerbotGroupScript();
     new PlayerbotsMiscScript();
     new PlayerbotsServerScript();
     new PlayerbotsWorldScript();

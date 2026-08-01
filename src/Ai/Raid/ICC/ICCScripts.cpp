@@ -1,4 +1,11 @@
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
+ */
+
 #include "ICCScripts.h"
+#include "Creature.h"
 #include "Player.h"
 #include "ICCTriggers.h"
 #include "ScriptMgr.h"
@@ -8,14 +15,40 @@
 #include "Playerbots.h"
 #include "UnitScript.h"
 #include <algorithm>
+#include <mutex>
+
+namespace
+{
+    std::unordered_map<uint32, IcecrownHelpers::IccInstanceState> g_state;
+    std::mutex g_stateMutex;
+}
 
 namespace IcecrownHelpers
 {
-    std::unordered_map<uint32, std::vector<MalleableGooImpact>> malleableGooImpacts;
-    std::map<ObjectGuid, uint32> festergutGooWaitUntil;
-    std::unordered_map<uint32, DefileCastInfo> defileCast;
-    std::unordered_map<uint32, VileGasVictim> rotfaceVileGas;
-    std::map<ObjectGuid, uint32> rotfaceVileGasWaitUntil;
+    IccInstanceState& IccState(uint32 instanceId)
+    {
+        std::lock_guard lock(g_stateMutex);
+        return g_state[instanceId];
+    }
+
+    void IccResetInstance(uint32 instanceId)
+    {
+        std::lock_guard lock(g_stateMutex);
+        g_state.erase(instanceId);
+    }
+
+    std::vector<Position> ActiveGooPositions(uint32 instanceId, uint32 lifetimeMs)
+    {
+        std::vector<Position> out;
+        IccInstanceState& st = IccState(instanceId);
+
+        uint32 const now = getMSTime();
+        for (auto const& impact : st.malleableGoo)
+            if (getMSTimeDiff(impact.castTime, now) <= lifetimeMs)
+                out.push_back(impact.position);
+
+        return out;
+    }
 }
 
 class IccPutricideListenerScript : public AllSpellScript
@@ -47,7 +80,7 @@ public:
         impact.position = target->GetPosition();
         impact.castTime = now;
 
-        auto& impacts = IcecrownHelpers::malleableGooImpacts[caster->GetMap()->GetInstanceId()];
+        auto& impacts = IcecrownHelpers::IccState(caster->GetMap()->GetInstanceId()).malleableGoo;
         impacts.push_back(impact);
 
         // Evict stale entries to keep the list bounded. Retention covers the
@@ -84,7 +117,8 @@ public:
         if (!target || !target->IsPlayer())
             return;
 
-        IcecrownHelpers::VileGasVictim& entry = IcecrownHelpers::rotfaceVileGas[caster->GetMap()->GetInstanceId()];
+        IcecrownHelpers::VileGasVictim& entry =
+            IcecrownHelpers::IccState(caster->GetMap()->GetInstanceId()).rotfaceVileGas;
         entry.victimGuid = target->GetGUID();
         entry.castTime = getMSTime();
     }
@@ -111,7 +145,7 @@ public:
             return;
 
         IcecrownHelpers::DefileCastInfo& entry =
-            IcecrownHelpers::defileCast[caster->GetMap()->GetInstanceId()];
+            IcecrownHelpers::IccState(caster->GetMap()->GetInstanceId()).defileCast;
         entry.targetGuid = target->GetGUID();
         entry.castTime = getMSTime();
     }
@@ -120,27 +154,15 @@ public:
 // Sindragosa lethal-mechanic damage immunity for bots.
 //
 // 1. While frozen in an Ice Tomb (SPELL_ICE_TOMB_UNTARGETABLE = 69700):
-//    Bots cannot be healed while untargetable. Any damage source — the
-//    ICE_TOMB_DAMAGE periodic tick (70157), Frost Aura (70084), ambient
-//    damage — drains their HP. They exit the tomb near-zero and die
-//    immediately. Fix: zero ALL damage while the bot is frozen.
+//    Bots cannot be healed while untargetable. Fix: zero ALL damage while frozen.
 //
-// 2. Frost Breath P1/P2 (69649/73061) for non-tank bots:
-//    The cone fires in whatever direction Sindragosa faced when the event
-//    fired. Boss drift can clip the melee/ranged stack. P2 in phase 3 with
-//    Mystic Buffet stacks is lethal. Tanks take it; all others → zero.
+// 2. Frost Breath P1/P2 (69649/73061) for non-tank bots: zero it for non-main-tanks.
 class IccSindragosaBotImmunity : public UnitScript
 {
 public:
     IccSindragosaBotImmunity() : UnitScript("IccSindragosaBotImmunity") { }
 
-    // Returns true if this bot is currently frozen inside an Ice Tomb.
-    static bool IsFrozenInTomb(Unit* target)
-    {
-        // SPELL_ICE_TOMB_UNTARGETABLE = 69700 is applied when the tomb spawns
-        // and removed when the tomb NPC dies (player freed).
-        return target->HasAura(69700);
-    }
+    static bool IsFrozenInTomb(Unit* target) { return target->HasAura(69700); }
 
     void ModifyPeriodicDamageAurasTick(Unit* target, Unit* /*attacker*/, uint32& damage,
                                        SpellInfo const* /*spellInfo*/) override
@@ -164,7 +186,6 @@ public:
         if (!ai)
             return;
 
-        // While frozen: untargetable and unhealable → zero ALL incoming damage
         if (IsFrozenInTomb(target))
         {
             damage = 0;
@@ -172,11 +193,6 @@ public:
         }
 
         uint32 const id = spellInfo->Id;
-
-        // Frost Breath P1/P2: only the main tank takes damage.
-        // OT bots stand with the raid (east) and are not in the tank position;
-        // if the boss drifts east they would take the full cone — zero it for them too.
-        // (69649 = P1, 73061 = P2, 71807/73060 = heroic variants)
         if (id == 69649 || id == 73061 || id == 71807 || id == 73060)
         {
             if (!PlayerbotAI::IsMainTank(target->ToPlayer()))
@@ -186,10 +202,49 @@ public:
     }
 };
 
+class IccBossStateResetScript : public AllCreatureScript
+{
+public:
+    IccBossStateResetScript() : AllCreatureScript("IccBossStateResetScript") { }
+
+    void OnAllCreatureUpdate(Creature* creature, uint32 /*diff*/) override
+    {
+        if (!creature || creature->GetMapId() != ICC_MAP_ID || !creature->IsDungeonBoss())
+            return;
+
+        uint32 const instanceId = creature->GetInstanceId();
+        uint32 const now = getMSTime();
+        IcecrownHelpers::IccInstanceState& st = IcecrownHelpers::IccState(instanceId);
+
+        if (creature->IsInCombat())
+        {
+            st.lastBossCombatMs = now;
+            return;
+        }
+
+        if (st.lastBossCombatMs != 0 && getMSTimeDiff(st.lastBossCombatMs, now) > ICC_RESET_GRACE_MS)
+            IcecrownHelpers::IccResetInstance(instanceId);
+    }
+};
+
+class IccMapCleanupScript : public AllMapScript
+{
+public:
+    IccMapCleanupScript() : AllMapScript("IccMapCleanupScript") { }
+
+    void OnDestroyMap(Map* map) override
+    {
+        if (map->GetId() == ICC_MAP_ID)
+            IcecrownHelpers::IccResetInstance(map->GetInstanceId());
+    }
+};
+
 void AddSC_IcecrownBotScripts()
 {
     new IccPutricideListenerScript();
     new IccRotfaceListenerScript();
     new IccLichKingListenerScript();
     new IccSindragosaBotImmunity();
+    new IccBossStateResetScript();
+    new IccMapCleanupScript();
 }

@@ -1,6 +1,11 @@
-﻿#include "UnlockTradedItemAction.h"
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
+ */
+
+#include "UnlockTradedItemAction.h"
 #include "PlayerbotAI.h"
-#include "PlayerbotTextMgr.h"
 #include "TradeData.h"
 #include "SpellInfo.h"
 
@@ -19,13 +24,13 @@ bool UnlockTradedItemAction::Execute(Event /*event*/)
     Item* lockbox = tradeData->GetItem(TRADE_SLOT_NONTRADED);
     if (!lockbox)
     {
-        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_no_item_trade_slot", "No item in the Do Not Trade slot.", {}));
+        botAI->TellError("No item in the Do Not Trade slot.");
         return false;
     }
 
     if (!CanUnlockItem(lockbox))
     {
-        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_cant_unlock_trade", "Cannot unlock this item.", {}));
+        botAI->TellError("Cannot unlock this item.");
         return false;
     }
 
@@ -81,7 +86,7 @@ void UnlockTradedItemAction::UnlockItem(Item* item)
 {
     if (!bot->HasSpell(PICK_LOCK_SPELL_ID))
     {
-        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_no_pick_lock_spell", "Cannot unlock, Pick Lock spell is missing.", {}));
+        botAI->TellError("Cannot unlock, Pick Lock spell is missing.");
         return;
     }
 
@@ -94,6 +99,6 @@ void UnlockTradedItemAction::UnlockItem(Item* item)
     }
     else
     {
-        botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("string_failed_pick_lock", "Failed to cast Pick Lock.", {}));
+        botAI->TellError("Failed to cast Pick Lock.");
     }
 }

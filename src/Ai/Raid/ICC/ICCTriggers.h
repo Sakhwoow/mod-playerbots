@@ -1,3 +1,9 @@
+/*
+ * This file is part of the mod-playerbots module for AzerothCore. See AUTHORS file for Copyright
+ * information; released under GNU GPL v2 license, redistribute/modify under version 2 of the License,
+ * or (at your option) any later version.
+ */
+
 #ifndef PLAYERBOTS_ICCTRIGGERS_H
 #define PLAYERBOTS_ICCTRIGGERS_H
 
@@ -153,6 +159,7 @@ enum SpellIdsICC
     SPELL_NO_THREAT                     = 70115, //reduce threat
     SPELL_SPITEFULL_FURY                = 36886, //500% more threat
     SPELL_NITRO_BOOSTS                  = 54861, //Speed
+    SPELL_MAGIC_BARRIER                 = 38112, //damage reduction shield
     SPELL_FROST_TRAP1                   = 13809, //Hunter slow trap
     SPELL_PAIN_SUPPRESION               = 69910, //40% dmg reduction
     SPELL_AGEIS_OF_DALARAN              = 71638, //268 all ress
@@ -276,8 +283,6 @@ const std::vector<uint32> spellEntriesFlood           = {
 const std::vector<uint32> availableTargetsGS          = {
                                                         NPC_KOR_KRON_ROCKETEER,        NPC_KOR_KRON_AXETHROWER,       NPC_KOR_KRON_BATTLE_MAGE, NPC_IGB_HIGH_OVERLORD_SAURFANG,
                                                         NPC_SKYBREAKER_MORTAR_SOLDIER, NPC_SKYBREAKER_RIFLEMAN,       NPC_SKYBREAKER_SORCERER,  NPC_IGB_MURADIN_BRONZEBEARD};
-
-static std::vector<ObjectGuid> sporeOrder;
 
 //Lord Marrowgar
 class IccLmTrigger : public Trigger
@@ -625,20 +630,6 @@ class IccSindragosaMysticBuffetTrigger : public Trigger
 {
 public:
     IccSindragosaMysticBuffetTrigger(PlayerbotAI* botAI) : Trigger(botAI, "icc sindragosa mystic buffet") {}
-    bool IsActive() override;
-};
-
-class IccSindragosaMainTankMysticBuffetTrigger : public Trigger
-{
-public:
-    IccSindragosaMainTankMysticBuffetTrigger(PlayerbotAI* botAI) : Trigger(botAI, "icc sindragosa main tank mystic buffet") {}
-    bool IsActive() override;
-};
-
-class IccSindragosaTankSwapPositionTrigger : public Trigger
-{
-public:
-    IccSindragosaTankSwapPositionTrigger(PlayerbotAI* botAI) : Trigger(botAI, "icc sindragosa tank swap position") {}
     bool IsActive() override;
 };
 
