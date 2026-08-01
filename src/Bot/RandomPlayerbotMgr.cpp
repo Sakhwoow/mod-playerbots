@@ -1535,8 +1535,21 @@ bool RandomPlayerbotMgr::ProcessBot(uint32 bot)
     if (!player->IsInWorld())
         return false;
 
-    if (player->GetGroup() || player->HasUnitState(UNIT_STATE_IN_FLIGHT))
+    if (player->HasUnitState(UNIT_STATE_IN_FLIGHT))
         return false;
+
+    if (Group* botGroup = player->GetGroup())
+    {
+        // If any real player is online in this group, bot is legitimately in use — skip lifecycle updates
+        for (GroupReference* ref = botGroup->GetFirstMember(); ref != nullptr; ref = ref->next())
+        {
+            Player* member = ref->GetSource();
+            if (member && !GET_PLAYERBOT_AI(member))
+                return false;
+        }
+        // No online real player — bot is stuck in a bot-only or ghost group; run cleanup only
+        return ProcessBot(player);
+    }
 
     uint32 update = GetEventValue(bot, "update");
     if (!update)
