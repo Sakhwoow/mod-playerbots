@@ -553,7 +553,54 @@ bool IccSindragosaFrostBeaconAction::HandleBeaconedPlayer(const Unit* boss)
 
 bool IccSindragosaFrostBeaconAction::HandleNonBeaconedPlayer(const Unit* boss)
 {
-    // Collect beaconed players
+    // Ground phase — attack alive Ice Tombs when Blistering Cold is not active.
+    // This runs BEFORE the beaconedPlayers guard because once a tomb spawns the
+    // beaconed player transitions from SPELL_FROST_BEACON to SPELL_ICE_TOMB, so
+    // beaconedPlayers would be empty even while tombs are actively alive.
+    // Entombed bots (have SPELL_ICE_TOMB) are frozen and cannot act — skip them.
+    if (!IsBossFlying(boss) && !botAI->IsHeal(bot) && !bot->HasAura(SPELL_ICE_TOMB))
+    {
+        bool const isBlisteringCold = boss->HasUnitState(UNIT_STATE_CASTING) &&
+            (boss->FindCurrentSpellBySpellId(SPELL_BLISTERING_COLD1) ||
+             boss->FindCurrentSpellBySpellId(SPELL_BLISTERING_COLD2) ||
+             boss->FindCurrentSpellBySpellId(SPELL_BLISTERING_COLD3) ||
+             boss->FindCurrentSpellBySpellId(SPELL_BLISTERING_COLD4));
+
+        if (!isBlisteringCold)
+        {
+            static constexpr std::array<uint32, 4> tombEntries = {NPC_TOMB1, NPC_TOMB2, NPC_TOMB3, NPC_TOMB4};
+            Unit* nearestTomb = nullptr;
+            float nearestTombDist = FLT_MAX;
+            for (uint32 entry : tombEntries)
+            {
+                if (Creature* tomb = bot->FindNearestCreature(entry, 100.0f))
+                {
+                    if (tomb->IsAlive())
+                    {
+                        float d = bot->GetExactDist2d(tomb);
+                        if (d < nearestTombDist)
+                        {
+                            nearestTombDist = d;
+                            nearestTomb = tomb;
+                        }
+                    }
+                }
+            }
+
+            if (nearestTomb)
+            {
+                bot->SetTarget(nearestTomb->GetGUID());
+                if (nearestTombDist > INTERACTION_DISTANCE + 1.0f)
+                    return MoveTo(bot->GetMapId(), nearestTomb->GetPositionX(), nearestTomb->GetPositionY(),
+                                  nearestTomb->GetPositionZ(), false, false, false, true,
+                                  MovementPriority::MOVEMENT_COMBAT);
+                bot->Attack(nearestTomb, true);
+                return true;
+            }
+        }
+    }
+
+    // Collect beaconed players (SPELL_FROST_BEACON — before tomb spawns)
     std::vector<Unit*> beaconedPlayers;
     auto const members = AI_VALUE(GuidVector, "group members");
     for (auto const& memberGuid : members)
@@ -602,51 +649,6 @@ bool IccSindragosaFrostBeaconAction::HandleNonBeaconedPlayer(const Unit* boss)
                 bot->GetPositionX(), bot->GetPositionY());
         }
         return botAI->IsHeal(bot);  // Continue for healers, wait for others
-    }
-
-    // Ground phase — if Ice Tombs are alive and Blistering Cold is not active,
-    // DPS bots attack the nearest tomb to free the trapped player.
-    // Healers are excluded so they keep healing through the phase.
-    if (!IsBossFlying(boss) && !botAI->IsHeal(bot))
-    {
-        bool const isBlisteringCold = boss->HasUnitState(UNIT_STATE_CASTING) &&
-            (boss->FindCurrentSpellBySpellId(SPELL_BLISTERING_COLD1) ||
-             boss->FindCurrentSpellBySpellId(SPELL_BLISTERING_COLD2) ||
-             boss->FindCurrentSpellBySpellId(SPELL_BLISTERING_COLD3) ||
-             boss->FindCurrentSpellBySpellId(SPELL_BLISTERING_COLD4));
-
-        if (!isBlisteringCold)
-        {
-            static constexpr std::array<uint32, 4> tombEntries = {NPC_TOMB1, NPC_TOMB2, NPC_TOMB3, NPC_TOMB4};
-            Unit* nearestTomb = nullptr;
-            float nearestTombDist = FLT_MAX;
-            for (uint32 entry : tombEntries)
-            {
-                if (Creature* tomb = bot->FindNearestCreature(entry, 100.0f))
-                {
-                    if (tomb->IsAlive())
-                    {
-                        float d = bot->GetExactDist2d(tomb);
-                        if (d < nearestTombDist)
-                        {
-                            nearestTombDist = d;
-                            nearestTomb = tomb;
-                        }
-                    }
-                }
-            }
-
-            if (nearestTomb)
-            {
-                bot->SetTarget(nearestTomb->GetGUID());
-                if (nearestTombDist > INTERACTION_DISTANCE + 1.0f)
-                    return MoveTo(bot->GetMapId(), nearestTomb->GetPositionX(), nearestTomb->GetPositionY(),
-                                  nearestTomb->GetPositionZ(), false, false, false, true,
-                                  MovementPriority::MOVEMENT_COMBAT);
-                bot->Attack(nearestTomb, true);
-                return true;
-            }
-        }
     }
 
     // Ground phase - position based on role and avoid beaconed players
