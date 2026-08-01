@@ -1252,11 +1252,8 @@ bool IccSindragosaFrostBombAction::Execute(Event /*event*/)
 
 bool IccSindragosaFrostBombAction::CollectContext(FrostBombContext& ctx) const
 {
-    constexpr uint32 tombEntries[] = {NPC_TOMB1, NPC_TOMB2, NPC_TOMB3, NPC_TOMB4};
-
-    // Use the per-tick cached target list instead of a raw 200-yard grid scan.
-    // Cell::VisitObjects(200.0f) touched ~576 grid cells per bot per tick;
-    // with 25 bots running this during the air phase that caused server lag.
+    // Find ice tombs via the per-tick hostile-unit cache. Only NPC_TOMB1 (entry
+    // 36980) is spawned by this server — entries 38320-38322 do not exist.
     GuidVector const& targets = AI_VALUE(GuidVector, "possible targets no los");
     for (auto const& guid : targets)
     {
@@ -1264,18 +1261,21 @@ bool IccSindragosaFrostBombAction::CollectContext(FrostBombContext& ctx) const
         if (!unit || !unit->IsAlive())
             continue;
 
-        if (unit->HasAura(SPELL_FROST_BOMB_VISUAL))
-            ctx.marker = unit;
-
-        for (uint32 entry : tombEntries)
-        {
-            if (unit->GetEntry() == entry)
-            {
-                ctx.tombs.push_back(unit);
-                break;
-            }
-        }
+        if (unit->GetEntry() == NPC_TOMB1)
+            ctx.tombs.push_back(unit);
     }
+
+    // NPC_FROST_BOMB (entry 37186) has UNIT_FLAG_NOT_SELECTABLE set by the
+    // server script and is therefore excluded from "possible targets no los".
+    // Use FindNearestCreature to locate the active bomb regardless of unit flags.
+    if (Creature* bomb = bot->FindNearestCreature(NPC_FROST_BOMB, 200.0f))
+        if (bomb->HasAura(SPELL_FROST_BOMB_VISUAL))
+            ctx.marker = bomb;
+
+    // No active frost bomb yet — fall back to Sindragosa as the threat-direction
+    // anchor so angle calculations at call sites remain valid.
+    if (!ctx.marker)
+        ctx.marker = AI_VALUE2(Unit*, "find target", "sindragosa");
 
     return ctx.marker && !ctx.tombs.empty();
 }

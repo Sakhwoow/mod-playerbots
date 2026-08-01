@@ -106,6 +106,7 @@ enum CreatureIdsICC
     NPC_TOMB2                           = 38320,
     NPC_TOMB3                           = 38321,
     NPC_TOMB4                           = 38322,
+    NPC_FROST_BOMB                      = 37186,
 
     // Lich King
     NPC_THE_LICH_KING                   = 36597,
