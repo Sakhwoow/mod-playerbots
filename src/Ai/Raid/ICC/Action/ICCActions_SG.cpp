@@ -1252,18 +1252,14 @@ bool IccSindragosaFrostBombAction::Execute(Event /*event*/)
 
 bool IccSindragosaFrostBombAction::CollectContext(FrostBombContext& ctx) const
 {
-    // Find ice tombs via the per-tick hostile-unit cache. Only NPC_TOMB1 (entry
-    // 36980) is spawned by this server — entries 38320-38322 do not exist.
-    GuidVector const& targets = AI_VALUE(GuidVector, "possible targets no los");
-    for (auto const& guid : targets)
-    {
-        Unit* unit = botAI->GetUnit(guid);
-        if (!unit || !unit->IsAlive())
-            continue;
-
-        if (unit->GetEntry() == NPC_TOMB1)
-            ctx.tombs.push_back(unit);
-    }
+    // NPC_TOMB1 (entry 36980) may have UNIT_FLAG_NOT_SELECTABLE or be non-hostile,
+    // so it does not appear in "possible targets no los". Use grid search to find
+    // all live ice tombs regardless of unit flags or faction.
+    std::list<Creature*> tombList;
+    bot->GetCreatureListWithEntryInGrid(tombList, NPC_TOMB1, 200.0f);
+    for (Creature* c : tombList)
+        if (c && c->IsAlive())
+            ctx.tombs.push_back(c);
 
     // NPC_FROST_BOMB (entry 37186) has UNIT_FLAG_NOT_SELECTABLE set by the
     // server script and is therefore excluded from "possible targets no los".
