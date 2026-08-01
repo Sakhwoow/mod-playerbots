@@ -647,7 +647,7 @@ inline bool RsHalionHasConsumption(Unit* u)
 
 inline void RsHalionCollectHazardPools(Unit* from, std::vector<Unit*>& pools)
 {
-    for (uint32 const entry : {NPC_CONSUMPTION, NPC_COMBUSTION})
+    for (uint32 const entry : {NPC_CONSUMPTION, NPC_COMBUSTION, NPC_METEOR_STRIKE_MARK})
     {
         std::list<Creature*> found;
         from->GetCreatureListWithEntryInGrid(found, entry, 100.0f);

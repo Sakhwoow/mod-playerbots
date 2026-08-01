@@ -227,6 +227,30 @@ bool RsHalionAvoidConesAction::Execute(Event )
     if (!bot->IsWithinLOS(moveX, moveY, bot->GetPositionZ()))
         return false;
 
+    std::vector<Unit*> conePools;
+    RsHalionCollectHazardPools(bot, conePools);
+    if (!conePools.empty() && !RsHalionSpotClearOfPools(conePools, moveX, moveY))
+    {
+        Position const& altSpot = usesA ? RS_HALION_METEOR_SPOT_B : RS_HALION_METEOR_SPOT_A;
+        float const altDx = altSpot.GetPositionX() - bossX;
+        float const altDy = altSpot.GetPositionY() - bossY;
+        float const altLen = std::sqrt(altDx * altDx + altDy * altDy);
+        if (altLen > 0.01f)
+        {
+            float const altUx = altDx / altLen;
+            float const altUy = altDy / altLen;
+            float const altX = bossX + altUx * desired;
+            float const altY = bossY + altUy * desired;
+            if (RsHalionSpotClearOfPools(conePools, altX, altY) && bot->IsWithinLOS(altX, altY, bot->GetPositionZ()))
+            {
+                botUsesSpotA[botGuid] = !usesA;
+                return MoveTo(bot->GetMapId(), altX, altY, bot->GetPositionZ(), false, false, false, false,
+                              MovementPriority::MOVEMENT_COMBAT, true);
+            }
+        }
+        return false;
+    }
+
     return MoveTo(bot->GetMapId(), moveX, moveY, bot->GetPositionZ(), false, false, false, false,
                   MovementPriority::MOVEMENT_COMBAT, true);
 }
@@ -298,7 +322,47 @@ bool RsHalionMeteorAction::Execute(Event )
 
     Position const& leg = (distToMid > RS_HALION_METEOR_REACH && distToTarget > midToTarget) ? mid : target;
 
-    return MoveTo(bot->GetMapId(), leg.GetPositionX(), leg.GetPositionY(), leg.GetPositionZ(),
+    float goalX = leg.GetPositionX();
+    float goalY = leg.GetPositionY();
+
+    std::vector<Unit*> meteorPools;
+    RsHalionCollectHazardPools(bot, meteorPools);
+    if (!meteorPools.empty())
+    {
+        float const dx = goalX - bot->GetPositionX();
+        float const dy = goalY - bot->GetPositionY();
+        float const len = std::sqrt(dx * dx + dy * dy);
+        if (len > 0.01f)
+        {
+            float const stepUx = dx / len;
+            float const stepUy = dy / len;
+            float const probe = std::min(len, RS_HALION_CONSUMPTION_STEP);
+            float const aheadX = bot->GetPositionX() + stepUx * probe;
+            float const aheadY = bot->GetPositionY() + stepUy * probe;
+            if (!RsHalionSpotClearOfPools(meteorPools, aheadX, aheadY))
+            {
+                bool routed = false;
+                for (float const deg : {35.0f, -35.0f, 60.0f, -60.0f, 90.0f, -90.0f})
+                {
+                    float const a = std::atan2(stepUy, stepUx) + deg * static_cast<float>(M_PI) / 180.0f;
+                    float const sideX = bot->GetPositionX() + std::cos(a) * probe;
+                    float const sideY = bot->GetPositionY() + std::sin(a) * probe;
+                    if (RsHalionSpotClearOfPools(meteorPools, sideX, sideY) &&
+                        bot->IsWithinLOS(sideX, sideY, bot->GetPositionZ()))
+                    {
+                        goalX = sideX;
+                        goalY = sideY;
+                        routed = true;
+                        break;
+                    }
+                }
+                if (!routed)
+                    return false;
+            }
+        }
+    }
+
+    return MoveTo(bot->GetMapId(), goalX, goalY, leg.GetPositionZ(),
                   false, false, false, true, MovementPriority::MOVEMENT_FORCED, true);
 }
 
