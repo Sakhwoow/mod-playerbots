@@ -9,6 +9,16 @@
 
 #include "Multiplier.h"
 
+//LM
+class IccLmMultiplier : public Multiplier
+{
+public:
+    IccLmMultiplier(PlayerbotAI* ai) : Multiplier(ai, "icc lm"), _combatStartMs(0) {}
+    virtual float GetValue(Action* action) override;
+private:
+    uint32 _combatStartMs;
+};
+
 //Lady Deathwhisper
 class IccLadyDeathwhisperMultiplier : public Multiplier
 {

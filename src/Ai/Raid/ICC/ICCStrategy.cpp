@@ -185,6 +185,7 @@ void RaidIccStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 
 void RaidIccStrategy::InitMultipliers(std::vector<Multiplier*>& multipliers)
 {
+    multipliers.push_back(new IccLmMultiplier(botAI));
     multipliers.push_back(new IccLadyDeathwhisperMultiplier(botAI));
     multipliers.push_back(new IccAddsDbsMultiplier(botAI));
     multipliers.push_back(new IccDogsMultiplier(botAI));

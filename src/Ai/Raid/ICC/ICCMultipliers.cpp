@@ -29,6 +29,38 @@
 #include "ICCTriggers.h"
 #include "ICCScripts.h"
 
+// LM
+float IccLmMultiplier::GetValue(Action* action)
+{
+    Unit* boss = AI_VALUE2(Unit*, "find target", "lord marrowgar");
+    if (!boss || !boss->IsInCombat())
+    {
+        _combatStartMs = 0;
+        return 1.0f;
+    }
+
+    if (_combatStartMs == 0)
+        _combatStartMs = GetMSTime();
+
+    uint32 const elapsed = GetMSTimeDiff(_combatStartMs, GetMSTime());
+
+    // Block Heroism/Bloodlust for the first 15 seconds so tank can establish aggro
+    if (elapsed < 15000)
+    {
+        if (dynamic_cast<CastHeroismAction*>(action) || dynamic_cast<CastBloodlustAction*>(action))
+            return 0.0f;
+    }
+
+    // Non-tanks wait 5 seconds before attacking to avoid pulling aggro off the tank
+    if (elapsed < 5000 && !botAI->IsTank(bot))
+    {
+        if (dynamic_cast<AttackAction*>(action) || dynamic_cast<AttackRtiTargetAction*>(action))
+            return 0.0f;
+    }
+
+    return 1.0f;
+}
+
 // Lady Deathwhisper
 float IccLadyDeathwhisperMultiplier::GetValue(Action* action)
 {

@@ -400,13 +400,20 @@ bool IccSpikeAction::HandleSpikeAssignment(std::vector<Unit*> const& spikes, Uni
         return victim && botAI->IsTank(victim);
     };
 
-    // Assist tank: only attack tank spike, ignore all others
+    // Assist tank: only attack tank spike, ignore all others.
+    // If MT is impaled and boss is not yet targeting us, taunt first so the raid
+    // isn't left without a tank while we run to the spike.
     if (isAssistTank)
     {
         for (Unit* spike : spikes)
         {
             if (isTankSpike(spike))
             {
+                if (boss->GetVictim() != bot)
+                {
+                    Attack(boss);
+                    return true;
+                }
                 Attack(spike);
                 return false;
             }
