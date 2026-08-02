@@ -1201,6 +1201,8 @@ std::vector<BattleBotPath*> const vPaths_IC = {
 std::vector<BattleBotPath*> const vPaths_NoReverseAllowed = {
     &vPath_WSG_AllianceGraveyardJump,
     &vPath_WSG_HordeGraveyardJump,
+    &vPath_WSG_AllianceGraveyardLower_to_HordeFlagRoom,
+    &vPath_WSG_HordeGraveyardLower_to_AllianceFlagRoom,
     &vPath_IC_Central_Graveyard_to_Workshop,
     &vPath_IC_Docks_Graveyard_to_Docks_Flag,
 };
@@ -4287,6 +4289,14 @@ bool ArenaTactics::Execute(Event /*event*/)
     if (bot->isMoving())
         return false;
 
+    // Dalaran Sewers: arena floor is Z~7.1; if bot fell below, teleport to center.
+    if (bg->GetBgTypeID() == BATTLEGROUND_DS && bot->GetPositionZ() < 5.0f)
+    {
+        bot->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
+        bot->TeleportTo(bg->GetMapId(), 1291.58f + frand(-2, +2), 790.87f + frand(-2, +2), 7.8f, bot->GetOrientation());
+        return true;
+    }
+
     // Ring of Valor: bot may be underground after WAIT_JOIN teleport; bring them up to the arena floor.
     if (bg->GetBgTypeID() == BATTLEGROUND_RV && bot->GetPositionZ() < 10.0f)
     {
@@ -4433,12 +4443,12 @@ bool ArenaTactics::moveToCenter(Battleground* bg)
                 if (bot->GetDistance(1333.07f, 817.18f, 13.35f) < 4)
                 {
                     bot->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
-                    bot->TeleportTo(bg->GetMapId(), 1330.96f, 816.75f, 3.2f, bot->GetOrientation());
+                    bot->TeleportTo(bg->GetMapId(), 1330.96f, 816.75f, 7.5f, bot->GetOrientation());
                 }
                 if (bot->GetDistance(1250.13f, 764.79f, 13.34f) < 4)
                 {
                     bot->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED | AURA_INTERRUPT_FLAG_CHANGE_MAP);
-                    bot->TeleportTo(bg->GetMapId(), 1252.19f, 765.41f, 3.2f, bot->GetOrientation());
+                    bot->TeleportTo(bg->GetMapId(), 1252.19f, 765.41f, 7.5f, bot->GetOrientation());
                 }
             }
             break;
