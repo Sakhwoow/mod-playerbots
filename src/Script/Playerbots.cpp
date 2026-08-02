@@ -6,6 +6,7 @@
 #include "Playerbots.h"
 
 #include "BattlefieldScript.h"
+#include "GroupScript.h"
 #include "Channel.h"
 #include "Config.h"
 #include "DatabaseEnv.h"
@@ -493,6 +494,30 @@ public:
     PlayerbotsBattlefieldScript() : BattlefieldScript("PlayerbotsBattlefieldScript") { }
 };
 
+class PlayerbotsGroupScript : public GroupScript
+{
+public:
+    PlayerbotsGroupScript() : GroupScript("PlayerbotsGroupScript") { }
+
+    void OnRemoveMember(Group* /*group*/, ObjectGuid guid, RemoveMethod /*method*/, ObjectGuid kicker, char const* /*reason*/) override
+    {
+        Player* removed = ObjectAccessor::FindPlayer(guid);
+        if (!removed || !GET_PLAYERBOT_AI(removed) || !sRandomPlayerbotMgr.IsRandomBot(removed->GetGUID().GetCounter()))
+            return;
+
+        // Skip if kicked by another bot (e.g. bot leader disbanding)
+        if (!kicker.IsEmpty())
+        {
+            Player* kickerPlayer = ObjectAccessor::FindPlayer(kicker);
+            if (kickerPlayer && GET_PLAYERBOT_AI(kickerPlayer))
+                return;
+        }
+
+        // Immediately run lifecycle cleanup so the bot doesn't sit in a ghost group
+        sRandomPlayerbotMgr.ProcessBot(removed);
+    }
+};
+
 void AddPlayerbotsSecureLoginScripts();
 
 void AddSC_MagtheridonBotScripts();
@@ -504,6 +529,7 @@ void AddSC_RubySanctumBotScripts();
 void AddPlayerbotsScripts()
 {
     new PlayerbotsBattlefieldScript();
+    new PlayerbotsGroupScript();
     new PlayerbotsDatabaseScript();
     new PlayerbotsPlayerScript();
     new PlayerbotsMiscScript();
