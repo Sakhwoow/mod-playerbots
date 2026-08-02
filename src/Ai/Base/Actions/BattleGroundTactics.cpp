@@ -2630,6 +2630,8 @@ bool BGTactics::selectObjective(bool reset)
                         float rx, ry, rz;
                         bot->GetRandomPoint(p, 5.0f, rx, ry, rz);
                         rz = bot->GetMap()->GetHeight(rx, ry, rz);
+                        if (rz <= INVALID_HEIGHT)
+                            continue;
                         pos.Set(rx, ry, rz, bot->GetMapId());
                         foundObjective = true;
                     }
@@ -2705,6 +2707,8 @@ bool BGTactics::selectObjective(bool reset)
                             float rx, ry, rz;
                             bot->GetRandomPoint(p, 5.0f, rx, ry, rz);
                             rz = bot->GetMap()->GetHeight(rx, ry, rz);
+                            if (rz <= INVALID_HEIGHT)
+                                break;
                             pos.Set(rx, ry, rz, bot->GetMapId());
                             foundObjective = true;
                         }
@@ -2767,6 +2771,8 @@ bool BGTactics::selectObjective(bool reset)
                         float rx, ry, rz;
                         bot->GetRandomPoint(p, 5.0f, rx, ry, rz);
                         rz = bot->GetMap()->GetHeight(rx, ry, rz);
+                        if (rz <= INVALID_HEIGHT)
+                            break;
                         pos.Set(rx, ry, rz, bot->GetMapId());
                         foundObjective = true;
                     }
@@ -2835,8 +2841,11 @@ bool BGTactics::selectObjective(bool reset)
                 float rx, ry, rz;
                 bot->GetRandomPoint(camp, 10.0f, rx, ry, rz);
                 rz = bot->GetMap()->GetHeight(rx, ry, rz);
-                pos.Set(rx, ry, rz, bot->GetMapId());
-                foundObjective = true;
+                if (rz > INVALID_HEIGHT)
+                {
+                    pos.Set(rx, ry, rz, bot->GetMapId());
+                    foundObjective = true;
+                }
             }
 
             if (foundObjective)
