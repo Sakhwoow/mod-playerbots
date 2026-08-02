@@ -40,9 +40,9 @@ float IccLmMultiplier::GetValue(Action* action)
     }
 
     if (_combatStartMs == 0)
-        _combatStartMs = GetMSTime();
+        _combatStartMs = getMSTime();
 
-    uint32 const elapsed = GetMSTimeDiff(_combatStartMs, GetMSTime());
+    uint32 const elapsed = getMSTime() - _combatStartMs;
 
     // Block Heroism/Bloodlust for the first 15 seconds so tank can establish aggro
     if (elapsed < 15000)
