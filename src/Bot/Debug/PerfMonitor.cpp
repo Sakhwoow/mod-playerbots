@@ -59,13 +59,19 @@ PerfMonitorOperation* PerfMonitor::start(PerformanceMetric metric, std::string c
 
 void PerfMonitor::PrintStats(bool perTick, bool fullStack)
 {
-    if (data.empty())
+    std::map<PerformanceMetric, std::map<std::string, PerformanceData*>> dataCopy;
+    {
+        std::lock_guard<std::mutex> guard(lock);
+        dataCopy = data;
+    }
+
+    if (dataCopy.empty())
         return;
 
     if (!perTick)
     {
         float updateAITotalTime = 0;
-        for (auto& map : data[PERF_MON_TOTAL])
+        for (auto& map : dataCopy[PERF_MON_TOTAL])
             if (map.first.find("PlayerbotAI::UpdateAIInternal") != std::string::npos)
                 updateAITotalTime += map.second->totalTime;
 
@@ -78,8 +84,8 @@ void PerfMonitor::PrintStats(bool perTick, bool fullStack)
             "playerbots",
             "-------------------------------------------------------------------------------------------------------");
 
-        for (std::map<PerformanceMetric, std::map<std::string, PerformanceData*>>::iterator i = data.begin();
-             i != data.end(); ++i)
+        for (std::map<PerformanceMetric, std::map<std::string, PerformanceData*>>::iterator i = dataCopy.begin();
+             i != dataCopy.end(); ++i)
         {
             std::map<std::string, PerformanceData*> pdMap = i->second;
 
@@ -110,6 +116,8 @@ void PerfMonitor::PrintStats(bool perTick, bool fullStack)
 
             for (std::map<std::string, PerformanceData*>::iterator j = pdMap.begin(); j != pdMap.end(); ++j)
             {
+                if (!j->second)
+                    continue;
                 if (key == "Total" && j->first.find("PlayerbotAI::UpdateAIInternal") == std::string::npos)
                     continue;
 
@@ -161,8 +169,14 @@ void PerfMonitor::PrintStats(bool perTick, bool fullStack)
     }
     else
     {
-        float fullTickCount = data[PERF_MON_TOTAL]["PlayerbotAIBase::FullTick"]->count;
-        float fullTickTotalTime = data[PERF_MON_TOTAL]["PlayerbotAIBase::FullTick"]->totalTime;
+        auto metricIt = dataCopy.find(PERF_MON_TOTAL);
+        if (metricIt == dataCopy.end())
+            return;
+        auto tickIt = metricIt->second.find("PlayerbotAIBase::FullTick");
+        if (tickIt == metricIt->second.end() || !tickIt->second)
+            return;
+        float fullTickCount = (float)tickIt->second->count;
+        float fullTickTotalTime = (float)tickIt->second->totalTime;
 
         LOG_INFO(
             "playerbots",
@@ -173,8 +187,8 @@ void PerfMonitor::PrintStats(bool perTick, bool fullStack)
             "playerbots",
             "-------------------------------------------------------------------------------------------------------");
 
-        for (std::map<PerformanceMetric, std::map<std::string, PerformanceData*>>::iterator i = data.begin();
-             i != data.end(); ++i)
+        for (std::map<PerformanceMetric, std::map<std::string, PerformanceData*>>::iterator i = dataCopy.begin();
+             i != dataCopy.end(); ++i)
         {
             std::map<std::string, PerformanceData*> pdMap = i->second;
 
@@ -204,6 +218,8 @@ void PerfMonitor::PrintStats(bool perTick, bool fullStack)
 
             for (std::map<std::string, PerformanceData*>::iterator j = pdMap.begin(); j != pdMap.end(); ++j)
             {
+                if (!j->second)
+                    continue;
                 names.push_back(j->first);
             }
 
