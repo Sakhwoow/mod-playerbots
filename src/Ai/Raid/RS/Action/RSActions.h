@@ -1261,6 +1261,10 @@ inline bool RsHalionPortalCommit(PlayerbotAI* botAI, Player* bot)
     if (RsHalionCutterActive(bot->GetInstanceId()))
         return false;
 
+    // Never commit to portal during the cutter lead window: bots must finish dodging first
+    if (RsHalionCutterShouldMove(bot->GetInstanceId()))
+        return false;
+
     float speed = bot->GetSpeed(MOVE_RUN);
     if (speed < 1.0f)
         speed = 7.0f;
