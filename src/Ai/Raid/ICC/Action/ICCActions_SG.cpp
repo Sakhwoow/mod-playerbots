@@ -773,46 +773,72 @@ bool IccSindragosaBlisteringColdAction::Execute(Event /*event*/)
     if (!boss)
         return false;
 
-    // Only non-tanks should move out
     if (botAI->IsMainTank(bot))
         return false;
 
-   float dist = bot->GetExactDist2d(boss->GetPositionX(), boss->GetPositionY());
+    // Find the nearest active ice tomb and hide behind it for LOS cover.
+    // Bots ran to a fixed far point before, but that's 30-50 yards away and
+    // unreachable in the 2.5 s cast window. Tomb-relative positioning cuts
+    // travel to 5-15 yards in most cases.
+    std::vector<Creature*> const tombs =
+        IccGetCreaturesByEntries(bot, {NPC_TOMB1, NPC_TOMB2, NPC_TOMB3, NPC_TOMB4}, 150.0f);
 
-    if (dist >= 33.0f)
+    Position targetPos;
+
+    if (!tombs.empty())
+    {
+        Creature* bestTomb = nullptr;
+        float minDist = std::numeric_limits<float>::max();
+        for (Creature* tomb : tombs)
+        {
+            float d = bot->GetExactDist2d(tomb->GetPositionX(), tomb->GetPositionY());
+            if (d < minDist)
+            {
+                minDist = d;
+                bestTomb = tomb;
+            }
+        }
+
+        // Position 4 yards on the far side of the tomb from Sindragosa
+        float tdx = bestTomb->GetPositionX() - boss->GetPositionX();
+        float tdy = bestTomb->GetPositionY() - boss->GetPositionY();
+        float tlen = std::sqrt(tdx * tdx + tdy * tdy);
+        if (tlen > 0.001f)
+        {
+            tdx /= tlen;
+            tdy /= tlen;
+        }
+
+        targetPos = Position(
+            bestTomb->GetPositionX() + tdx * 4.0f,
+            bestTomb->GetPositionY() + tdy * 4.0f,
+            bestTomb->GetPositionZ());
+    }
+    else
+    {
+        // No tombs yet — fall back to the far safe position
+        targetPos = ICC_SINDRAGOSA_BLISTERING_COLD_POSITION;
+    }
+
+    float const distToTarget = bot->GetExactDist2d(targetPos.GetPositionX(), targetPos.GetPositionY());
+    if (distToTarget <= 2.0f)
         return false;
 
-    Position const& targetPos = ICC_SINDRAGOSA_BLISTERING_COLD_POSITION;
+    if (!bot->HasAura(SPELL_NITRO_BOOSTS))
+        bot->AddAura(SPELL_NITRO_BOOSTS, bot);
 
-    // Only move if we're too close to the boss (< 30 yards)
-    if (dist < 33.0f)
-    {
+    float const STEP_SIZE = 15.0f;
+    float mdx = targetPos.GetPositionX() - bot->GetPositionX();
+    float mdy = targetPos.GetPositionY() - bot->GetPositionY();
+    float mlen = std::sqrt(mdx * mdx + mdy * mdy);
+    mdx /= mlen;
+    mdy /= mlen;
 
-        float const STEP_SIZE = 15.0f;
-        float distToTarget = bot->GetDistance2d(targetPos.GetPositionX(), targetPos.GetPositionY());
+    float moveX = bot->GetPositionX() + mdx * STEP_SIZE;
+    float moveY = bot->GetPositionY() + mdy * STEP_SIZE;
 
-        if (distToTarget > 0.1f)  // Avoid division by zero
-        {
-            if (!bot->HasAura(SPELL_NITRO_BOOSTS))
-                bot->AddAura(SPELL_NITRO_BOOSTS, bot);
-            // Calculate direction vector
-            float dirX = targetPos.GetPositionX() - bot->GetPositionX();
-            float dirY = targetPos.GetPositionY() - bot->GetPositionY();
-
-            // Normalize direction vector
-            float length = sqrt(dirX * dirX + dirY * dirY);
-            dirX /= length;
-            dirY /= length;
-
-            // Move STEP_SIZE yards in that direction
-            float moveX = bot->GetPositionX() + dirX * STEP_SIZE;
-            float moveY = bot->GetPositionY() + dirY * STEP_SIZE;
-
-            return MoveTo(bot->GetMapId(), moveX, moveY, bot->GetPositionZ(),
-                         false, false, false, true, MovementPriority::MOVEMENT_FORCED, true, false);
-        }
-    }
-    return false;
+    return MoveTo(bot->GetMapId(), moveX, moveY, bot->GetPositionZ(),
+                 false, false, false, true, MovementPriority::MOVEMENT_FORCED, true, false);
 }
 
 bool IccSindragosaUnchainedMagicAction::Execute(Event /*event*/)
