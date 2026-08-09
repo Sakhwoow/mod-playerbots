@@ -165,6 +165,33 @@ static bool CastAoeTaunt(PlayerbotAI* botAI, Player* bot)
     return false;
 }
 
+// Soul Reaper (69409): tank has 5 s to pop a defensive CD or take 50% max HP.
+// Called as a side-effect — does not return true so movement logic still runs.
+static void HandleSoulReaper(PlayerbotAI* botAI, Player* bot)
+{
+    if (!botAI->IsTank(bot) || !bot->HasAura(SPELL_SOUL_REAPER))
+        return;
+
+    switch (bot->getClass())
+    {
+        case CLASS_WARRIOR:
+            if (!botAI->CastSpell("shield wall", bot))
+                botAI->CastSpell("last stand", bot);
+            break;
+        case CLASS_DRUID:
+            botAI->CastSpell("survival instincts", bot);
+            break;
+        case CLASS_PALADIN:
+            botAI->CastSpell("divine protection", bot);
+            break;
+        case CLASS_DEATH_KNIGHT:
+            botAI->CastSpell("icebound fortitude", bot);
+            break;
+        default:
+            break;
+    }
+}
+
 bool IccLichKingShadowTrapAction::Execute(Event /*event*/)
 {
     Unit* boss = AI_VALUE2(Unit*, "find target", "the lich king");
@@ -594,6 +621,7 @@ bool IccLichKingWinterAction::Execute(Event /*event*/)
 
     ClearInvalidTarget();
     HandlePetManagement();
+    HandleSoulReaper(botAI, bot);
 
     if (botAI->IsTank(bot))
         HandleTankPositioning();
@@ -2005,6 +2033,8 @@ bool IccLichKingAddsAction::Execute(Event /*event*/)
         return false;
 
     // Normal encounter flow
+    HandleSoulReaper(botAI, bot);
+
     if (HandleQuakeMechanics(boss))
         return true;
 
@@ -2714,6 +2744,17 @@ bool IccLichKingAddsAction::HandleAssistTankAddManagement(Unit* boss, Difficulty
 {
     if (!botAI->IsAssistTank(bot) || !boss)
         return false;
+
+    // Vile Spirits are alive: yield to HandleVileSpiritMechanics which has the
+    // Nitro Boost interception logic. Chasing Raging Spirits while spirits are
+    // descending causes the assist tank to drag the raid into the descent path.
+    GuidVector const& allNpcs = AI_VALUE(GuidVector, "nearest hostile npcs");
+    for (ObjectGuid const& guid : allNpcs)
+    {
+        Unit* unit = botAI->GetUnit(guid);
+        if (unit && unit->IsAlive() && IsLkVileSpirit(unit))
+            return false;
+    }
 
     // Below 71%: stun all shamblings until winter starts so they don't
     // shockwave the raid during the transition gap.

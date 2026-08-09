@@ -162,6 +162,7 @@ enum SpellIdsICC
     SPELL_MAGIC_BARRIER                 = 38112, //damage reduction shield
     SPELL_FROST_TRAP1                   = 13809, //Hunter slow trap
     SPELL_PAIN_SUPPRESION               = 69910, //40% dmg reduction
+    SPELL_SOUL_REAPER                   = 69409, //LK debuff: 50% max HP after 5s
     SPELL_AGEIS_OF_DALARAN              = 71638, //268 all ress
     SPELL_CYCLONE                       = 33786,
     SPELL_HAMMER_OF_JUSTICE             = 10308, //stun
