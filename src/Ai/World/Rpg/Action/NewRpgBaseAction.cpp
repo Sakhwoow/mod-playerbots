@@ -265,6 +265,9 @@ bool NewRpgBaseAction::MoveRandomNear(float moveStep, MovementPriority priority,
         if (!map->CanReachPositionAndGetValidCoords(bot, dx, dy, dz))
             continue;
 
+        if (dz <= INVALID_HEIGHT)
+            continue;
+
         if (map->IsInWater(bot->GetPhaseMask(), dx, dy, dz, bot->GetCollisionHeight()))
             continue;
 
