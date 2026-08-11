@@ -318,6 +318,27 @@ bool IccBpcEmpoweredVortexAction::MaintainRangedSpacing()
     std::list<Creature*> vortexList;
     bot->GetCreatureListWithEntryInGrid(vortexList, NPC_SHOCK_VORTEX, 100.0f);
 
+    // Emergency: if bot is currently inside a vortex danger zone, flee directly away
+    // before any slot recalculation — prevents bots from walking back through the vortex
+    for (Creature* vortex : vortexList)
+    {
+        if (!vortex || !vortex->IsAlive())
+            continue;
+        if (bot->GetExactDist2d(vortex) < VORTEX_AVOID_DIST)
+        {
+            float dx = bot->GetPositionX() - vortex->GetPositionX();
+            float dy = bot->GetPositionY() - vortex->GetPositionY();
+            float len = std::sqrt(dx * dx + dy * dy);
+            if (len < 0.001f) { dx = 1.0f; dy = 0.0f; }
+            else { dx /= len; dy /= len; }
+            float moveX = bot->GetPositionX() + dx * MOVE_INCREMENT;
+            float moveY = bot->GetPositionY() + dy * MOVE_INCREMENT;
+            MoveTo(bot->GetMapId(), moveX, moveY, bot->GetPositionZ(), false, false, false, true,
+                   MovementPriority::MOVEMENT_COMBAT);
+            return true;
+        }
+    }
+
     // Find safe angle — try assigned slot first, then nudge away from vortices
     static float const ANGLE_NUDGE = static_cast<float>(M_PI) / 18.0f;
     static int const MAX_NUDGE_STEPS = 18;
@@ -471,6 +492,27 @@ bool IccBpcEmpoweredVortexAction::HandleEmpoweredVortexSpread()
     static float const VORTEX_AVOID_DIST = 13.0f;
     std::list<Creature*> vortexList;
     bot->GetCreatureListWithEntryInGrid(vortexList, NPC_SHOCK_VORTEX, 100.0f);
+
+    // Emergency: flee vortex even when spread-locked — 250ms lock doesn't justify standing in knockback
+    for (Creature* vortex : vortexList)
+    {
+        if (!vortex || !vortex->IsAlive())
+            continue;
+        if (bot->GetExactDist2d(vortex) < VORTEX_AVOID_DIST)
+        {
+            spreadLockTimers.erase(bot->GetGUID());
+            float dx = bot->GetPositionX() - vortex->GetPositionX();
+            float dy = bot->GetPositionY() - vortex->GetPositionY();
+            float len = std::sqrt(dx * dx + dy * dy);
+            if (len < 0.001f) { dx = 1.0f; dy = 0.0f; }
+            else { dx /= len; dy /= len; }
+            float moveX = bot->GetPositionX() + dx * MOVE_INCREMENT;
+            float moveY = bot->GetPositionY() + dy * MOVE_INCREMENT;
+            MoveTo(bot->GetMapId(), moveX, moveY, bot->GetPositionZ(), false, false, false, true,
+                   MovementPriority::MOVEMENT_COMBAT);
+            return true;
+        }
+    }
 
     // Find safe angle — try assigned slot first, then nudge away from vortices
     static float const ANGLE_NUDGE = static_cast<float>(M_PI) / 18.0f;
@@ -732,14 +774,13 @@ bool IccBpcBallOfFlameAction::Execute(Event /*event*/)
         }
     }
 
-    // If victim of ball of flame, run away from party. Use Nitro Boosts for speed —
-    // the ball chases at ~100% run speed and will catch a bot without the boost.
+    // If victim of ball of flame, run away from party.
+    // Room boundary: keep within 33 yards of center so bots never exit the BPC room —
+    // a bot overshooting the entrance can pull Taldaram out of IsInBoundary → boss evade → raid reset.
     if (hasBallOfFlame || hasInfernoFlame)
     {
-        if (!bot->HasAura(SPELL_NITRO_BOOSTS))
-            bot->AddAura(SPELL_NITRO_BOOSTS, bot);
-
         static float const SAFE_DIST = 15.0f;
+        static float const BPC_FLEE_ROOM_RADIUS = 33.0f;
         GuidVector members = AI_VALUE(GuidVector, "group members");
         for (auto const& memberGuid : members)
         {
@@ -749,7 +790,6 @@ bool IccBpcBallOfFlameAction::Execute(Event /*event*/)
             float dist = bot->GetExactDist2d(member);
             if (dist < SAFE_DIST)
             {
-                // Move away from this member
                 float dx = bot->GetPositionX() - member->GetPositionX();
                 float dy = bot->GetPositionY() - member->GetPositionY();
                 float len = std::sqrt(dx * dx + dy * dy);
@@ -759,6 +799,19 @@ bool IccBpcBallOfFlameAction::Execute(Event /*event*/)
                 dy /= len;
                 float moveX = bot->GetPositionX() + dx * (SAFE_DIST - dist + 1.0f);
                 float moveY = bot->GetPositionY() + dy * (SAFE_DIST - dist + 1.0f);
+
+                // Clamp to room boundary
+                float const cx = ICC_BPC_CENTER_POSITION.GetPositionX();
+                float const cy = ICC_BPC_CENTER_POSITION.GetPositionY();
+                float ddx = moveX - cx, ddy = moveY - cy;
+                float dFromCenter = std::sqrt(ddx * ddx + ddy * ddy);
+                if (dFromCenter > BPC_FLEE_ROOM_RADIUS)
+                {
+                    float scale = BPC_FLEE_ROOM_RADIUS / dFromCenter;
+                    moveX = cx + ddx * scale;
+                    moveY = cy + ddy * scale;
+                }
+
                 float moveZ = bot->GetPositionZ();
                 if (bot->IsWithinLOS(moveX, moveY, moveZ))
                 {
