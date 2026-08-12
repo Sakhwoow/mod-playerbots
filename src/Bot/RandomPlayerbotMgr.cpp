@@ -398,18 +398,25 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
         time(nullptr) > (GuildBotCheckTimer + 30))
     {
         GuildBotCheckTimer = time(nullptr);
+
+        // Single pass over all bots: count how many bot-guild members are online per guild.
+        // Avoids O(bots × guilds) repeated scans in GetOnlineGuildBotCount.
+        std::unordered_map<uint32, uint32> guildBotCounts;
+        for (auto const& [guid, bot] : playerBots)
+            if (IsRandomBot(bot) && bot->GetGuildId() && bot->IsInWorld())
+                guildBotCounts[bot->GetGuildId()]++;
+
+        // players are guaranteed real — IsRealGuild() check is redundant here.
         std::set<uint32> checkedGuilds;
         for (Player* player : players)
         {
             if (!player || !player->IsInWorld())
                 continue;
             uint32 guildId = player->GetGuildId();
-            if (guildId && checkedGuilds.find(guildId) == checkedGuilds.end() &&
-                PlayerbotGuildMgr::instance().IsRealGuild(guildId))
-            {
-                checkedGuilds.insert(guildId);
-                EnsureGuildBotsOnline(guildId);
-            }
+            if (!guildId || !checkedGuilds.insert(guildId).second)
+                continue;
+            uint32 onlineCount = guildBotCounts.count(guildId) ? guildBotCounts[guildId] : 0;
+            EnsureGuildBotsOnline(guildId, onlineCount);
         }
     }
 
@@ -2941,15 +2948,22 @@ bool RandomPlayerbotMgr::HasRealPlayerInGuild(uint32 guildId)
     return false;
 }
 
-void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId)
+void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId, uint32 precomputedCount)
 {
     if (!sPlayerbotAIConfig.guildBotMinOnline)
         return;
 
-    uint32 onlineCount = GetOnlineGuildBotCount(guildId);
+    uint32 onlineCount = (precomputedCount != UINT32_MAX) ? precomputedCount : GetOnlineGuildBotCount(guildId);
     uint32 needed = sPlayerbotAIConfig.guildBotMinOnline;
     if (onlineCount >= needed)
         return;
+
+    // Rate-limit the DB query to once per 5 minutes per guild to prevent blocking the world thread.
+    time_t now = time(nullptr);
+    time_t& lastCheck = _guildEnsureLastCheck[guildId];
+    if (now - lastCheck < 300)
+        return;
+    lastCheck = now;
 
     uint32 toLogin = needed - onlineCount;
 

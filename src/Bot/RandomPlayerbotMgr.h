@@ -117,7 +117,7 @@ public:
     std::string const HandleRemoteCommand(std::string const request);
     void OnPlayerLogout(Player* player);
     void OnPlayerLogin(Player* player);
-    void EnsureGuildBotsOnline(uint32 guildId);
+    void EnsureGuildBotsOnline(uint32 guildId, uint32 precomputedCount = UINT32_MAX);
     void EnsureArenaBotsOnline();
     uint32 GetOnlineGuildBotCount(uint32 guildId);
     bool HasRealPlayerInGuild(uint32 guildId);
@@ -239,6 +239,7 @@ private:
     time_t DelayLoginBotsTimer;
     time_t printStatsTimer;
     time_t GuildBotCheckTimer = 0;
+    std::unordered_map<uint32, time_t> _guildEnsureLastCheck;
     uint32 AddRandomBots();
     bool ProcessBot(uint32 bot);
     void ScheduleRandomize(uint32 bot, uint32 time);
