@@ -2216,6 +2216,17 @@ void PlayerbotFactory::InitEquipment(bool incremental, bool second_chance)
 
         oldItem = bot->GetItemByPos(INVENTORY_SLOT_BAG_0, slot);
 
+        // Strip items whose required level exceeds the bot's current level (can happen after level-down randomization).
+        if (oldItem)
+        {
+            ItemTemplate const* oldProto = sObjectMgr->GetItemTemplate(oldItem->GetEntry());
+            if (oldProto && oldProto->RequiredLevel > level)
+            {
+                bot->DestroyItem(INVENTORY_SLOT_BAG_0, slot, true);
+                oldItem = nullptr;
+            }
+        }
+
         // PvP specs: force TRINKET1 to the best available CC-break trinket.
         if (slot == EQUIPMENT_SLOT_TRINKET1 && pvpTrinket1 != 0)
         {
