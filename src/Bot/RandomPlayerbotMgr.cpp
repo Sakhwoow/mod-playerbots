@@ -407,6 +407,7 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
                 guildBotCounts[bot->GetGuildId()]++;
 
         // players are guaranteed real — IsRealGuild() check is redundant here.
+        time_t now = time(nullptr);
         std::set<uint32> checkedGuilds;
         for (Player* player : players)
         {
@@ -416,6 +417,13 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
             if (!guildId || !checkedGuilds.insert(guildId).second)
                 continue;
             uint32 onlineCount = guildBotCounts.count(guildId) ? guildBotCounts[guildId] : 0;
+            if (onlineCount >= sPlayerbotAIConfig.guildBotMinOnline)
+                continue;
+            // Rate-limit the DB query per guild; OnPlayerLogin bypasses this and triggers immediately.
+            time_t& lastCheck = _guildEnsureLastCheck[guildId];
+            if (now - lastCheck < 300)
+                continue;
+            lastCheck = now;
             EnsureGuildBotsOnline(guildId, onlineCount);
         }
     }
@@ -2957,13 +2965,6 @@ void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId, uint32 precompute
     uint32 needed = sPlayerbotAIConfig.guildBotMinOnline;
     if (onlineCount >= needed)
         return;
-
-    // Rate-limit the DB query to once per 5 minutes per guild to prevent blocking the world thread.
-    time_t now = time(nullptr);
-    time_t& lastCheck = _guildEnsureLastCheck[guildId];
-    if (now - lastCheck < 300)
-        return;
-    lastCheck = now;
 
     uint32 toLogin = needed - onlineCount;
 
