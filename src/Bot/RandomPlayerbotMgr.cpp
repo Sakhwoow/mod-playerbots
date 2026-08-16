@@ -2071,6 +2071,49 @@ void RandomPlayerbotMgr::InitArenaTeams()
             "WHERE cs.friend IN ({}) AND cs.flags & 1 AND c.account NOT IN ({})",
             arenaGuidList, botAccountList);
         LOG_INFO("playerbots", "Очищены записи арена-ботов из списков друзей реальных игроков");
+
+        // Kick arena bots from real player guilds — they must not appear in human guilds.
+        CharacterDatabase.Execute(
+            "DELETE gm FROM guild_member gm "
+            "JOIN characters c ON c.guid = gm.guid "
+            "WHERE c.guid IN ({}) "
+            "AND gm.guildid IN ("
+            "  SELECT DISTINCT sub.gid FROM ("
+            "    SELECT gm2.guildid AS gid FROM guild_member gm2 "
+            "    JOIN characters c2 ON c2.guid = gm2.guid "
+            "    JOIN acore_auth.account a2 ON a2.id = c2.account AND a2.username NOT LIKE 'rndbot%%'"
+            "  ) sub"
+            ")",
+            arenaGuidList);
+        LOG_INFO("playerbots", "Арена-боты выгнаны из гильдий реальных игроков");
+
+        // Remove bots from arena-protection set if they are also in a mixed team with real players.
+        // Such bots belong to real players' custom teams and must not receive always-online treatment.
+        if (QueryResult mixedResult = CharacterDatabase.Query(
+                "SELECT DISTINCT atm.guid FROM arena_team_member atm "
+                "WHERE atm.guid IN ({}) "
+                "AND EXISTS ("
+                "  SELECT 1 FROM arena_team_member atm2 "
+                "  JOIN characters c ON c.guid = atm2.guid "
+                "  WHERE atm2.arenaTeamId = atm.arenaTeamId "
+                "  AND c.account NOT IN ({})"
+                ")",
+                arenaGuidList, botAccountList))
+        {
+            uint32 removedFromSet = 0;
+            do
+            {
+                uint32 rawGuid = mixedResult->Fetch()[0].Get<uint32>();
+                sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.erase(
+                    ObjectGuid::Create<HighGuid::Player>(rawGuid).GetRawValue());
+                ++removedFromSet;
+            } while (mixedResult->NextRow());
+
+            if (removedFromSet > 0)
+                LOG_INFO("playerbots",
+                         "Убрано {} ботов из арена-защиты — они в смешанных командах с реальными игроками",
+                         removedFromSet);
+        }
     }
 
     LOG_INFO("playerbots", "Инициализация арена-команд завершена: {} ботов под защитой",
