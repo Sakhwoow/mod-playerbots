@@ -884,11 +884,13 @@ bool WorldPosition::GetReachableRandomPointOnGround(Player* bot, float radius, b
     float y = GetPositionY();
     float z = GetPositionZ();
     bool canReach = getMap()->CanReachPositionAndGetValidCoords(bot, x, y, z);
+    if (!canReach || z <= INVALID_HEIGHT)
+        return false;
+
     setX(x);
     setY(y);
     setZ(z);
-
-    return canReach;
+    return true;
 }
 
 uint32 WorldPosition::getUnitsAggro(GuidVector& units, Player* bot)
