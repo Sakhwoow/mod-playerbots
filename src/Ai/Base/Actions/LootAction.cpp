@@ -453,6 +453,12 @@ bool StoreLootAction::Execute(Event event)
             botAI->PlayEmote(TEXT_EMOTE_CHEER);
 
         BroadcastHelper::BroadcastLootingItem(botAI, bot, proto);
+
+        // One item per tick — prevents stacking N×SaveToDB() calls when many bots
+        // loot simultaneously (e.g. 25-man raid boss), which spikes the world diff.
+        // The loot window stays open; the bot re-opens it after lootDelay to take
+        // the next item, getting a fresh SMSG_LOOT_RESPONSE with updated slot types.
+        return true;
     }
 
     AI_VALUE(LootObjectStack*, "available loot")->Remove(guid);
