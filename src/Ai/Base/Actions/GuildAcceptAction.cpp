@@ -5,7 +5,6 @@
  */
 
 #include "GuildAcceptAction.h"
-
 #include "Chat.h"
 #include "DatabaseEnv.h"
 #include "Event.h"

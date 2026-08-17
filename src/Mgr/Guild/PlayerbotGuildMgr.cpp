@@ -5,14 +5,13 @@
  */
 
 #include "PlayerbotGuildMgr.h"
-#include "Player.h"
-#include <chrono>
-#include "PlayerbotAIConfig.h"
 #include "CharacterCache.h"
 #include "DatabaseEnv.h"
 #include "Guild.h"
 #include "GuildMgr.h"
 #include "GuildScript.h"
+#include "PlayerbotAIConfig.h"
+#include "Player.h"
 #include "ScriptMgr.h"
 
 void PlayerbotGuildMgr::Init()

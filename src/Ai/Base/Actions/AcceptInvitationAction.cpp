@@ -5,7 +5,6 @@
  */
 
 #include "AcceptInvitationAction.h"
-
 #include "ArenaTeam.h"
 #include "ArenaTeamMgr.h"
 #include "Event.h"

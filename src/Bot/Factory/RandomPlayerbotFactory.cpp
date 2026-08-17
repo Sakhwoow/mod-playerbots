@@ -5,11 +5,11 @@
  */
 
 #include "RandomPlayerbotFactory.h"
-
 #include "AccountMgr.h"
 #include "PlayerbotGuildMgr.h"
 #include "ArenaTeamMgr.h"
 #include "DatabaseEnv.h"
+#include "Log.h"
 #include "PlayerbotAI.h"
 #include "PlayerbotFactory.h"
 #include "RaceMgr.h"
@@ -18,7 +18,6 @@
 #include "SharedDefines.h"
 #include "SocialMgr.h"
 #include "Timer.h"
-#include "Log.h"
 
 constexpr RandomPlayerbotFactory::NameRaceAndGender RandomPlayerbotFactory::CombineRaceAndGender(uint8 race,
                                                                                                 uint8 gender)
@@ -1013,6 +1012,14 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
         // Field* fields = results->Fetch();
         // uint8 slot = fields[0].Get<uint8>();
 
+        uint8 arenaSlot = ArenaTeam::GetSlotByType(type);
+
+        if (player->GetArenaTeamId(arenaSlot) ||
+            sCharacterCache->GetCharacterArenaTeamIdByGuid(player->GetGUID(), arenaSlot) != 0)
+        {
+            continue;
+        }
+
         // Assign PvP spec if bot doesn't already have one
         if (!sRandomPlayerbotMgr.IsSpecPvp(player->GetGUID().GetCounter(), player->getClass()))
         {
@@ -1038,9 +1045,12 @@ void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count
         }
 
         ArenaTeam* arenateam = new ArenaTeam();
+
         if (!arenateam->Create(player->GetGUID(), type, arenaTeamName, 0, 0, 0, 0, 0))
         {
             LOG_ERROR("playerbots", "Error creating arena team {}", arenaTeamName.c_str());
+
+            delete arenateam;
             continue;
         }
 

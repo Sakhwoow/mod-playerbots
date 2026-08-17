@@ -19,7 +19,6 @@
 #include <algorithm>
 #include <cmath>
 #include <mutex>
-#include <set>
 
 namespace RubySanctumHelpers
 {
