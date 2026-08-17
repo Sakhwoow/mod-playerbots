@@ -402,7 +402,7 @@ int RandomBotLevelMgr::GetOrFlagPlayerBracket(Player* player)
         {
             // Check all slots including offline members — a real player who logged out
             // while grouped must still protect their bots from being level-reset.
-            for (MemberSlot const& slot : group->GetMemberSlots())
+            for (Group::MemberSlot const& slot : group->GetMemberSlots())
             {
                 Player* member = ObjectAccessor::FindPlayer(slot.guid);
                 if (member && member->IsInWorld())
@@ -768,7 +768,7 @@ void RandomBotLevelMgr::ProcessPendingLevelResets()
         if (Group* group = bot->GetGroup())
         {
             bool hasRealPlayer = false;
-            for (MemberSlot const& slot : group->GetMemberSlots())
+            for (Group::MemberSlot const& slot : group->GetMemberSlots())
             {
                 Player* member = ObjectAccessor::FindPlayer(slot.guid);
                 if (member && member->IsInWorld())
