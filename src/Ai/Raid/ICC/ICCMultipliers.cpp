@@ -842,7 +842,7 @@ float IccValithriaDreamCloudMultiplier::GetValue(Action* action)
 
 float IccSindragosaMultiplier::GetValue(Action* action)
 {
-    Unit* boss = bot->FindNearestCreature(NPC_SINDRAGOSA, 200.0f);
+    Unit* boss = AI_VALUE2(Unit*, "find target", "sindragosa");
     if (!boss)
         return 1.0f;
 
@@ -997,9 +997,6 @@ float IccSindragosaMultiplier::GetValue(Action* action)
 
 float IccLichKingAddsMultiplier::GetValue(Action* action)
 {
-    if (bot->FindNearestCreature(NPC_VALITHRIA_DREAMWALKER, 100.0f))
-        return 1.0f;
-
     Unit* terenas = bot->FindNearestCreature(NPC_TERENAS_MENETHIL_HC, 55.0f);
     if (terenas)
     {

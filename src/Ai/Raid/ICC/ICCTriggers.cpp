@@ -765,7 +765,7 @@ bool IccValithriaDreamCloudTrigger::IsActive()
 //SINDRAGOSA
 bool IccSindragosaGroupPositionTrigger::IsActive()
 {
-    Unit* boss = bot->FindNearestCreature(NPC_SINDRAGOSA, 200.0f);  // sindra
+    Unit* boss = AI_VALUE2(Unit*, "find target", "sindragosa");
     if (!boss)
         return false;
 
@@ -858,7 +858,7 @@ bool IccSindragosaGroupPositionTrigger::IsActive()
 
 bool IccSindragosaFrostBeaconTrigger::IsActive()
 {
-    Unit* boss = bot->FindNearestCreature(NPC_SINDRAGOSA, 200.0f);
+    Unit* boss = AI_VALUE2(Unit*, "find target", "sindragosa");
     if (!boss)
         return false;
 
@@ -891,7 +891,7 @@ bool IccSindragosaHotTrigger::IsActive()
     if (bot->HasAura(SPELL_FROST_BEACON))
         return false;
 
-    Unit* boss = bot->FindNearestCreature(NPC_SINDRAGOSA, 200.0f);
+    Unit* boss = AI_VALUE2(Unit*, "find target", "sindragosa");
     if (!boss)
         return false;
 
@@ -993,7 +993,7 @@ bool IccSindragosaMysticBuffetTrigger::IsActive()
 
 bool IccSindragosaFrostBombTrigger::IsActive()
 {
-    Unit* boss = bot->FindNearestCreature(NPC_SINDRAGOSA, 200.0f);
+    Unit* boss = AI_VALUE2(Unit*, "find target", "sindragosa");
     if (!boss)
         return false;
 
@@ -1013,10 +1013,6 @@ bool IccSindragosaFrostBombTrigger::IsActive()
 
 bool IccLichKingShadowTrapTrigger::IsActive()
 {
-    Unit* vdw = bot->FindNearestCreature(NPC_VALITHRIA_DREAMWALKER, 100.0f);
-    if (vdw)
-        return false;
-
     Unit* boss = AI_VALUE2(Unit*, "find target", "the lich king");
     if (!boss)
         return false;
@@ -1050,10 +1046,6 @@ bool IccLichKingShadowTrapTrigger::IsActive()
 
 bool IccLichKingNecroticPlagueTrigger::IsActive()
 {
-    Unit* vdw = bot->FindNearestCreature(NPC_VALITHRIA_DREAMWALKER, 100.0f);
-    if (vdw)
-        return false;
-
     if (!AI_VALUE2(Unit*, "find target", "the lich king"))
         return false;
 
@@ -1062,10 +1054,6 @@ bool IccLichKingNecroticPlagueTrigger::IsActive()
 
 bool IccLichKingWinterTrigger::IsActive()
 {
-    Unit* vdw = bot->FindNearestCreature(NPC_VALITHRIA_DREAMWALKER, 100.0f);
-    if (vdw)
-        return false;
-
     Unit* boss = AI_VALUE2(Unit*, "find target", "the lich king");
     if (!boss)
         return false;
@@ -1075,10 +1063,6 @@ bool IccLichKingWinterTrigger::IsActive()
 
 bool IccLichKingAddsTrigger::IsActive()
 {
-    Unit* vdw = bot->FindNearestCreature(NPC_VALITHRIA_DREAMWALKER, 100.0f);
-    if (vdw)
-        return false;
-
     if (bot->HasAura(SPELL_HARVEST_SOUL_VALKYR))
         return false;
 
@@ -1089,7 +1073,7 @@ bool IccLichKingAddsTrigger::IsActive()
         bot->FindNearestCreature(NPC_TERENAS_MENETHIL, 55.0f))
         return true;
 
-    if (!bot->FindNearestCreature(NPC_THE_LICH_KING, 100.0f))
+    if (!AI_VALUE2(Unit*, "find target", "the lich king"))
         return false;
 
     return true;
