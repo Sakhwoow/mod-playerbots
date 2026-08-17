@@ -410,7 +410,7 @@ int RandomBotLevelMgr::GetOrFlagPlayerBracket(Player* player)
                     if (!GET_PLAYERBOT_AI(member))
                         return -1;
                 }
-                else if (!sRandomPlayerbotMgr.IsRandomBot(slot.guid))
+                else if (!sRandomPlayerbotMgr.IsRandomBot(slot.guid.GetCounter()))
                     return -1;
             }
         }
@@ -779,7 +779,7 @@ void RandomBotLevelMgr::ProcessPendingLevelResets()
                         break;
                     }
                 }
-                else if (!sRandomPlayerbotMgr.IsRandomBot(slot.guid))
+                else if (!sRandomPlayerbotMgr.IsRandomBot(slot.guid.GetCounter()))
                 {
                     hasRealPlayer = true;
                     break;
