@@ -526,7 +526,7 @@ bool IccSindragosaFrostBeaconAction::TryDropTombFlares(Unit const* boss)
 
 bool IccSindragosaFrostBeaconAction::Execute(Event /*event*/)
 {
-    Unit* boss = bot->FindNearestCreature(NPC_SINDRAGOSA, 200.0f);
+    Unit* boss = AI_VALUE2(Unit*, "find target", "sindragosa");
     if (!boss)
         return false;
 
