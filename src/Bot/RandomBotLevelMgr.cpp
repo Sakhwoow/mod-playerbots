@@ -10,6 +10,7 @@
 
 #include "RandomBotLevelMgr.h"
 #include "DatabaseEnv.h"
+#include "Group.h"
 #include "LFGMgr.h"
 #include "Log.h"
 #include "ObjectAccessor.h"
@@ -399,10 +400,17 @@ int RandomBotLevelMgr::GetOrFlagPlayerBracket(Player* player)
     {
         if (Group* group = player->GetGroup())
         {
-            for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
+            // Check all slots including offline members — a real player who logged out
+            // while grouped must still protect their bots from being level-reset.
+            for (MemberSlot const& slot : group->GetMemberSlots())
             {
-                Player* member = ref->GetSource();
-                if (member && member->IsInWorld() && !GET_PLAYERBOT_AI(member))
+                Player* member = ObjectAccessor::FindPlayer(slot.guid);
+                if (member && member->IsInWorld())
+                {
+                    if (!GET_PLAYERBOT_AI(member))
+                        return -1;
+                }
+                else if (!sRandomPlayerbotMgr.IsRandomBot(slot.guid))
                     return -1;
             }
         }
@@ -756,14 +764,22 @@ void RandomBotLevelMgr::ProcessPendingLevelResets()
             continue;
         }
 
-        // Check if the bot is now grouped with a real player.
+        // Check if the bot is now grouped with a real player (online or offline).
         if (Group* group = bot->GetGroup())
         {
             bool hasRealPlayer = false;
-            for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
+            for (MemberSlot const& slot : group->GetMemberSlots())
             {
-                Player* member = ref->GetSource();
-                if (member && member->IsInWorld() && !GET_PLAYERBOT_AI(member))
+                Player* member = ObjectAccessor::FindPlayer(slot.guid);
+                if (member && member->IsInWorld())
+                {
+                    if (!GET_PLAYERBOT_AI(member))
+                    {
+                        hasRealPlayer = true;
+                        break;
+                    }
+                }
+                else if (!sRandomPlayerbotMgr.IsRandomBot(slot.guid))
                 {
                     hasRealPlayer = true;
                     break;
