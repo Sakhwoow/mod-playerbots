@@ -57,6 +57,13 @@ float IccLmMultiplier::GetValue(Action* action)
             return 0.0f;
     }
 
+    // Sustained DPS reduction for non-tanks to help tanks hold aggro throughout the fight
+    if (!botAI->IsTank(bot))
+    {
+        if (dynamic_cast<AttackAction*>(action) || dynamic_cast<AttackRtiTargetAction*>(action))
+            return 0.7f;
+    }
+
     return 1.0f;
 }
 

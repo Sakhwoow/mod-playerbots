@@ -332,7 +332,7 @@ bool IccSpikeAction::HandleSpikeMarking(std::vector<Unit*> const& spikes, Unit* 
 
     if (onlyTankSpike)
     {
-        // Skull on spike, Cross on boss
+        // Skull on spike, Cross on boss, Moon on boss (MT uses moon to always track boss)
         if (group->GetTargetIcon(RtiTargetValue::skullIndex) != spikes[0]->GetGUID())
             group->SetTargetIcon(RtiTargetValue::skullIndex, bot->GetGUID(), spikes[0]->GetGUID());
 
@@ -341,6 +341,9 @@ bool IccSpikeAction::HandleSpikeMarking(std::vector<Unit*> const& spikes, Unit* 
 
         if (!group->GetTargetIcon(RtiTargetValue::starIndex).IsEmpty())
             group->SetTargetIcon(RtiTargetValue::starIndex, bot->GetGUID(), ObjectGuid::Empty);
+
+        if (group->GetTargetIcon(RtiTargetValue::moonIndex) != boss->GetGUID())
+            group->SetTargetIcon(RtiTargetValue::moonIndex, bot->GetGUID(), boss->GetGUID());
 
         return true;
     }
@@ -360,6 +363,10 @@ bool IccSpikeAction::HandleSpikeMarking(std::vector<Unit*> const& spikes, Unit* 
             group->SetTargetIcon(iconIdx, bot->GetGUID(), spikes[i]->GetGUID());
     }
 
+    // Moon always on boss so MT has a stable rti target regardless of spike markers
+    if (group->GetTargetIcon(RtiTargetValue::moonIndex) != boss->GetGUID())
+        group->SetTargetIcon(RtiTargetValue::moonIndex, bot->GetGUID(), boss->GetGUID());
+
     return true;
 }
 
@@ -369,8 +376,8 @@ bool IccSpikeAction::HandleNoSpikesMarking(Unit* boss)
     if (!group)
         return false;
 
-    // Clear cross and star
-    for (uint8 const iconIdx : {uint8(6), uint8(0)})
+    // Clear cross, star, and moon (moon is used during spikes for MT tracking)
+    for (uint8 const iconIdx : {uint8(6), uint8(0), uint8(4)})
     {
         if (!group->GetTargetIcon(iconIdx).IsEmpty())
             group->SetTargetIcon(iconIdx, bot->GetGUID(), ObjectGuid::Empty);
@@ -393,6 +400,14 @@ bool IccSpikeAction::HandleSpikeAssignment(std::vector<Unit*> const& spikes, Uni
 
     bool const isMelee = botAI->IsMelee(bot) && !botAI->IsTank(bot);
     bool const isAssistTank = botAI->IsAssistTank(bot);
+
+    // MT always stays on boss; moon marker tracks boss so rti doesn't chase spike icons
+    if (botAI->IsMainTank(bot))
+    {
+        context->GetValue<std::string>("rti")->Set("moon");
+        Attack(boss);
+        return false;
+    }
 
     auto isTankSpike = [&](Unit* spike) -> bool
     {
@@ -421,19 +436,19 @@ bool IccSpikeAction::HandleSpikeAssignment(std::vector<Unit*> const& spikes, Uni
         return false;
     }
 
-    // Only tank spike left -- ranged go skull (spike), melee go cross (boss)
+    // Only tank spike left -- melee help OT kill spike, ranged stay on boss (cross) out of Saber Lash range
     bool const onlyTankSpike = spikes.size() == 1 && isTankSpike(spikes[0]);
     if (onlyTankSpike)
     {
         if (isMelee)
         {
-            context->GetValue<std::string>("rti")->Set("cross");
-            Attack(boss);
+            context->GetValue<std::string>("rti")->Set("skull");
+            Attack(spikes[0]);
         }
         else
         {
-            context->GetValue<std::string>("rti")->Set("skull");
-            Attack(spikes[0]);
+            context->GetValue<std::string>("rti")->Set("cross");
+            Attack(boss);
         }
         return false;
     }
