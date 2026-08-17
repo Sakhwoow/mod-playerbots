@@ -499,7 +499,9 @@ float IccBpcAssistMultiplier::GetValue(Action* action)
         dynamic_cast<CastWhirlwindAction*>(action) || dynamic_cast<CastMindSearAction*>(action) ||
         dynamic_cast<CastMagmaTotemAction*>(action) || dynamic_cast<CastFlamestrikeAction*>(action) ||
         dynamic_cast<CastExplosiveTrapAction*>(action) || dynamic_cast<CastExplosiveShotBaseAction*>(action) ||
-        dynamic_cast<CastArmyOfTheDeadAction*>(action)))
+        dynamic_cast<CastArmyOfTheDeadAction*>(action) || dynamic_cast<CastDeathAndDecayAction*>(action) ||
+        dynamic_cast<CastConsecrationAction*>(action) || dynamic_cast<CastThunderClapAction*>(action) ||
+        dynamic_cast<CastShockwaveAction*>(action) || dynamic_cast<CastSweepingStrikesAction*>(action)))
         return 0.0f;
 
     if (botAI->IsTank(bot) &&
@@ -647,7 +649,7 @@ float IccBpcAssistMultiplier::GetValue(Action* action)
     bool ballOfFlame = flame1 && flame1->GetVictim() == bot;
     bool infernoFlame = flame2 && flame2->GetVictim() == bot;
 
-    if (flame2)
+    if (infernoFlame)
     {
         if (dynamic_cast<AvoidAoeAction*>(action) || dynamic_cast<IccBpcKineticBombAction*>(action))
             return 0.0f;

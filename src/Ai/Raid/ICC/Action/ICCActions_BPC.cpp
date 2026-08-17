@@ -76,40 +76,40 @@ bool IccBpcKelesethTankAction::Execute(Event /*event*/)
         std::list<Creature*> nuclei;
         bot->GetCreatureListWithEntryInGrid(nuclei, NPC_DARK_NUCLEUS, 100.0f);
 
-        Unit* strayNucleus = nullptr;
+        // In 25-man multiple nuclei spawn simultaneously — taunt all in range per tick,
+        // then move toward the first one that is out of taunt range.
+        Creature* outOfRangeNucleus = nullptr;
         for (Creature* nucleus : nuclei)
         {
-            if (nucleus && nucleus->IsAlive() && nucleus->GetVictim() != bot)
-            {
-                strayNucleus = nucleus;
-                break;
-            }
+            if (!nucleus || !nucleus->IsAlive() || nucleus->GetVictim() == bot)
+                continue;
+
+            float dist = bot->GetExactDist2d(nucleus);
+            if (dist <= TAUNT_RANGE)
+                IccCastClassTaunt(bot, botAI, nucleus);
+            else if (!outOfRangeNucleus)
+                outOfRangeNucleus = nucleus;
         }
 
-        if (strayNucleus)
+        if (outOfRangeNucleus)
         {
-            float dist = bot->GetExactDist2d(strayNucleus);
-            if (dist <= TAUNT_RANGE)
-                IccCastClassTaunt(bot, botAI, strayNucleus);
-            else
+            float dist = bot->GetExactDist2d(outOfRangeNucleus);
+            float dirX = outOfRangeNucleus->GetPositionX() - bot->GetPositionX();
+            float dirY = outOfRangeNucleus->GetPositionY() - bot->GetPositionY();
+            float length = std::sqrt(dirX * dirX + dirY * dirY);
+            if (length > 0.001f)
             {
-                float dirX = strayNucleus->GetPositionX() - bot->GetPositionX();
-                float dirY = strayNucleus->GetPositionY() - bot->GetPositionY();
-                float length = std::sqrt(dirX * dirX + dirY * dirY);
-                if (length > 0.001f)
-                {
-                    dirX /= length;
-                    dirY /= length;
-                    static float const NUCLEUS_MOVE_STEP = 10.0f;
-                    static float const NUCLEUS_APPROACH_BUFFER = 5.0f;
-                    float step = std::min(NUCLEUS_MOVE_STEP, dist - TAUNT_RANGE + NUCLEUS_APPROACH_BUFFER);
-                    float moveX = bot->GetPositionX() + dirX * step;
-                    float moveY = bot->GetPositionY() + dirY * step;
-                    MoveTo(bot->GetMapId(), moveX, moveY, bot->GetPositionZ(),
-                           false, false, false, false, MovementPriority::MOVEMENT_COMBAT);
-                }
-                return false;
+                dirX /= length;
+                dirY /= length;
+                static float const NUCLEUS_MOVE_STEP = 10.0f;
+                static float const NUCLEUS_APPROACH_BUFFER = 5.0f;
+                float step = std::min(NUCLEUS_MOVE_STEP, dist - TAUNT_RANGE + NUCLEUS_APPROACH_BUFFER);
+                float moveX = bot->GetPositionX() + dirX * step;
+                float moveY = bot->GetPositionY() + dirY * step;
+                MoveTo(bot->GetMapId(), moveX, moveY, bot->GetPositionZ(),
+                       false, false, false, false, MovementPriority::MOVEMENT_COMBAT);
             }
+            return false;
         }
     }
 
