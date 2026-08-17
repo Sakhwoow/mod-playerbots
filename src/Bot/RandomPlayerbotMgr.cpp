@@ -2988,8 +2988,7 @@ void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId, uint32 precompute
         if (GetPlayerBot(botGUID))
             continue;
 
-        if (std::find(currentBots.begin(), currentBots.end(), charGuid) == currentBots.end())
-            currentBots.push_back(charGuid);
+        currentBots.insert(charGuid);
 
         SetEventValue(charGuid, "add", 1, sPlayerbotAIConfig.maxRandomBotInWorldTime);
         AddPlayerBot(botGUID, 0);
@@ -3043,8 +3042,7 @@ void RandomPlayerbotMgr::EnsureArenaBotsOnline()
         }
 
         uint32 charGuid = botGUID.GetCounter();
-        if (std::find(currentBots.begin(), currentBots.end(), charGuid) == currentBots.end())
-            currentBots.push_back(charGuid);
+        currentBots.insert(charGuid);
 
         SetEventValue(charGuid, "add", 1, sPlayerbotAIConfig.maxRandomBotInWorldTime);
         AddPlayerBot(botGUID, 0);
