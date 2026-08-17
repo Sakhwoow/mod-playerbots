@@ -3978,14 +3978,36 @@ bool IccLichKingAddsAction::HandleVileSpiritMechanics()
         }
     }
 
+    static const Position slots[3] = {
+        ICC_LK_VILE_SPIRIT1_POSITION,
+        ICC_LK_VILE_SPIRIT2_POSITION,
+        ICC_LK_VILE_SPIRIT3_POSITION,
+    };
+
     // Shared raid-wide slot choice. All bots converge on the same position so
     // they stay stacked. Reset when no spirits are alive. Keyed per-instance to
     // avoid cross-instance pollution when multiple ICCs run simultaneously.
-    int& sharedSlot = IcecrownHelpers::IccState(bot->GetInstanceId()).lkSharedSlot;
+    IcecrownHelpers::IccInstanceState& st = IcecrownHelpers::IccState(bot->GetInstanceId());
+    int& sharedSlot = st.lkSharedSlot;
 
     if (spiritCount == 0)
     {
+        // Remember last good slot and hold bots there for a few seconds so they
+        // don't revert to tank-following between waves (paravoz effect).
+        if (sharedSlot >= 0 && sharedSlot < 3)
+        {
+            st.lkVileLastGoodSlot = sharedSlot;
+            st.lkVileSlotHoldUntilMs = getMSTime() + 6000;
+        }
         sharedSlot = -1;
+        if (getMSTime() < st.lkVileSlotHoldUntilMs && st.lkVileLastGoodSlot >= 0)
+        {
+            Position const& holdPos = slots[st.lkVileLastGoodSlot];
+            if (bot->GetDistance2d(holdPos.GetPositionX(), holdPos.GetPositionY()) > ARRIVE_TOLERANCE)
+                return MoveTo(bot->GetMapId(), holdPos.GetPositionX(), holdPos.GetPositionY(),
+                              holdPos.GetPositionZ(), false, false, false, true,
+                              MovementPriority::MOVEMENT_FORCED);
+        }
         return false;
     }
 
@@ -4015,12 +4037,6 @@ bool IccLichKingAddsAction::HandleVileSpiritMechanics()
                 return false;
         }
         return true;
-    };
-
-    Position const slots[3] = {
-        ICC_LK_VILE_SPIRIT1_POSITION,
-        ICC_LK_VILE_SPIRIT2_POSITION,
-        ICC_LK_VILE_SPIRIT3_POSITION,
     };
 
     // Spirits beyond this radius from bot = previous wave still alive, block move
@@ -4104,15 +4120,40 @@ bool IccLichKingAddsAction::HandleVileSpiritMechanics()
 
         if (sharedSlot < 0)
         {
-            // All spirit slots are covered by Defile. Converge to platform center
-            // as a last resort — spirits always approach from the platform edges,
-            // so the center gives maximum reaction time. Prevents bots wandering
-            // into random combat positions and oscillating back to failed slots.
-            return MoveTo(bot->GetMapId(),
-                          ICC_LICH_KING_CENTER_POSITION.GetPositionX(),
-                          ICC_LICH_KING_CENTER_POSITION.GetPositionY(),
-                          ICC_LICH_KING_CENTER_POSITION.GetPositionZ(),
-                          false, false, false, true, MovementPriority::MOVEMENT_FORCED);
+            if (diff == RAID_DIFFICULTY_25MAN_HEROIC || diff == RAID_DIFFICULTY_10MAN_HEROIC)
+            {
+                // Heroic: Vile Spirits descend toward player positions — center is
+                // NOT safer (spirits converge there too). Pick the slot with the
+                // greatest clearance from the nearest Defile puddle instead.
+                int bestSlot = 0;
+                float bestClearance = -1.0f;
+                for (int i = 0; i < 3; ++i)
+                {
+                    float minDist = std::numeric_limits<float>::max();
+                    for (Unit const* defile : defiles)
+                    {
+                        float const d = std::hypot(slots[i].GetPositionX() - defile->GetPositionX(),
+                                                   slots[i].GetPositionY() - defile->GetPositionY());
+                        minDist = std::min(minDist, d);
+                    }
+                    if (minDist > bestClearance)
+                    {
+                        bestClearance = minDist;
+                        bestSlot = i;
+                    }
+                }
+                sharedSlot = bestSlot;
+                // fall through to move logic below
+            }
+            else
+            {
+                // Normal mode: center gives max reaction time as spirits approach from edges.
+                return MoveTo(bot->GetMapId(),
+                              ICC_LICH_KING_CENTER_POSITION.GetPositionX(),
+                              ICC_LICH_KING_CENTER_POSITION.GetPositionY(),
+                              ICC_LICH_KING_CENTER_POSITION.GetPositionZ(),
+                              false, false, false, true, MovementPriority::MOVEMENT_FORCED);
+            }
         }
     }
 

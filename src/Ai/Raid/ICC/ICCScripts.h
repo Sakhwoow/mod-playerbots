@@ -94,6 +94,8 @@ namespace IcecrownHelpers
         uint32 defileLastUnsafeTime = 0;
         uint32 lkLastYellMs = 0;
         int lkSharedSlot = -1;
+        int lkVileLastGoodSlot = -1;
+        uint32 lkVileSlotHoldUntilMs = 0;
 
         std::set<int> sgFlaredRedThisPhase;
         bool sgFlaredBluePhase3 = false;
