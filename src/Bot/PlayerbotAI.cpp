@@ -1602,7 +1602,11 @@ void PlayerbotAI::SelectiveResetStrategies(BotState type)
     if (type == BOT_STATE_COMBAT)
         AiFactory::AddDefaultCombatStrategies(bot, this, e);
     else if (type == BOT_STATE_NON_COMBAT)
+    {
         AiFactory::AddDefaultNonCombatStrategies(bot, this, e);
+        if (lootStrategyDisabled)
+            e->removeStrategy("loot", false);
+    }
 
     if (sPlayerbotAIConfig.applyInstanceStrategies)
         ApplyInstanceStrategies(bot->GetMapId());
@@ -1875,6 +1879,10 @@ void PlayerbotAI::ResetStrategies(bool /*load*/)
     AiFactory::AddDefaultCombatStrategies(bot, this, engines[BOT_STATE_COMBAT]);
     AiFactory::AddDefaultNonCombatStrategies(bot, this, engines[BOT_STATE_NON_COMBAT]);
     AiFactory::AddDefaultDeadStrategies(bot, this, engines[BOT_STATE_DEAD]);
+
+    if (lootStrategyDisabled)
+        engines[BOT_STATE_NON_COMBAT]->removeStrategy("loot", false);
+
     if (sPlayerbotAIConfig.applyInstanceStrategies)
         ApplyInstanceStrategies(bot->GetMapId());
 
