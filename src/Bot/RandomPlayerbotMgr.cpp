@@ -7,6 +7,8 @@
 #include "RandomPlayerbotMgr.h"
 #include "Mgr/Guild/PlayerbotGuildMgr.h"
 #include "AiFactory.h"
+#include "ArenaTeam.h"
+#include "ArenaTeamMgr.h"
 #include "Battleground.h"
 #include "BattlegroundMgr.h"
 #include "Cell.h"
@@ -1500,6 +1502,31 @@ bool RandomPlayerbotMgr::ProcessBot(uint32 bot)
                 {
                     SetEventValue(bot, "add", 1, sPlayerbotAIConfig.maxRandomBotInWorldTime);
                     return false;
+                }
+            }
+
+            // Keep mixed-team arena bot online while the real player from its team is online
+            if (player && !sPlayerbotAIConfig.IsArenaTeamBot(player->GetGUID()))
+            {
+                for (uint8 slot = 0; slot < MAX_ARENA_SLOT; ++slot)
+                {
+                    uint32 teamId = player->GetArenaTeamId(slot);
+                    if (!teamId)
+                        continue;
+                    ArenaTeam* team = sArenaTeamMgr->GetArenaTeamById(teamId);
+                    if (!team)
+                        continue;
+                    for (auto const& member : team->GetMembers())
+                    {
+                        if (member.Guid == player->GetGUID())
+                            continue;
+                        Player* realPlayer = ObjectAccessor::FindPlayer(member.Guid);
+                        if (realPlayer && !IsRandomBot(realPlayer))
+                        {
+                            SetEventValue(bot, "add", 1, sPlayerbotAIConfig.maxRandomBotInWorldTime);
+                            return false;
+                        }
+                    }
                 }
             }
 
@@ -3051,6 +3078,67 @@ void RandomPlayerbotMgr::EnsureArenaBotsOnline()
     }
 }
 
+void RandomPlayerbotMgr::EnsurePlayerArenaBotsOnline(Player* player)
+{
+    for (uint8 slot = 0; slot < MAX_ARENA_SLOT; ++slot)
+    {
+        uint32 teamId = player->GetArenaTeamId(slot);
+        if (!teamId)
+            continue;
+
+        ArenaTeam* team = sArenaTeamMgr->GetArenaTeamById(teamId);
+        if (!team)
+            continue;
+
+        for (auto const& member : team->GetMembers())
+        {
+            if (member.Guid == player->GetGUID())
+                continue;
+
+            uint32 charGuid = member.Guid.GetCounter();
+            if (!IsRandomBot(charGuid))
+                continue;
+
+            if (GetPlayerBot(member.Guid))
+                continue;
+
+            uint32 maxAllowed = GetEventValue(0, "bot_count");
+            if (!maxAllowed)
+                maxAllowed = sPlayerbotAIConfig.maxRandomBots;
+
+            if ((uint32)playerBots.size() >= maxAllowed)
+            {
+                bool kicked = false;
+                for (auto const& [guid, candidate] : playerBots)
+                {
+                    if (!IsRandomBot(candidate))
+                        continue;
+                    if (candidate->GetGroup())
+                        continue;
+                    uint32 cGuildId = candidate->GetGuildId();
+                    if (cGuildId && HasRealPlayerInGuild(cGuildId))
+                        continue;
+                    if (sPlayerbotAIConfig.IsArenaTeamBot(candidate->GetGUID()))
+                        continue;
+
+                    LogoutPlayerBot(guid);
+                    kicked = true;
+                    break;
+                }
+                if (!kicked)
+                    break;
+            }
+
+            currentBots.insert(charGuid);
+            SetEventValue(charGuid, "add", 1, sPlayerbotAIConfig.maxRandomBotInWorldTime);
+            AddPlayerBot(member.Guid, 0);
+
+            LOG_DEBUG("playerbots", "EnsurePlayerArenaBotsOnline: bot {} online for player {}",
+                      charGuid, player->GetName().c_str());
+        }
+    }
+}
+
 void RandomPlayerbotMgr::OnPlayerLogin(Player* player)
 {
     uint32 botsNearby = 0;
@@ -3149,6 +3237,7 @@ void RandomPlayerbotMgr::OnPlayerLogin(Player* player)
         }
 
         EnsureArenaBotsOnline();
+        EnsurePlayerArenaBotsOnline(player);
     }
 }
 
