@@ -1536,6 +1536,18 @@ void PlayerbotMgr::UpdateAIInternal(uint32 elapsed, bool /*minimal*/)
 {
     SetNextCheckDelay(sPlayerbotAIConfig.reactDelay);
     CheckTellErrors(elapsed);
+
+    if (!pendingBotLogins.empty())
+    {
+        time_t now = time(nullptr);
+        if (now >= nextPendingBotLoginTime)
+        {
+            std::string name = pendingBotLogins.front();
+            pendingBotLogins.pop_front();
+            HandlePlayerbotCommand(("add " + name).c_str(), GetMaster());
+            nextPendingBotLoginTime = now + sPlayerbotAIConfig.botLoginStaggerDelaySec;
+        }
+    }
 }
 
 void PlayerbotMgr::HandleCommand(uint32 type, std::string const text)
@@ -1738,22 +1750,13 @@ void PlayerbotMgr::OnPlayerLogin(Player* player)
     QueryResult results = CharacterDatabase.Query("SELECT name FROM characters WHERE account = {}", accountId);
     if (results)
     {
-        std::ostringstream out;
-        out << "add ";
-        bool first = true;
+        pendingBotLogins.clear();
         do
         {
             Field* fields = results->Fetch();
-
-            if (first)
-                first = false;
-            else
-                out << ",";
-
-            out << fields[0].Get<std::string>();
+            pendingBotLogins.push_back(fields[0].Get<std::string>());
         } while (results->NextRow());
-
-        HandlePlayerbotCommand(out.str().c_str(), player);
+        nextPendingBotLoginTime = time(nullptr);
     }
 }
 

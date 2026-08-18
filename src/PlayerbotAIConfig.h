@@ -137,6 +137,7 @@ public:
     uint32 openGoSpell;
     bool randomBotAutologin;
     bool botAutologin;
+    uint32 botLoginStaggerDelaySec;
     std::string randomBotMapsAsString;
     float probTeleToBankers;
     bool enableWeightTeleToCityBankers;

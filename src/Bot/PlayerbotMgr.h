@@ -10,6 +10,9 @@
 #include "ObjectGuid.h"
 #include "Player.h"
 #include "PlayerbotAIBase.h"
+#include <ctime>
+#include <deque>
+#include <string>
 
 class ChatHandler;
 class PlayerbotAI;
@@ -94,6 +97,8 @@ private:
     Player* const master;
     PlayerBotErrorMap errors;
     time_t lastErrorTell;
+    std::deque<std::string> pendingBotLogins;
+    time_t nextPendingBotLoginTime = 0;
 };
 
 class PlayerbotsMgr

@@ -239,6 +239,7 @@ bool PlayerbotAIConfig::Initialize()
         unobtainableItems);
 
     botAutologin = sConfigMgr->GetOption<bool>("AiPlayerbot.BotAutologin", false);
+    botLoginStaggerDelaySec = sConfigMgr->GetOption<uint32>("AiPlayerbot.BotLoginStaggerDelaySec", 2);
     randomBotAutologin = sConfigMgr->GetOption<bool>("AiPlayerbot.RandomBotAutologin", true);
     minRandomBots = sConfigMgr->GetOption<int32>("AiPlayerbot.MinRandomBots", 500);
     maxRandomBots = sConfigMgr->GetOption<int32>("AiPlayerbot.MaxRandomBots", 500);

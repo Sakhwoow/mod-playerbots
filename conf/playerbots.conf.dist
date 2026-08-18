@@ -151,6 +151,9 @@ AiPlayerbot.KeepAltsInGroup = 0
 # Auto-login all player alts as altbots on player login
 AiPlayerbot.BotAutologin = 0
 
+# Delay in seconds between each altbot login when BotAutologin=1 (0 = all at once, default 2)
+AiPlayerbot.BotLoginStaggerDelaySec = 2
+
 # Allow/deny inviting altbots from the player's account
 AiPlayerbot.AllowAccountBots = 1
 
