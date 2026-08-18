@@ -451,11 +451,11 @@ bool StoreLootAction::Execute(Event event)
 
         BroadcastHelper::BroadcastLootingItem(botAI, bot, proto);
 
-        // One item per tick — prevents stacking N×SaveToDB() calls when many bots
-        // loot simultaneously (e.g. 25-man raid boss), which spikes the world diff.
-        // The loot window stays open; the bot re-opens it after lootDelay to take
-        // the next item, getting a fresh SMSG_LOOT_RESPONSE with updated slot types.
-        return true;
+        // In raids, take one item per tick to prevent N×SaveToDB() spikes when many
+        // bots loot simultaneously. Outside raids, take all items at once so bots
+        // don't stand over corpses for 30+ seconds during normal leveling.
+        if (bot->GetMap()->IsRaid())
+            return true;
     }
 
     AI_VALUE(LootObjectStack*, "available loot")->Remove(guid);
