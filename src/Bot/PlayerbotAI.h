@@ -609,6 +609,7 @@ public:
     void AddTimedEvent(std::function<void()> callback, uint32 delayMs);
 
     bool lootStrategyDisabled = false;
+    bool gatherStrategyDisabled = false;
 
 private:
     static void _fillGearScoreData(Player* player, Item* item, std::vector<uint32>* gearScore, uint32& twoHandScore,

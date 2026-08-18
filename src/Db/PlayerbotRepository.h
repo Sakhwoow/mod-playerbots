@@ -24,6 +24,7 @@ public:
 
     void Save(PlayerbotAI* botAI);
     void Load(PlayerbotAI* botAI);
+    void LoadFlags(PlayerbotAI* botAI);
     void Reset(PlayerbotAI* botAI);
 
 private:

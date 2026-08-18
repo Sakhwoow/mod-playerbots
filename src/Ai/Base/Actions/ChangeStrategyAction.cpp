@@ -60,11 +60,15 @@ bool ChangeNonCombatStrategyAction::Execute(Event event)
 
     botAI->ChangeStrategy(text, BOT_STATE_NON_COMBAT);
 
-    // Persist loot preference so it survives ResetStrategies()
+    // Persist loot/gather preferences so they survive ResetStrategies()
     if (text.find("-loot") != std::string::npos)
         botAI->lootStrategyDisabled = true;
     if (text.find("+loot") != std::string::npos)
         botAI->lootStrategyDisabled = false;
+    if (text.find("-gather") != std::string::npos)
+        botAI->gatherStrategyDisabled = true;
+    if (text.find("+gather") != std::string::npos)
+        botAI->gatherStrategyDisabled = false;
 
     if (event.GetSource() == "nc")
         HandleStrategyCommon(botAI, text, BOT_STATE_NON_COMBAT);

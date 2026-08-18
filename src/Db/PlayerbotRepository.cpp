@@ -66,6 +66,29 @@ void PlayerbotRepository::Save(PlayerbotAI* botAI)
     SaveValue(guid, "co", FormatStrategies("co", botAI->GetStrategies(BOT_STATE_COMBAT)));
     SaveValue(guid, "nc", FormatStrategies("nc", botAI->GetStrategies(BOT_STATE_NON_COMBAT)));
     SaveValue(guid, "dead", FormatStrategies("dead", botAI->GetStrategies(BOT_STATE_DEAD)));
+    SaveValue(guid, "nc_loot_disabled", botAI->lootStrategyDisabled ? "1" : "0");
+    SaveValue(guid, "nc_gather_disabled", botAI->gatherStrategyDisabled ? "1" : "0");
+}
+
+void PlayerbotRepository::LoadFlags(PlayerbotAI* botAI)
+{
+    ObjectGuid::LowType guid = botAI->GetBot()->GetGUID().GetCounter();
+
+    PlayerbotsDatabasePreparedStatement* stmt = PlayerbotsDatabase.GetPreparedStatement(PLAYERBOTS_SEL_DB_STORE);
+    stmt->SetData(0, guid);
+    if (PreparedQueryResult result = PlayerbotsDatabase.Query(stmt))
+    {
+        do
+        {
+            Field* fields = result->Fetch();
+            std::string const key = fields[0].Get<std::string>();
+            std::string const value = fields[1].Get<std::string>();
+            if (key == "nc_loot_disabled")
+                botAI->lootStrategyDisabled = (value == "1");
+            else if (key == "nc_gather_disabled")
+                botAI->gatherStrategyDisabled = (value == "1");
+        } while (result->NextRow());
+    }
 }
 
 std::string const PlayerbotRepository::FormatStrategies(std::string const /*type*/, std::vector<std::string> strategies)

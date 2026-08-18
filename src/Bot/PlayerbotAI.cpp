@@ -5,6 +5,7 @@
 
 #include "PlayerbotAI.h"
 #include "AiFactory.h"
+#include "PlayerbotRepository.h"
 #include "BudgetValues.h"
 #include "ChannelMgr.h"
 #include "CharacterPackets.h"
@@ -152,6 +153,8 @@ PlayerbotAI::PlayerbotAI(Player* bot)
 
     if (sPlayerbotAIConfig.applyInstanceStrategies)
         ApplyInstanceStrategies(bot->GetMapId());
+
+    PlayerbotRepository::instance().LoadFlags(this);
 
     currentEngine = engines[BOT_STATE_NON_COMBAT];
     currentState = BOT_STATE_NON_COMBAT;
@@ -1882,6 +1885,9 @@ void PlayerbotAI::ResetStrategies(bool /*load*/)
 
     if (lootStrategyDisabled)
         engines[BOT_STATE_NON_COMBAT]->removeStrategy("loot", false);
+
+    if (gatherStrategyDisabled)
+        engines[BOT_STATE_NON_COMBAT]->removeStrategy("gather", false);
 
     if (sPlayerbotAIConfig.applyInstanceStrategies)
         ApplyInstanceStrategies(bot->GetMapId());
