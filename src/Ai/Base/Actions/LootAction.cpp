@@ -376,6 +376,10 @@ bool StoreLootAction::Execute(Event event)
         // bot->GetSession()->HandleLootMoneyOpcode(packet);
     }
 
+    Player* master = botAI->GetMaster();
+    bool isRandomBot = sRandomPlayerbotMgr.IsRandomBot(bot);
+    int32 totalPrice = 0;
+
     for (uint8 i = 0; i < items; ++i)
     {
         uint32 itemid;
@@ -401,7 +405,7 @@ bool StoreLootAction::Execute(Event event)
         if (!proto)
             continue;
 
-        if (!IsRealPlayer(botAI->GetMaster()) && AI_VALUE(uint8, "bag space") > 80)
+        if (!IsRealPlayer(master) && AI_VALUE(uint8, "bag space") > 80)
         {
             uint32 maxStack = proto->GetMaxStackSize();
             if (maxStack == 1)
@@ -424,12 +428,10 @@ bool StoreLootAction::Execute(Event event)
                 continue;
         }
 
-        Player* master = botAI->GetMaster();
-        if (sRandomPlayerbotMgr.IsRandomBot(bot) && master)
+        if (isRandomBot && master)
         {
             uint32 price = itemcount * proto->BuyPrice * sRandomPlayerbotMgr.GetBuyMultiplier(bot) + gold;
-            if (price)
-                sRandomPlayerbotMgr.AddTradeDiscount(bot, master, price);
+            totalPrice += static_cast<int32>(price);
 
             if (Group* group = bot->GetGroup())
                 for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
@@ -455,8 +457,15 @@ bool StoreLootAction::Execute(Event event)
         // bots loot simultaneously. Outside raids, take all items at once so bots
         // don't stand over corpses for 30+ seconds during normal leveling.
         if (bot->GetMap()->IsRaid())
+        {
+            if (totalPrice > 0)
+                sRandomPlayerbotMgr.AddTradeDiscount(bot, master, totalPrice);
             return true;
+        }
     }
+
+    if (totalPrice > 0)
+        sRandomPlayerbotMgr.AddTradeDiscount(bot, master, totalPrice);
 
     AI_VALUE(LootObjectStack*, "available loot")->Remove(guid);
 
