@@ -17,6 +17,7 @@
 #include "ICCActions.h"
 #include "ICCScripts.h"
 #include "ICCTriggers.h"
+#include "InstanceScript.h"
 #include "MageActions.h"
 #include "MovementActions.h"
 #include "PaladinActions.h"
@@ -145,9 +146,16 @@ float IccAddsDbsMultiplier::GetValue(Action* action)
 // Gunship
 float IccGunshipMultiplier::GetValue(Action* action)
 {
-    // Detect gunship encounter via hostile enemy captain nearby
-    Unit* saurfang = bot->FindNearestCreature(NPC_HIGH_OVERLORD_SAURFANG, 200.0f);
-    Unit* muradin = bot->FindNearestCreature(NPC_MURADIN_BRONZEBEARD, 200.0f);
+    // Detect gunship encounter via instance state — avoids 2×200m grid scans every tick
+    Map* gunshipMap = bot->GetMap();
+    if (!gunshipMap || !gunshipMap->IsDungeon())
+        return 1.0f;
+    InstanceScript* gunshipInst = ((InstanceMap*)gunshipMap)->GetInstanceScript();
+    if (!gunshipInst || gunshipInst->GetBossState(2 /* DATA_ICECROWN_GUNSHIP_BATTLE */) != IN_PROGRESS)
+        return 1.0f;
+
+    Unit* saurfang = bot->FindNearestCreature(NPC_HIGH_OVERLORD_SAURFANG, 60.0f);
+    Unit* muradin = bot->FindNearestCreature(NPC_MURADIN_BRONZEBEARD, 60.0f);
     bool const inGunship = (saurfang && saurfang->IsAlive() && saurfang->IsHostileTo(bot)) ||
                            (muradin && muradin->IsAlive() && muradin->IsHostileTo(bot));
     if (!inGunship)
@@ -338,7 +346,7 @@ float IccRotfaceMultiplier::GetValue(Action* action)
         return 0.0f;
 
     {
-        Creature* bigOoze = bot->FindNearestCreature(NPC_BIG_OOZE, 100.0f);
+        Creature* bigOoze = bot->FindNearestCreature(NPC_BIG_OOZE, 60.0f);
         bool castingNow = bigOoze && bigOoze->IsAlive() &&
             bigOoze->HasUnitState(UNIT_STATE_CASTING) && bigOoze->FindCurrentSpellBySpellId(SPELL_UNSTABLE_OOZE_EXPLOSION);
 
@@ -644,8 +652,8 @@ float IccBpcAssistMultiplier::GetValue(Action* action)
             return 0.0f;
     }
 
-    Unit* flame1 = bot->FindNearestCreature(NPC_BALL_OF_FLAME, 100.0f);
-    Unit* flame2 = bot->FindNearestCreature(NPC_BALL_OF_INFERNO_FLAME, 100.0f);
+    Unit* flame1 = bot->FindNearestCreature(NPC_BALL_OF_FLAME, 60.0f);
+    Unit* flame2 = bot->FindNearestCreature(NPC_BALL_OF_INFERNO_FLAME, 60.0f);
     bool ballOfFlame = flame1 && flame1->GetVictim() == bot;
     bool infernoFlame = flame2 && flame2->GetVictim() == bot;
 
@@ -746,7 +754,7 @@ float IccBqlMultiplier::GetValue(Action* action)
 //VDW
 float IccValithriaDreamCloudMultiplier::GetValue(Action* action)
 {
-    Unit* boss = bot->FindNearestCreature(NPC_VALITHRIA_DREAMWALKER, 100.0f);
+    Unit* boss = bot->FindNearestCreature(NPC_VALITHRIA_DREAMWALKER, 60.0f);
 
     Aura* twistedNightmares = botAI->GetAura("Twisted Nightmares", bot);
     Aura* emeraldVigor = botAI->GetAura("Emerald Vigor", bot);
@@ -763,7 +771,7 @@ float IccValithriaDreamCloudMultiplier::GetValue(Action* action)
     {
         Creature* attackingZombie = nullptr;
         std::list<Creature*> zombies;
-        bot->GetCreatureListWithEntryInGrid(zombies, NPC_BLISTERING_ZOMBIE, 100.0f);
+        bot->GetCreatureListWithEntryInGrid(zombies, NPC_BLISTERING_ZOMBIE, 60.0f);
         for (Creature* z : zombies)
         {
             if (z && z->IsAlive() && z->GetVictim() == bot)
@@ -997,7 +1005,7 @@ float IccSindragosaMultiplier::GetValue(Action* action)
 
 float IccLichKingAddsMultiplier::GetValue(Action* action)
 {
-    Unit* terenas = bot->FindNearestCreature(NPC_TERENAS_MENETHIL_HC, 55.0f);
+    Unit* terenas = bot->FindNearestCreature(NPC_TERENAS_MENETHIL_HC, 30.0f);
     if (terenas)
     {
         // Warlocks and melee stay functional (movement + adds action only)

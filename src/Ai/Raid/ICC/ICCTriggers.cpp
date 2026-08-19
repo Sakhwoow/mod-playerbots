@@ -9,6 +9,7 @@
 #include "GridNotifiers.h"
 #include "ICCActions.h"
 #include "ICCScripts.h"
+#include "InstanceScript.h"
 #include "NearestNpcsValue.h"
 #include "ObjectAccessor.h"
 #include "PlayerbotAIConfig.h"
@@ -74,8 +75,8 @@ bool IccGunshipCannonNearTrigger::IsActive()
     if (bot->GetVehicle())
         return false;
 
-    Unit* mount1 = bot->FindNearestCreature(NPC_CANNONA, 100.0f);
-    Unit* mount2 = bot->FindNearestCreature(NPC_CANNONH, 100.0f);
+    Unit* mount1 = bot->FindNearestCreature(NPC_CANNONA, 30.0f);
+    Unit* mount2 = bot->FindNearestCreature(NPC_CANNONH, 30.0f);
 
     if (!mount1 && !mount2)
         return false;
@@ -98,17 +99,19 @@ bool IccGunshipCannonNearTrigger::IsActive()
 
 bool IccGunshipRocketJumpTrigger::IsActive()
 {
-    // The rocket jump mechanic is only needed when the gunship battle is active.
-    // We detect which ship we are on by checking which enemy boss is present:
-    //  - Saurfang hostile  => we are on the Alliance ship
-    //  - Muradin hostile   => we are on the Horde ship
-    // Using the hostile boss (not cannon friendliness) avoids conflicting with
-    // the cannon-near trigger that fires on the same condition.
-    Unit* saurfang = bot->FindNearestCreature(NPC_HIGH_OVERLORD_SAURFANG, 100.0f);
+    // Fast path: skip grid scan when gunship encounter is not active
+    Map* map = bot->GetMap();
+    if (!map || !map->IsDungeon())
+        return false;
+    InstanceScript* instance = ((InstanceMap*)map)->GetInstanceScript();
+    if (!instance || instance->GetBossState(2 /* DATA_ICECROWN_GUNSHIP_BATTLE */) != IN_PROGRESS)
+        return false;
+
+    Unit* saurfang = bot->FindNearestCreature(NPC_HIGH_OVERLORD_SAURFANG, 60.0f);
     if (saurfang && saurfang->IsAlive() && saurfang->IsHostileTo(bot))
         return true;
 
-    Unit* muradin = bot->FindNearestCreature(NPC_MURADIN_BRONZEBEARD, 100.0f);
+    Unit* muradin = bot->FindNearestCreature(NPC_MURADIN_BRONZEBEARD, 60.0f);
     if (muradin && muradin->IsAlive() && muradin->IsHostileTo(bot))
         return true;
 
@@ -120,11 +123,11 @@ bool IccGunshipRocketPackSetupTrigger::IsActive()
     // Fires any time a bot is standing on a friendly gunship deck, regardless of
     // combat state. Lets bots walk to Zafod and equip the rocket pack before the
     // encounter starts (and keep it ready if they acquire it mid-fight).
-    Unit* cannonA = bot->FindNearestCreature(NPC_CANNONA, 100.0f);
+    Unit* cannonA = bot->FindNearestCreature(NPC_CANNONA, 30.0f);
     if (cannonA && cannonA->IsFriendlyTo(bot))
         return true;
 
-    Unit* cannonH = bot->FindNearestCreature(NPC_CANNONH, 100.0f);
+    Unit* cannonH = bot->FindNearestCreature(NPC_CANNONH, 30.0f);
     if (cannonH && cannonH->IsFriendlyTo(bot))
         return true;
 
@@ -269,7 +272,7 @@ bool IccRotfaceGroupPositionTrigger::IsActive()
 
 bool IccRotfaceMoveAwayFromExplosionTrigger::IsActive()
 {
-    Creature* boss = bot->FindNearestCreature(NPC_BIG_OOZE, 100.0f);
+    Creature* boss = bot->FindNearestCreature(NPC_BIG_OOZE, 60.0f);
     bool castingNow = boss && boss->IsAlive() &&
         boss->HasUnitState(UNIT_STATE_CASTING) && boss->FindCurrentSpellBySpellId(SPELL_UNSTABLE_OOZE_EXPLOSION);
 
@@ -633,7 +636,7 @@ bool IccBqlVampiricBiteTrigger::IsActive()
 bool IccValkyreSpearTrigger::IsActive()
 {
     // Check if there's a spear nearby
-    if (bot->FindNearestCreature(NPC_SPEAR, 100.0f))
+    if (bot->FindNearestCreature(NPC_SPEAR, 30.0f))
         return true;
 
     return false;
@@ -654,7 +657,7 @@ bool IccSisterSvalnaTrigger::IsActive()
 // VDW
 bool IccValithriaGroupTrigger::IsActive()
 {
-    Unit* boss = bot->FindNearestCreature(NPC_VALITHRIA_DREAMWALKER, 100.0f);
+    Unit* boss = bot->FindNearestCreature(NPC_VALITHRIA_DREAMWALKER, 60.0f);
     if (!boss)
         return false;
 
@@ -665,7 +668,7 @@ bool IccValithriaGroupTrigger::IsActive()
 
 bool IccValithriaZombieKiteTrigger::IsActive()
 {
-    Unit* boss = bot->FindNearestCreature(NPC_VALITHRIA_DREAMWALKER, 100.0f);
+    Unit* boss = bot->FindNearestCreature(NPC_VALITHRIA_DREAMWALKER, 60.0f);
     if (!boss)
         return false;
 
@@ -673,7 +676,7 @@ bool IccValithriaZombieKiteTrigger::IsActive()
         return false;
 
     std::list<Creature*> zombies;
-    bot->GetCreatureListWithEntryInGrid(zombies, NPC_BLISTERING_ZOMBIE, 100.0f);
+    bot->GetCreatureListWithEntryInGrid(zombies, NPC_BLISTERING_ZOMBIE, 60.0f);
     for (Creature* z : zombies)
     {
         if (z && z->IsAlive() && z->GetVictim() == bot)
@@ -685,7 +688,7 @@ bool IccValithriaZombieKiteTrigger::IsActive()
 
 bool IccValithriaPortalTrigger::IsActive()
 {
-    Unit* boss = bot->FindNearestCreature(NPC_VALITHRIA_DREAMWALKER, 100.0f);
+    Unit* boss = bot->FindNearestCreature(NPC_VALITHRIA_DREAMWALKER, 60.0f);
     if (!boss)
         return false;
 
@@ -697,8 +700,8 @@ bool IccValithriaPortalTrigger::IsActive()
     if (!botAI->IsHeal(bot) || bot->HasAura(SPELL_DREAM_STATE))
         return false;
 
-    Creature* worm = bot->FindNearestCreature(NPC_ROT_WORM, 100.0f);
-    Creature* zombie = bot->FindNearestCreature(NPC_BLISTERING_ZOMBIE, 100.0f);
+    Creature* worm = bot->FindNearestCreature(NPC_ROT_WORM, 60.0f);
+    Creature* zombie = bot->FindNearestCreature(NPC_BLISTERING_ZOMBIE, 60.0f);
 
     if ((worm && worm->GetVictim() == bot) || (zombie && zombie->GetVictim() == bot))
         return false;
@@ -708,20 +711,20 @@ bool IccValithriaPortalTrigger::IsActive()
         return false;
 
     // Find the nearest portal creature
-    Creature* portal1 = bot->FindNearestCreature(NPC_DREAM_PORTAL, 100.0f);
+    Creature* portal1 = bot->FindNearestCreature(NPC_DREAM_PORTAL, 60.0f);
     if (!portal1)
-        portal1 = bot->FindNearestCreature(NPC_DREAM_PORTAL_PRE_EFFECT, 100.0f);
+        portal1 = bot->FindNearestCreature(NPC_DREAM_PORTAL_PRE_EFFECT, 60.0f);
 
-    Creature* portal2 = bot->FindNearestCreature(NPC_NIGHTMARE_PORTAL, 100.0f);
+    Creature* portal2 = bot->FindNearestCreature(NPC_NIGHTMARE_PORTAL, 60.0f);
     if (!portal2)
-        portal2 = bot->FindNearestCreature(NPC_NIGHTMARE_PORTAL_PRE_EFFECT, 100.0f);
+        portal2 = bot->FindNearestCreature(NPC_NIGHTMARE_PORTAL_PRE_EFFECT, 60.0f);
 
     return portal1 || portal2;
 }
 
 bool IccValithriaHealTrigger::IsActive()
 {
-    Unit* boss = bot->FindNearestCreature(NPC_VALITHRIA_DREAMWALKER, 100.0f);
+    Unit* boss = bot->FindNearestCreature(NPC_VALITHRIA_DREAMWALKER, 60.0f);
     if (!boss)
         return false;
 
@@ -729,8 +732,8 @@ bool IccValithriaHealTrigger::IsActive()
     if (!botAI->IsHeal(bot) || bot->HasAura(SPELL_DREAM_STATE) || bot->HealthBelowPct(50))
         return false;
 
-    Creature* worm = bot->FindNearestCreature(NPC_ROT_WORM, 100.0f);
-    Creature* zombie = bot->FindNearestCreature(NPC_BLISTERING_ZOMBIE, 100.0f);
+    Creature* worm = bot->FindNearestCreature(NPC_ROT_WORM, 60.0f);
+    Creature* zombie = bot->FindNearestCreature(NPC_BLISTERING_ZOMBIE, 60.0f);
 
     if ((worm && worm->GetVictim() == bot) || (zombie && zombie->GetVictim() == bot))
         return false;
@@ -744,7 +747,7 @@ bool IccValithriaHealTrigger::IsActive()
 
     // For Valithria healers, check portal logic
     // If no portal is found within 100 yards, we should heal
-    if (!bot->FindNearestCreature(NPC_DREAM_PORTAL, 100.0f) && !bot->FindNearestCreature(NPC_NIGHTMARE_PORTAL, 100.0f))
+    if (!bot->FindNearestCreature(NPC_DREAM_PORTAL, 60.0f) && !bot->FindNearestCreature(NPC_NIGHTMARE_PORTAL, 60.0f))
         return true;
 
     if (bot->FindNearestCreature(NPC_DREAM_PORTAL, 10.0f) || bot->FindNearestCreature(NPC_NIGHTMARE_PORTAL, 10.0f))
@@ -1069,8 +1072,8 @@ bool IccLichKingAddsTrigger::IsActive()
     if (botAI->HasAura("Necrotic Plague", bot))
         return false;
 
-    if (bot->FindNearestCreature(NPC_TERENAS_MENETHIL_HC, 55.0f) ||
-        bot->FindNearestCreature(NPC_TERENAS_MENETHIL, 55.0f))
+    if (bot->FindNearestCreature(NPC_TERENAS_MENETHIL_HC, 30.0f) ||
+        bot->FindNearestCreature(NPC_TERENAS_MENETHIL, 30.0f))
         return true;
 
     if (!AI_VALUE2(Unit*, "find target", "the lich king"))
