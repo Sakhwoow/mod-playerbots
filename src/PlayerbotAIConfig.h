@@ -136,6 +136,7 @@ public:
 
     uint32 openGoSpell;
     bool randomBotAutologin;
+    bool randomBotTurboInit;
     bool botAutologin;
     uint32 botLoginStaggerDelaySec;
     std::string randomBotMapsAsString;

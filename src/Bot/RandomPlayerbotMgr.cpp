@@ -326,7 +326,8 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
     // which prevents unneeded expensive GameTime calls.
     if (_isBotInitializing)
     {
-        _isBotInitializing = GameTime::GetUptime().count() < sPlayerbotAIConfig.maxRandomBots * (0.11 + 0.4);
+        _isBotInitializing = sPlayerbotAIConfig.randomBotTurboInit &&
+                             GameTime::GetUptime().count() < sPlayerbotAIConfig.maxRandomBots * (0.11 + 0.4);
     }
 
     uint32 updateIntervalTurboBoost = _isBotInitializing ? 1 : sPlayerbotAIConfig.randomBotUpdateInterval;
@@ -1552,7 +1553,7 @@ bool RandomPlayerbotMgr::ProcessBot(uint32 bot)
         AddPlayerBot(botGUID, 0);
         randomTime = urand(1, 2);
 
-        uint32 randomBotUpdateInterval = _isBotInitializing ? 1 : sPlayerbotAIConfig.randomBotUpdateInterval;
+        uint32 randomBotUpdateInterval = (sPlayerbotAIConfig.randomBotTurboInit && _isBotInitializing) ? 1 : sPlayerbotAIConfig.randomBotUpdateInterval;
         randomTime = urand(std::max(5, static_cast<int>(randomBotUpdateInterval * 0.5)),
                            std::max(12, static_cast<int>(randomBotUpdateInterval * 2)));
         SetEventValue(bot, "update", 1, randomTime);

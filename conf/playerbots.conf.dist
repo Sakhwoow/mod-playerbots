@@ -148,6 +148,10 @@ AiPlayerbot.GroupInvitationPermission = 1
 # 1 = enabled (prevents bots from automatically leaving the group)
 AiPlayerbot.KeepAltsInGroup = 0
 
+# Enable turbo mode on startup: fills bot pool as fast as possible (~2 min for 2200 bots).
+# Causes heavy login storms on restart. Disable on live servers (default 0).
+AiPlayerbot.RandomBotTurboInit = 0
+
 # Auto-login all player alts as altbots on player login
 AiPlayerbot.BotAutologin = 0
 
