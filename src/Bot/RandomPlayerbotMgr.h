@@ -12,7 +12,10 @@
 #include "ObjectGuid.h"
 #include "PlayerbotCommandServer.h"
 #include "PlayerbotMgr.h"
+#include <deque>
 #include <unordered_set>
+
+class WorldSession;
 
 struct BattlegroundInfo
 {
@@ -121,6 +124,8 @@ public:
     void EnsureGuildBotsOnline(uint32 guildId, uint32 precomputedCount = UINT32_MAX);
     void EnsureArenaBotsOnline();
     void EnsurePlayerArenaBotsOnline(Player* player);
+    void QueuePersonalBotLogout(WorldSession* session);
+    void ProcessPendingLogouts();
     uint32 GetOnlineGuildBotCount(uint32 guildId);
     bool HasRealPlayerInGuild(uint32 guildId);
     void OnPlayerLoginError(uint32 bot);
@@ -251,6 +256,7 @@ private:
     std::vector<Player*> players;
     uint32 processTicks;
     bool randomizedThisTick = false;
+    std::deque<WorldSession*> _pendingPersonalBotLogouts;
 
     // std::map<uint32, std::vector<WorldLocation>> rpgLocsCache;
     std::map<uint32, std::map<uint32, std::vector<WorldLocation>>> rpgLocsCacheLevel;

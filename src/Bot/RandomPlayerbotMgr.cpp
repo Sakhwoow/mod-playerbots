@@ -2859,6 +2859,25 @@ void RandomPlayerbotMgr::HandleCommand(uint32 type, std::string const text, Play
     }
 }
 
+void RandomPlayerbotMgr::QueuePersonalBotLogout(WorldSession* session)
+{
+    _pendingPersonalBotLogouts.push_back(session);
+}
+
+void RandomPlayerbotMgr::ProcessPendingLogouts()
+{
+    if (_pendingPersonalBotLogouts.empty())
+        return;
+
+    WorldSession* session = _pendingPersonalBotLogouts.front();
+    _pendingPersonalBotLogouts.pop_front();
+
+    if (session && !session->isLogingOut())
+        session->LogoutPlayer(true);
+
+    delete session;
+}
+
 void RandomPlayerbotMgr::OnPlayerLogout(Player* player)
 {
     DisablePlayerBot(player->GetGUID());

@@ -285,21 +285,50 @@ void PlayerbotHolder::HandleBotPackets(WorldSession* session)
     }
 }
 
+void PlayerbotHolder::DeferLogoutBot(ObjectGuid guid)
+{
+    Player* bot = GetPlayerBot(guid);
+    if (!bot)
+        return;
+
+    PlayerbotAI* botAI = GET_PLAYERBOT_AI(bot);
+    if (!botAI)
+        return;
+
+    auto cleanupOp = std::make_unique<BotLogoutGroupCleanupOperation>(guid);
+    PlayerbotWorldThreadProcessor::instance().QueueOperation(std::move(cleanupOp));
+
+    LOG_DEBUG("playerbots", "Bot {} deferred logout queued", bot->GetName().c_str());
+
+    if (uint32 titleId = sPlayerbotAIConfig.botTitleId)
+    {
+        if (CharTitlesEntry const* titleEntry = sCharTitlesStore.LookupEntry(titleId))
+        {
+            if (bot->GetUInt32Value(PLAYER_CHOSEN_TITLE) == titleEntry->bit_index)
+                bot->SetUInt32Value(PLAYER_CHOSEN_TITLE, 0);
+            bot->SetTitle(titleEntry, true);
+        }
+    }
+
+    if (!sRandomPlayerbotMgr.IsRandomBot(bot) && bot->isTaxiCheater())
+        bot->SetTaxiCheater(false);
+
+    bot->SaveToDB(false, false);
+
+    WorldSession* session = bot->GetSession();
+    if (session->isLogingOut())
+        return;
+
+    botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("goodbye", "Goodbye!", {}));
+
+    RemoveFromPlayerbotsMap(guid);
+
+    sRandomPlayerbotMgr.QueuePersonalBotLogout(session);
+}
+
 void PlayerbotHolder::LogoutAllBots()
 {
-    /*
-    while (true)
-    {
-        PlayerBotMap::const_iterator itr = GetPlayerBotsBegin();
-        if (itr == GetPlayerBotsEnd())
-            break;
-
-        Player* bot= itr->second;
-        if (!IsSelfBot(bot))
-            LogoutPlayerBot(bot->GetGUID());
-    }
-    */
-
+    bool first = true;
     PlayerBotMap bots = playerBots;
     for (auto& itr : bots)
     {
@@ -311,7 +340,15 @@ void PlayerbotHolder::LogoutAllBots()
         if (!botAI || IsSelfBot(bot))
             continue;
 
-        LogoutPlayerBot(bot->GetGUID());
+        if (first)
+        {
+            LogoutPlayerBot(bot->GetGUID());
+            first = false;
+        }
+        else
+        {
+            DeferLogoutBot(bot->GetGUID());
+        }
     }
 }
 

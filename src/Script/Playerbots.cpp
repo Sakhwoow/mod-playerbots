@@ -348,6 +348,7 @@ public:
 
     void OnUpdate(uint32 diff) override
     {
+        sRandomPlayerbotMgr.ProcessPendingLogouts();  // one deferred personal bot logout per tick
         PlayerbotWorldThreadProcessor::instance().Update(diff);
         sRandomPlayerbotMgr.UpdateAI(diff);  // World thread only
     }
