@@ -1689,7 +1689,7 @@ bool RandomPlayerbotMgr::ProcessBot(Player* bot)
             for (GroupReference* ref = instanceGroup->GetFirstMember(); ref != nullptr; ref = ref->next())
             {
                 Player* member = ref->GetSource();
-                if (member && !GET_PLAYERBOT_AI(member) && member->GetMap() == bot->GetMap())
+                if (member && (!GET_PLAYERBOT_AI(member) || IsSelfBot(member)) && member->GetMap() == bot->GetMap())
                 {
                     realPlayerInInstance = true;
                     break;
