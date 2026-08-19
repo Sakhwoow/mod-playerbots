@@ -496,22 +496,37 @@ class PlayerbotsGroupScript : public GroupScript
 public:
     PlayerbotsGroupScript() : GroupScript("PlayerbotsGroupScript") { }
 
-    void OnRemoveMember(Group* /*group*/, ObjectGuid guid, RemoveMethod /*method*/, ObjectGuid kicker, char const* /*reason*/) override
+    void OnRemoveMember(Group* group, ObjectGuid guid, RemoveMethod /*method*/, ObjectGuid kicker, char const* /*reason*/) override
     {
         Player* removed = ObjectAccessor::FindPlayer(guid);
-        if (!removed || !GET_PLAYERBOT_AI(removed) || !sRandomPlayerbotMgr.IsRandomBot(removed->GetGUID().GetCounter()))
+        if (!removed)
             return;
 
-        // Skip if kicked by another bot (e.g. bot leader disbanding)
-        if (!kicker.IsEmpty())
+        // Case 1: a random bot was removed — run lifecycle cleanup immediately
+        if (GET_PLAYERBOT_AI(removed) && sRandomPlayerbotMgr.IsRandomBot(removed->GetGUID().GetCounter()))
         {
-            Player* kickerPlayer = ObjectAccessor::FindPlayer(kicker);
-            if (kickerPlayer && GET_PLAYERBOT_AI(kickerPlayer))
-                return;
+            // Skip if kicked by another bot (e.g. bot leader disbanding)
+            if (!kicker.IsEmpty())
+            {
+                Player* kickerPlayer = ObjectAccessor::FindPlayer(kicker);
+                if (kickerPlayer && GET_PLAYERBOT_AI(kickerPlayer))
+                    return;
+            }
+
+            sRandomPlayerbotMgr.ProcessBot(removed);
+            return;
         }
 
-        // Immediately run lifecycle cleanup so the bot doesn't sit in a ghost group
-        sRandomPlayerbotMgr.ProcessBot(removed);
+        // Case 2: a real player left — immediately process all random bots remaining in the group
+        if (!GET_PLAYERBOT_AI(removed) && group)
+        {
+            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            {
+                Player* member = itr->GetSource();
+                if (member && GET_PLAYERBOT_AI(member) && sRandomPlayerbotMgr.IsRandomBot(member->GetGUID().GetCounter()))
+                    sRandomPlayerbotMgr.ProcessBot(member);
+            }
+        }
     }
 };
 
