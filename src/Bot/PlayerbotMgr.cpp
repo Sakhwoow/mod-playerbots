@@ -333,7 +333,6 @@ void PlayerbotHolder::DeferLogoutBot(ObjectGuid guid)
 
 void PlayerbotHolder::LogoutAllBots()
 {
-    bool first = true;
     PlayerBotMap bots = playerBots;
     for (auto& itr : bots)
     {
@@ -345,15 +344,7 @@ void PlayerbotHolder::LogoutAllBots()
         if (!botAI || IsSelfBot(bot))
             continue;
 
-        if (first)
-        {
-            LogoutPlayerBot(bot->GetGUID());
-            first = false;
-        }
-        else
-        {
-            DeferLogoutBot(bot->GetGUID());
-        }
+        DeferLogoutBot(bot->GetGUID());
     }
 }
 
