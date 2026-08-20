@@ -321,6 +321,11 @@ void PlayerbotHolder::DeferLogoutBot(ObjectGuid guid)
 
     botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("goodbye", "Goodbye!", {}));
 
+    // Detach from master before deferring: by the time ProcessPendingLogouts runs next tick,
+    // the master Player has already been deleted. Keeping a dangling master pointer causes
+    // a null dereference inside LogoutPlayer(true) when AI cleanup touches GetMaster().
+    botAI->SetMaster(nullptr);
+
     RemoveFromPlayerbotsMap(guid);
 
     sRandomPlayerbotMgr.QueuePersonalBotLogout(session);
