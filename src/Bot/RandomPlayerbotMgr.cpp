@@ -3059,7 +3059,7 @@ void RandomPlayerbotMgr::EnsureArenaBotsOnline()
     for (uint64 rawGuid : arenaGuids)
     {
         ObjectGuid botGUID = ObjectGuid(rawGuid);
-        if (GetPlayerBot(botGUID))
+        if (GetPlayerBot(botGUID) || ObjectAccessor::FindConnectedPlayer(botGUID))
             continue;
 
         if ((uint32)playerBots.size() >= maxAllowed)
@@ -3119,7 +3119,7 @@ void RandomPlayerbotMgr::EnsurePlayerArenaBotsOnline(Player* player)
             if (!IsRandomBot(charGuid))
                 continue;
 
-            if (GetPlayerBot(member.Guid))
+            if (GetPlayerBot(member.Guid) || ObjectAccessor::FindConnectedPlayer(member.Guid))
                 continue;
 
             uint32 maxAllowed = GetEventValue(0, "bot_count");
