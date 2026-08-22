@@ -506,14 +506,6 @@ public:
         // Case 1: a random bot was removed — run lifecycle cleanup immediately
         if (GET_PLAYERBOT_AI(removed) && sRandomPlayerbotMgr.IsRandomBot(removed->GetGUID().GetCounter()))
         {
-            // Skip if kicked by another bot (e.g. bot leader disbanding)
-            if (!kicker.IsEmpty())
-            {
-                Player* kickerPlayer = ObjectAccessor::FindPlayer(kicker);
-                if (kickerPlayer && GET_PLAYERBOT_AI(kickerPlayer))
-                    return;
-            }
-
             sRandomPlayerbotMgr.ProcessBot(removed);
             return;
         }
