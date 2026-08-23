@@ -510,8 +510,8 @@ public:
             return;
         }
 
-        // Case 2: a real player left — immediately process all random bots remaining in the group
-        if (!GET_PLAYERBOT_AI(removed) && group)
+        // Case 2: a real player (or selfbot) left — immediately process all random bots remaining in the group
+        if ((!GET_PLAYERBOT_AI(removed) || IsSelfBot(removed)) && group)
         {
             for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
             {
