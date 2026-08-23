@@ -1490,14 +1490,13 @@ static bool IsCraftedBySkill(uint32 itemId, uint32 skillId)
             return true;
     }
 
-    std::vector<ItemTemplate*> const* itemTemplates = sObjectMgr->GetItemTemplateStoreFast();
-    for (ItemTemplate const* recipe : *itemTemplates)
+    for (auto const& [id, recipe] : *sObjectMgr->GetItemTemplateStore())
     {
-        if (!recipe || recipe->Class != ITEM_CLASS_RECIPE)
+        if (recipe.Class != ITEM_CLASS_RECIPE)
             continue;
 
         uint32 skillType = 0;
-        switch (recipe->SubClass)
+        switch (recipe.SubClass)
         {
             case ITEM_SUBCLASS_LEATHERWORKING_PATTERN: skillType = SKILL_LEATHERWORKING; break;
             case ITEM_SUBCLASS_TAILORING_PATTERN:      skillType = SKILL_TAILORING; break;
@@ -1517,7 +1516,7 @@ static bool IsCraftedBySkill(uint32 itemId, uint32 skillId)
 
         for (uint32 i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
         {
-            if (IsCraftedBySpell(itemId, recipe->Spells[i].SpellId))
+            if (IsCraftedBySpell(itemId, recipe.Spells[i].SpellId))
                 return true;
         }
     }
