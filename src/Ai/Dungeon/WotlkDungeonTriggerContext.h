@@ -12,6 +12,7 @@
 #include "CoSTriggerContext.h"
 #include "DTKTriggerContext.h"
 #include "FoSTriggerContext.h"
+#include "HoRTriggerContext.h"
 #include "GDTriggerContext.h"
 #include "HoLTriggerContext.h"
 #include "HoSTriggerContext.h"

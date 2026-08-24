@@ -12,6 +12,7 @@
 #include "CoSActionContext.h"
 #include "DTKActionContext.h"
 #include "FoSActionContext.h"
+#include "HoRActionContext.h"
 #include "GDActionContext.h"
 #include "HoLActionContext.h"
 #include "HoSActionContext.h"

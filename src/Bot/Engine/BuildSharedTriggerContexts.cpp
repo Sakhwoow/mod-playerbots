@@ -71,5 +71,6 @@ void AiObjectContext::BuildSharedTriggerContexts(SharedNamedObjectContextList<Tr
     triggerContexts.Add(new WotlkDungeonCoSTriggerContext());
     triggerContexts.Add(new WotlkDungeonFoSTriggerContext());
     triggerContexts.Add(new WotlkDungeonPoSTriggerContext());
+    triggerContexts.Add(new WotlkDungeonHoRTriggerContext());
     triggerContexts.Add(new WotlkDungeonToCTriggerContext());
 }
