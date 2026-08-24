@@ -126,5 +126,7 @@ bool TwilightPortalEnterTrigger::IsActive()
 
 bool TwilightPortalExitTrigger::IsActive()
 {
-    return bot->HasAura(SPELL_TWILIGHT_SHIFT) && !AI_VALUE2(Unit*, "find target", "acolyte of shadron");
+    return bot->HasAura(SPELL_TWILIGHT_SHIFT) &&
+           !AI_VALUE2(Unit*, "find target", "acolyte of shadron") &&
+           !AI_VALUE2(Unit*, "find target", "disciple of vesperon");
 }

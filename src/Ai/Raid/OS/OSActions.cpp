@@ -164,11 +164,14 @@ bool SartharionAttackPriorityAction::Execute(Event /*event*/)
     Unit* tenebron = AI_VALUE2(Unit*, "find target", "tenebron");
     Unit* vesperon = AI_VALUE2(Unit*, "find target", "vesperon");
     Unit* acolyte = AI_VALUE2(Unit*, "find target", "acolyte of shadron");
+    Unit* disciple = AI_VALUE2(Unit*, "find target", "disciple of vesperon");
 
     Unit* target = nullptr;
 
     if (acolyte)
         target = acolyte;
+    else if (disciple)
+        target = disciple;
     else if (vesperon)
         target = vesperon;
     else if (tenebron)
@@ -186,9 +189,6 @@ bool SartharionAttackPriorityAction::Execute(Event /*event*/)
 
 bool EnterTwilightPortalAction::Execute(Event /*event*/)
 {
-    Unit* boss = AI_VALUE2(Unit*, "find target", "sartharion");
-    if (!boss || !boss->HasAura(SPELL_GIFT_OF_TWILIGHT_FIRE)) { return false; }
-
     GameObject* portal = bot->FindNearestGameObject(GO_TWILIGHT_PORTAL, 100.0f);
     if (!portal) { return false; }
 
