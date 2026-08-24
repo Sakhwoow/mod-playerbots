@@ -5,6 +5,7 @@
  */
 
 #include "AiObjectContext.h"
+#include "SMTriggerContext.h"
 #include "Aq20TriggerContext.h"
 #include "BTTriggerContext.h"
 #include "BWLTriggerContext.h"
@@ -54,6 +55,7 @@ void AiObjectContext::BuildSharedTriggerContexts(SharedNamedObjectContextList<Tr
     triggerContexts.Add(new RaidOnyxiaTriggerContext());
     triggerContexts.Add(new RaidIccTriggerContext());
     triggerContexts.Add(new RaidRsTriggerContext());
+    triggerContexts.Add(new VanillaDungeonSMTriggerContext());
     triggerContexts.Add(new TbcDungeonAuchenaiCryptsTriggerContext());
     triggerContexts.Add(new TbcDungeonSethekkHallsTriggerContext());
     triggerContexts.Add(new TbcDungeonMechanarTriggerContext());

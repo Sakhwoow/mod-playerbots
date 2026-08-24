@@ -5,6 +5,7 @@
  */
 
 #include "ActionContext.h"
+#include "SMActionContext.h"
 #include "AiObjectContext.h"
 #include "Aq20ActionContext.h"
 #include "BTActionContext.h"
@@ -54,6 +55,7 @@ void AiObjectContext::BuildSharedActionContexts(SharedNamedObjectContextList<Act
     actionContexts.Add(new RaidOnyxiaActionContext());
     actionContexts.Add(new RaidIccActionContext());
     actionContexts.Add(new RaidRsActionContext());
+    actionContexts.Add(new VanillaDungeonSMActionContext());
     actionContexts.Add(new TbcDungeonAuchenaiCryptsActionContext());
     actionContexts.Add(new TbcDungeonSethekkHallsActionContext());
     actionContexts.Add(new TbcDungeonMechanarActionContext());
