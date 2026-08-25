@@ -55,12 +55,11 @@ bool BlackTempleEraseTimersAndTrackersAction::Execute(Event /*event*/)
         {
             erased = true;
         }
-        return true;
+        return erased;
     }
     else if (botAI->IsHeal(bot))
     {
-        zerevorHealStep.erase(guid);
-        return true;
+        return zerevorHealStep.erase(guid) > 0;
     }
     else
     {
@@ -80,7 +79,7 @@ bool BlackTempleEraseTimersAndTrackersAction::Execute(Event /*event*/)
         {
             erased = true;
         }
-        return true;
+        return erased;
     }
 }
 
