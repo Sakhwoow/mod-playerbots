@@ -474,7 +474,7 @@ bool CastCrowdControlSpellAction::Execute(Event /*event*/) { return botAI->CastS
 
 bool CastCrowdControlSpellAction::isPossible() { return botAI->CanCastSpell(getName(), GetTarget()); }
 
-bool CastCrowdControlSpellAction::isUseful() { return true; }
+bool CastCrowdControlSpellAction::isUseful() { return AI_VALUE2(bool, "spell cast useful", getName()); }
 
 std::string const CastProtectSpellAction::GetTargetName() { return "party member to protect"; }
 
