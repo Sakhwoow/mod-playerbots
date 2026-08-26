@@ -75,8 +75,8 @@ bool IccGunshipCannonNearTrigger::IsActive()
     if (bot->GetVehicle())
         return false;
 
-    Unit* mount1 = bot->FindNearestCreature(NPC_CANNONA, 30.0f);
-    Unit* mount2 = bot->FindNearestCreature(NPC_CANNONH, 30.0f);
+    Unit* mount1 = bot->FindNearestCreature(NPC_CANNONA, 60.0f);
+    Unit* mount2 = bot->FindNearestCreature(NPC_CANNONH, 60.0f);
 
     if (!mount1 && !mount2)
         return false;
@@ -123,11 +123,11 @@ bool IccGunshipRocketPackSetupTrigger::IsActive()
     // Fires any time a bot is standing on a friendly gunship deck, regardless of
     // combat state. Lets bots walk to Zafod and equip the rocket pack before the
     // encounter starts (and keep it ready if they acquire it mid-fight).
-    Unit* cannonA = bot->FindNearestCreature(NPC_CANNONA, 30.0f);
+    Unit* cannonA = bot->FindNearestCreature(NPC_CANNONA, 60.0f);
     if (cannonA && cannonA->IsFriendlyTo(bot))
         return true;
 
-    Unit* cannonH = bot->FindNearestCreature(NPC_CANNONH, 30.0f);
+    Unit* cannonH = bot->FindNearestCreature(NPC_CANNONH, 60.0f);
     if (cannonH && cannonH->IsFriendlyTo(bot))
         return true;
 
