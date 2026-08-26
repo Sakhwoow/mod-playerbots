@@ -10,6 +10,7 @@
 #include "CureTriggers.h"
 #include "GenericTriggers.h"
 #include "Playerbots.h"
+#include "RtiTriggers.h"
 #include "SharedDefines.h"
 #include "Trigger.h"
 #include <unordered_set>
@@ -166,10 +167,10 @@ public:
 
 // CC, Interrupt, and Dispel Triggers
 
-class PolymorphTrigger : public HasCcTargetTrigger
+class PolymorphTrigger : public RtiCcTrigger
 {
 public:
-    PolymorphTrigger(PlayerbotAI* botAI) : HasCcTargetTrigger(botAI, "polymorph") {}
+    PolymorphTrigger(PlayerbotAI* botAI) : RtiCcTrigger(botAI, "polymorph") {}
 };
 
 class RemoveCurseTrigger : public NeedCureTrigger
