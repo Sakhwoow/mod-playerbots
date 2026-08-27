@@ -437,6 +437,10 @@ void PlayerbotAI::UpdateAIGroupMaster()
         return;
     }
 
+    // Guard against dangling master pointer: player may have logged out and their memory reused.
+    if (master && !ObjectAccessor::FindConnectedPlayer(masterGuid))
+        SetMaster(nullptr);
+
     // Bot in BG, but master no longer part of a group: release master
     // Exclude alt and addclass bots as they rely on current (real player) master, security-wise.
     if (bot->InBattleground() && sRandomPlayerbotMgr.IsRandomBot(bot) && master && !master->GetGroup())

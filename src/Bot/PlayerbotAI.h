@@ -568,7 +568,7 @@ public:
     BotCheatMask GetCheat() { return cheatMask; }
     void SetCheat(BotCheatMask mask) { cheatMask = mask; }
 
-    void SetMaster(Player* newMaster) { master = newMaster; }
+    void SetMaster(Player* newMaster) { master = newMaster; masterGuid = newMaster ? newMaster->GetGUID() : ObjectGuid::Empty; }
     AiObjectContext* GetAiObjectContext() { return aiObjectContext; }
     ChatHelper* GetChatHelper() { return &chatHelper; }
     bool IsOpposing(Player* player);
@@ -631,6 +631,7 @@ private:
 protected:
     Player* bot;
     Player* master;
+    ObjectGuid masterGuid;
     uint32 accountId;
     AiObjectContext* aiObjectContext;
     Engine* currentEngine;
