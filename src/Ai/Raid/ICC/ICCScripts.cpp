@@ -7,6 +7,7 @@
 #include "ICCScripts.h"
 #include "Creature.h"
 #include "ICCTriggers.h"
+#include "Map.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
@@ -58,7 +59,7 @@ public:
 
     void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* spellInfo, bool /*skipCheck*/) override
     {
-        if (!caster || !spellInfo)
+        if (!caster || !spellInfo || caster->GetMapId() != ICC_MAP_ID)
             return;
 
         if (spellInfo->Id != SPELL_MALLEABLE_GOO_10N &&
@@ -100,7 +101,7 @@ public:
 
     void OnSpellCast(Spell* spell, Unit* caster, SpellInfo const* spellInfo, bool /*skipCheck*/) override
     {
-        if (!caster || !spellInfo)
+        if (!caster || !spellInfo || caster->GetMapId() != ICC_MAP_ID)
             return;
 
         if (spellInfo->Id != SPELL_VILE_GAS_H)
@@ -134,7 +135,7 @@ public:
     // is already spawning and bots have no time to move out.
     void OnSpellPrepare(Spell* spell, Unit* caster, SpellInfo const* spellInfo) override
     {
-        if (!caster || !spellInfo)
+        if (!caster || !spellInfo || caster->GetMapId() != ICC_MAP_ID)
             return;
 
         if (spellInfo->Id != DEFILE_CAST_ID)
@@ -202,27 +203,42 @@ public:
     }
 };
 
-class IccBossStateResetScript : public AllCreatureScript
+// Fires once per ICC map instance per tick instead of once per every creature in the world.
+class IccBossStateResetScript : public AllMapScript
 {
 public:
-    IccBossStateResetScript() : AllCreatureScript("IccBossStateResetScript") { }
+    IccBossStateResetScript() : AllMapScript("IccBossStateResetScript") { }
 
-    void OnAllCreatureUpdate(Creature* creature, uint32 /*diff*/) override
+    void OnMapUpdate(Map* map, uint32 /*diff*/) override
     {
-        if (!creature || creature->GetMapId() != ICC_MAP_ID || !creature->IsDungeonBoss())
+        if (map->GetId() != ICC_MAP_ID)
             return;
 
-        uint32 const instanceId = creature->GetInstanceId();
+        uint32 const instanceId = map->GetInstanceId();
         uint32 const now = getMSTime();
-        IcecrownHelpers::IccInstanceState& st = IcecrownHelpers::IccState(instanceId);
+        bool anyBossInCombat = false;
+        bool hasBoss = false;
 
-        if (creature->IsInCombat())
+        for (auto const& [spawnId, creature] : map->GetCreatureBySpawnIdStore())
         {
-            st.lastBossCombatMs = now;
-            return;
+            if (!creature || !creature->IsDungeonBoss())
+                continue;
+            hasBoss = true;
+            if (creature->IsInCombat())
+            {
+                anyBossInCombat = true;
+                break;
+            }
         }
 
-        if (st.lastBossCombatMs != 0 && getMSTimeDiff(st.lastBossCombatMs, now) > ICC_RESET_GRACE_MS)
+        if (!hasBoss)
+            return;
+
+        IcecrownHelpers::IccInstanceState& st = IcecrownHelpers::IccState(instanceId);
+
+        if (anyBossInCombat)
+            st.lastBossCombatMs = now;
+        else if (st.lastBossCombatMs != 0 && getMSTimeDiff(st.lastBossCombatMs, now) > ICC_RESET_GRACE_MS)
             IcecrownHelpers::IccResetInstance(instanceId);
     }
 };
