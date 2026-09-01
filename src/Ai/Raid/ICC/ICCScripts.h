@@ -117,6 +117,7 @@ namespace IcecrownHelpers
 
         Position gsbLastStarPos;
         std::map<ObjectGuid, uint32> gsbLastRocketPackUse;
+        std::map<ObjectGuid, uint32> gsbLastRocketPackEquip;
 
         std::map<ObjectGuid, int> dbsBotSlotMemory;
 

@@ -1019,6 +1019,13 @@ bool IccGunshipRocketPackSetupAction::AcquireRocketPack()
 
 bool IccGunshipRocketPackSetupAction::EquipRocketPack()
 {
+    static constexpr uint32 EQUIP_COOLDOWN_MS = 3000;
+    auto& lastEquip = IcecrownHelpers::IccState(bot->GetInstanceId()).gsbLastRocketPackEquip;
+    uint32 const now = getMSTime();
+    auto const it = lastEquip.find(bot->GetGUID());
+    if (it != lastEquip.end() && getMSTimeDiff(it->second, now) < EQUIP_COOLDOWN_MS)
+        return true;
+
     EquipAction* equipAction = dynamic_cast<EquipAction*>(botAI->GetAiObjectContext()->GetAction("equip"));
     if (!equipAction)
         return false;
@@ -1026,5 +1033,6 @@ bool IccGunshipRocketPackSetupAction::EquipRocketPack()
     ItemIds ids;
     ids.insert(ITEM_GOBLIN_ROCKET_PACK);
     equipAction->EquipItems(ids);
+    lastEquip[bot->GetGUID()] = now;
     return true;
 }
