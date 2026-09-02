@@ -588,8 +588,10 @@ public:
 class IccSindragosaGroupPositionTrigger : public Trigger
 {
 public:
-    IccSindragosaGroupPositionTrigger(PlayerbotAI* botAI) : Trigger(botAI, "icc sindragosa group position") {}
+    IccSindragosaGroupPositionTrigger(PlayerbotAI* botAI) : Trigger(botAI, "icc sindragosa group position"), _lastPeriodicMs(0) {}
     bool IsActive() override;
+private:
+    uint32 _lastPeriodicMs;
 };
 
 class IccSindragosaFrostBeaconTrigger : public Trigger

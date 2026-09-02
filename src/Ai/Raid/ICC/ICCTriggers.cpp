@@ -772,29 +772,78 @@ bool IccSindragosaGroupPositionTrigger::IsActive()
     if (!boss)
         return false;
 
-    Difficulty diff = bot->GetRaidDifficulty();
-
-    if (sPlayerbotAIConfig.EnableICCBuffs && boss->IsInCombat() && diff &&
-        (diff == RAID_DIFFICULTY_10MAN_HEROIC || diff == RAID_DIFFICULTY_25MAN_HEROIC))
+    // Throttle expensive per-bot work (group iteration + tomb search) to once per second.
+    // These are side-effects that must run even when the trigger returns false.
+    uint32 const now = getMSTime();
+    if (getMSTimeDiff(_lastPeriodicMs, now) >= 1000)
     {
-        //-------CHEAT-------
-        // Apply to every alive group member so real players benefit too,
-        if (Group* group = bot->GetGroup())
+        _lastPeriodicMs = now;
+
+        Difficulty diff = bot->GetRaidDifficulty();
+
+        if (sPlayerbotAIConfig.EnableICCBuffs && boss->IsInCombat() && diff &&
+            (diff == RAID_DIFFICULTY_10MAN_HEROIC || diff == RAID_DIFFICULTY_25MAN_HEROIC))
         {
-            for (GroupReference* itr = group->GetFirstMember(); itr; itr = itr->next())
+            //-------CHEAT-------
+            // Apply to every alive group member so real players benefit too,
+            if (Group* group = bot->GetGroup())
             {
-                Player* member = itr->GetSource();
-                if (!member || !member->IsAlive() || !member->IsInWorld())
-                    continue;
+                for (GroupReference* itr = group->GetFirstMember(); itr; itr = itr->next())
+                {
+                    Player* member = itr->GetSource();
+                    if (!member || !member->IsAlive() || !member->IsInWorld())
+                        continue;
 
-                IccApplyHeroicBuffToMember(botAI, member, false, true);
+                    IccApplyHeroicBuffToMember(botAI, member, false, true);
 
-                if (botAI->IsMainTank(member) && boss->GetVictim() != member &&
-                    !member->HasAura(SPELL_SPITEFULL_FURY))
-                    member->AddAura(SPELL_SPITEFULL_FURY, member);
+                    if (botAI->IsMainTank(member) && boss->GetVictim() != member &&
+                        !member->HasAura(SPELL_SPITEFULL_FURY))
+                        member->AddAura(SPELL_SPITEFULL_FURY, member);
+                }
             }
+            //-------CHEAT-------
         }
-        //-------CHEAT-------
+
+        if (botAI->IsTank(bot))
+        {
+            // Strip Mystic Buffet: the cheat that makes single-tanking P3 survivable.
+            if (Aura* aura = botAI->GetAura("mystic buffet", bot, false, false))
+                bot->RemoveAura(aura->GetId());
+
+            // Shield tanks while a tomb is up, Blistering Cold is casting, or a last
+            // phase beacon is out (tomb about to form, healers already scattering).
+            bool const shield = (boss->HasUnitState(UNIT_STATE_CASTING) && IccBossCastingBlisteringCold(boss)) ||
+                                (boss->HealthBelowPct(35) && IccAnyGroupMemberHasAura(bot, SPELL_FROST_BEACON)) ||
+                                !IccGetCreaturesByEntries(bot, {NPC_TOMB1, NPC_TOMB2, NPC_TOMB3, NPC_TOMB4}, 150.0f).empty();
+            if (shield && !bot->HasAura(SPELL_MAGIC_BARRIER))
+                bot->AddAura(SPELL_MAGIC_BARRIER, bot);
+            else if (!shield && bot->HasAura(SPELL_MAGIC_BARRIER))
+                bot->RemoveAura(SPELL_MAGIC_BARRIER);
+
+            // Assist tanks generate no threat while another main tank is alive, so
+            // they can never win the threat race at the pull; dropped on promotion.
+            bool mtAlive = false;
+            if (Group* group = bot->GetGroup())
+            {
+                for (GroupReference* itr = group->GetFirstMember(); itr; itr = itr->next())
+                {
+                    Player* member = itr->GetSource();
+                    if (member && member != bot && member->IsAlive() && botAI->IsMainTank(member))
+                    {
+                        mtAlive = true;
+                        break;
+                    }
+                }
+            }
+
+            if (mtAlive && !botAI->IsMainTank(bot))
+            {
+                if (!bot->HasAura(SPELL_NO_THREAT))
+                    bot->AddAura(SPELL_NO_THREAT, bot);
+            }
+            else if (bot->HasAura(SPELL_NO_THREAT))
+                bot->RemoveAura(SPELL_NO_THREAT);
+        }
     }
 
     // Air phase: give all tanks nitro boosts so they can quickly reposition to tombs
@@ -811,47 +860,6 @@ bool IccSindragosaGroupPositionTrigger::IsActive()
     if (botAI->IsMainTank(bot) && bot->HasAura(SPELL_FROST_BEACON) && boss->HealthBelowPct(35) &&
         boss->GetExactDist2d(ICC_SINDRAGOSA_FLYING_POSITION.GetPositionX(), ICC_SINDRAGOSA_FLYING_POSITION.GetPositionY()) >= 30.0f)
         bot->RemoveAura(SPELL_FROST_BEACON);
-
-    if (botAI->IsTank(bot))
-    {
-        // Strip Mystic Buffet: the cheat that makes single-tanking P3 survivable.
-        if (Aura* aura = botAI->GetAura("mystic buffet", bot, false, false))
-            bot->RemoveAura(aura->GetId());
-
-        // Shield tanks while a tomb is up, Blistering Cold is casting, or a last
-        // phase beacon is out (tomb about to form, healers already scattering).
-        bool const shield = (boss->HasUnitState(UNIT_STATE_CASTING) && IccBossCastingBlisteringCold(boss)) ||
-                            (boss->HealthBelowPct(35) && IccAnyGroupMemberHasAura(bot, SPELL_FROST_BEACON)) ||
-                            !IccGetCreaturesByEntries(bot, {NPC_TOMB1, NPC_TOMB2, NPC_TOMB3, NPC_TOMB4}, 150.0f).empty();
-        if (shield && !bot->HasAura(SPELL_MAGIC_BARRIER))
-            bot->AddAura(SPELL_MAGIC_BARRIER, bot);
-        else if (!shield && bot->HasAura(SPELL_MAGIC_BARRIER))
-            bot->RemoveAura(SPELL_MAGIC_BARRIER);
-
-        // Assist tanks generate no threat while another main tank is alive, so
-        // they can never win the threat race at the pull; dropped on promotion.
-        bool mtAlive = false;
-        if (Group* group = bot->GetGroup())
-        {
-            for (GroupReference* itr = group->GetFirstMember(); itr; itr = itr->next())
-            {
-                Player* member = itr->GetSource();
-                if (member && member != bot && member->IsAlive() && botAI->IsMainTank(member))
-                {
-                    mtAlive = true;
-                    break;
-                }
-            }
-        }
-
-        if (mtAlive && !botAI->IsMainTank(bot))
-        {
-            if (!bot->HasAura(SPELL_NO_THREAT))
-                bot->AddAura(SPELL_NO_THREAT, bot);
-        }
-        else if (bot->HasAura(SPELL_NO_THREAT))
-            bot->RemoveAura(SPELL_NO_THREAT);
-    }
 
     if (!boss || bot->HasAura(SPELL_FROST_BEACON) || boss->GetExactDist2d(ICC_SINDRAGOSA_FLYING_POSITION.GetPositionX(), ICC_SINDRAGOSA_FLYING_POSITION.GetPositionY()) < 50.0f)
         return false;
