@@ -64,6 +64,10 @@ bool MarkRtiAction::Execute(Event /*event*/)
     if (bot->InBattleground())
         return false;
 
+    // Only the group leader marks targets to avoid all bots simultaneously fighting over icons.
+    if (!group->IsLeader(bot->GetGUID()))
+        return false;
+
     Unit* target = nullptr;
     GuidVector attackers = botAI->GetAiObjectContext()->GetValue<GuidVector>("attackers")->Get();
     for (ObjectGuid const guid : attackers)
