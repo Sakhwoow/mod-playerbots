@@ -182,7 +182,12 @@ bool AutoReleaseSpiritAction::ShouldAutoRelease() const
         bot->GetMap() &&
         (bot->GetMap()->IsRaid() || bot->GetMap()->IsDungeon()))
     {
-        return false;
+        // Wait up to 3 minutes for a battle resurrection; after that auto-release to
+        // avoid dead bots accumulating CPU cost indefinitely (dead AI is expensive).
+        Corpse* corpse = bot->GetCorpse();
+        int64 deadSecs = corpse ? (time(nullptr) - corpse->GetGhostTime()) : 0;
+        if (deadSecs < 3 * MINUTE)
+            return false;
     }
 
     return ServerFacade::instance().IsDistanceGreaterThan(
