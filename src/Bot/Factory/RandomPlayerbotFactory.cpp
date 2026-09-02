@@ -911,6 +911,8 @@ void RandomPlayerbotFactory::AssignBotToArenaTeamInternal(Player* bot)
             continue;
         }
 
+        sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.insert(bot->GetGUID().GetRawValue());
+
         if (team->GetMembersSize() >= static_cast<uint32>(team->GetType()))
         {
             uint32 teamRating = team->GetRating();
@@ -967,6 +969,7 @@ void RandomPlayerbotFactory::CreateBotArenaTeam(Player* bot, ArenaType type)
     arenateam->SaveToDB();
     sArenaTeamMgr->AddArenaTeam(arenateam);
     _botArenaTeamRegistry[type].push_back(arenateam->GetId());
+    sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.insert(bot->GetGUID().GetRawValue());
 
     LOG_DEBUG("playerbots", "Created {}v{} arena team '{}' with captain {}",
               type, type, teamName, bot->GetName());
