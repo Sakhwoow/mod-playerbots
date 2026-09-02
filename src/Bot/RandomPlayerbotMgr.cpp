@@ -2040,51 +2040,19 @@ void RandomPlayerbotMgr::Init()
 
 void RandomPlayerbotMgr::InitArenaTeams()
 {
-    // Replace approximate Init() preload with a clean, fully-filtered set.
-    sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.clear();
-    sPlayerbotAIConfig.realPlayerFriendBotGuids.clear();
-
-    // Find all bots that appear in any real (non-rndbot) player's friend list.
-    // These bots must not be treated as pure arena bots.
-    if (!sPlayerbotAIConfig.randomBotAccounts.empty())
+    if (sPlayerbotAIConfig.deleteRandomBotArenaTeams)
     {
-        std::string botAccountList;
-        for (uint32 acctId : sPlayerbotAIConfig.randomBotAccounts)
-        {
-            if (!botAccountList.empty())
-                botAccountList += ',';
-            botAccountList += std::to_string(acctId);
-        }
-
-        if (QueryResult result = CharacterDatabase.Query(
-                "SELECT DISTINCT cs.friend FROM character_social cs "
-                "JOIN characters c ON c.guid = cs.guid "
-                "WHERE cs.flags & 1 AND c.account NOT IN ({})",
-                botAccountList))
-        {
-            uint32 count = 0;
-            do
-            {
-                uint32 rawGuid = result->Fetch()[0].Get<uint32>();
-                sPlayerbotAIConfig.realPlayerFriendBotGuids.insert(
-                    ObjectGuid::Create<HighGuid::Player>(rawGuid).GetRawValue());
-                ++count;
-            } while (result->NextRow());
-
-            if (count > 0)
-                LOG_INFO("playerbots",
-                         "Найдено {} ботов в списках друзей реальных игроков — арена-командами не станут",
-                         count);
-        }
+        RandomPlayerbotFactory::DeleteBotArenaTeams();
+        return;
     }
 
-    // sArenaTeamMgr is fully loaded by the time OnStartup() fires.
-    // Called from OnStartup so existing teams are filled before any bot randomizes.
-    RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_2v2, sPlayerbotAIConfig.randomBotArenaTeam2v2Count);
-    RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_3v3, sPlayerbotAIConfig.randomBotArenaTeam3v3Count);
-    RandomPlayerbotFactory::CreateRandomArenaTeams(ARENA_TYPE_5v5, sPlayerbotAIConfig.randomBotArenaTeam5v5Count);
+    RandomPlayerbotFactory::LoadArenaTeamData();
 
-    // Remove arena bots from real player friend lists so they aren't excluded next restart.
+    LOG_INFO("playerbots", "Bot arena teams: 2v2={}/{}, 3v3={}/{}, 5v5={}/{}",
+             RandomPlayerbotFactory::GetBotArenaTeamCount(ARENA_TYPE_2v2), sPlayerbotAIConfig.randomBotArenaTeam2v2Count,
+             RandomPlayerbotFactory::GetBotArenaTeamCount(ARENA_TYPE_3v3), sPlayerbotAIConfig.randomBotArenaTeam3v3Count,
+             RandomPlayerbotFactory::GetBotArenaTeamCount(ARENA_TYPE_5v5), sPlayerbotAIConfig.randomBotArenaTeam5v5Count);
+
     if (!sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.empty() && !sPlayerbotAIConfig.randomBotAccounts.empty())
     {
         std::string arenaGuidList;
@@ -2108,7 +2076,6 @@ void RandomPlayerbotMgr::InitArenaTeams()
             arenaGuidList, botAccountList);
         LOG_INFO("playerbots", "Очищены записи арена-ботов из списков друзей реальных игроков");
 
-        // Kick arena bots from real player guilds — they must not appear in human guilds.
         CharacterDatabase.Execute(
             "DELETE gm FROM guild_member gm "
             "JOIN characters c ON c.guid = gm.guid "
@@ -2123,25 +2090,6 @@ void RandomPlayerbotMgr::InitArenaTeams()
             arenaGuidList);
         LOG_INFO("playerbots", "Арена-боты выгнаны из гильдий реальных игроков");
     }
-
-    LOG_INFO("playerbots", "Инициализация арена-команд завершена: {} ботов под защитой",
-             sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.size());
-}
-
-void RandomPlayerbotMgr::InitArenaTeams()
-{
-    if (sPlayerbotAIConfig.deleteRandomBotArenaTeams)
-    {
-        RandomPlayerbotFactory::DeleteBotArenaTeams();
-        return;
-    }
-
-    RandomPlayerbotFactory::LoadArenaTeamData();
-
-    LOG_INFO("playerbots", "Bot arena teams: 2v2={}/{}, 3v3={}/{}, 5v5={}/{}",
-             RandomPlayerbotFactory::GetBotArenaTeamCount(ARENA_TYPE_2v2), sPlayerbotAIConfig.randomBotArenaTeam2v2Count,
-             RandomPlayerbotFactory::GetBotArenaTeamCount(ARENA_TYPE_3v3), sPlayerbotAIConfig.randomBotArenaTeam3v3Count,
-             RandomPlayerbotFactory::GetBotArenaTeamCount(ARENA_TYPE_5v5), sPlayerbotAIConfig.randomBotArenaTeam5v5Count);
 }
 
 void RandomPlayerbotMgr::RandomTeleportForLevel(Player* bot)
