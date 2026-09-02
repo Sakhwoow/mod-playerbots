@@ -126,6 +126,8 @@ public:
     AutoPartyBuffMode autoPartyBuffs;
     bool tellWhenMissingBuffReagents;
     uint32 missingBuffReagentMessageCooldown;
+    bool forceRebuffOnReadyCheck;
+    uint32 forceRebuffMarginSecs;
     bool autoAvoidAoe;
     float maxAoeAvoidRadius;
     std::set<uint32> aoeAvoidSpellWhitelist;
@@ -406,7 +408,6 @@ public:
     int32 enableRandomBotTrading;
     uint32 tweakValue;  // Debugging config
 
-    uint32 randomBotArenaTeamCount;
     uint32 randomBotArenaTeamMaxRating;
     uint32 randomBotArenaTeamMinRating;
     uint32 randomBotArenaTeam2v2Count;

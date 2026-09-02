@@ -2128,6 +2128,22 @@ void RandomPlayerbotMgr::InitArenaTeams()
              sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.size());
 }
 
+void RandomPlayerbotMgr::InitArenaTeams()
+{
+    if (sPlayerbotAIConfig.deleteRandomBotArenaTeams)
+    {
+        RandomPlayerbotFactory::DeleteBotArenaTeams();
+        return;
+    }
+
+    RandomPlayerbotFactory::LoadArenaTeamData();
+
+    LOG_INFO("playerbots", "Bot arena teams: 2v2={}/{}, 3v3={}/{}, 5v5={}/{}",
+             RandomPlayerbotFactory::GetBotArenaTeamCount(ARENA_TYPE_2v2), sPlayerbotAIConfig.randomBotArenaTeam2v2Count,
+             RandomPlayerbotFactory::GetBotArenaTeamCount(ARENA_TYPE_3v3), sPlayerbotAIConfig.randomBotArenaTeam3v3Count,
+             RandomPlayerbotFactory::GetBotArenaTeamCount(ARENA_TYPE_5v5), sPlayerbotAIConfig.randomBotArenaTeam5v5Count);
+}
+
 void RandomPlayerbotMgr::RandomTeleportForLevel(Player* bot)
 {
     if (bot->InBattleground())
@@ -2922,6 +2938,8 @@ void RandomPlayerbotMgr::OnBotLoginInternal(Player* const bot)
         PlayerbotFactory factory(bot, bot->GetLevel());
         factory.InitGuild();
     }
+
+    RandomPlayerbotFactory::AssignBotToArenaTeam(bot);
 
     if (sPlayerbotAIConfig.randomBotFixedLevel)
     {

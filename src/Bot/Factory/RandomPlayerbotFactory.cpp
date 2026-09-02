@@ -8,10 +8,16 @@
 #include "AccountMgr.h"
 #include "PlayerbotGuildMgr.h"
 #include "ArenaTeamMgr.h"
+#include "CharacterCache.h"
+#include "ObjectAccessor.h"
+#include "Player.h"
 #include "DatabaseEnv.h"
 #include "Log.h"
 #include "PlayerbotAI.h"
+#include "PlayerbotAIConfig.h"
 #include "PlayerbotFactory.h"
+#include "PlayerbotOperations.h"
+#include "PlayerbotWorldThreadProcessor.h"
 #include "RaceMgr.h"
 #include "RandomPlayerbotMgr.h"
 #include "ScriptMgr.h"
@@ -786,435 +792,242 @@ std::string const RandomPlayerbotFactory::CreateRandomGuildName()
     return guildName;
 }
 
-void RandomPlayerbotFactory::CreateRandomArenaTeams(ArenaType type, uint32 count)
+bool RandomPlayerbotFactory::IsBotArenaTeam(ArenaTeam const* team)
 {
-    std::vector<uint32> randomBots;
+    if (!team)
+        return false;
 
-    // Query characters directly from RNDBOT accounts instead of playerbots_random_bots,
-    // because Init() clears that table at startup before bots have a chance to re-register.
-    if (!sPlayerbotAIConfig.randomBotAccounts.empty())
+    ObjectGuid captainGuid = team->GetCaptain();
+    if (!captainGuid || !captainGuid.IsPlayer())
+        return false;
+
+    uint32 accountId = sCharacterCache->GetCharacterAccountIdByGuid(captainGuid);
+    return accountId && sPlayerbotAIConfig.IsInRandomAccountList(accountId);
+}
+
+void RandomPlayerbotFactory::LoadArenaTeamData()
+{
+    _configTargets = {
+        {ARENA_TYPE_2v2, sPlayerbotAIConfig.randomBotArenaTeam2v2Count},
+        {ARENA_TYPE_3v3, sPlayerbotAIConfig.randomBotArenaTeam3v3Count},
+        {ARENA_TYPE_5v5, sPlayerbotAIConfig.randomBotArenaTeam5v5Count},
+    };
+
+    _botArenaTeamRegistry.clear();
+
+    for (auto const& [id, team] : sArenaTeamMgr->GetArenaTeams())
     {
-        std::string accountList;
-        for (uint32 acctId : sPlayerbotAIConfig.randomBotAccounts)
-        {
-            if (!accountList.empty())
-                accountList += ',';
-            accountList += std::to_string(acctId);
-        }
+        if (!IsBotArenaTeam(team))
+            continue;
 
-        if (QueryResult result = CharacterDatabase.Query(
-                "SELECT guid FROM characters WHERE account IN ({}) AND level >= 80", accountList))
-        {
-            do
-            {
-                Field* fields = result->Fetch();
-                randomBots.push_back(fields[0].Get<uint32>());
-            } while (result->NextRow());
-        }
+        CharacterCacheEntry const* entry = sCharacterCache->GetCharacterCacheByGuid(team->GetCaptain());
+        if (!entry)
+            continue;
+
+        ArenaType type = static_cast<ArenaType>(team->GetType());
+        _botArenaTeamRegistry[type].push_back(id);
     }
 
-    uint32 arenaTeamNumber = 0;
-    GuidVector availableCaptains;
-    for (std::vector<uint32>::iterator i = randomBots.begin(); i != randomBots.end(); ++i)
+    _availableArenaTeamNames.clear();
+
+    QueryResult result = CharacterDatabase.Query(
+        "SELECT n.name FROM playerbots_arena_team_names n "
+        "LEFT OUTER JOIN arena_team e ON e.name = n.name "
+        "WHERE e.arenateamid IS NULL");
+
+    if (!result)
     {
-        ObjectGuid captain = ObjectGuid::Create<HighGuid::Player>(*i);
-        ArenaTeam* arenateam = sArenaTeamMgr->GetArenaTeamByCaptain(captain, type);
-        if (arenateam)
-        {
-            // Skip teams that have any non-bot member (real player joined).
-            bool isPureBotTeam = true;
-            for (auto const& member : arenateam->GetMembers())
-            {
-                if (std::find(randomBots.begin(), randomBots.end(), member.Guid.GetCounter()) == randomBots.end())
-                {
-                    isPureBotTeam = false;
-                    break;
-                }
-            }
-            if (!isPureBotTeam)
-                continue;
-
-            ++arenaTeamNumber;
-            auto& teams = sPlayerbotAIConfig.randomBotArenaTeams;
-            if (std::find(teams.begin(), teams.end(), arenateam->GetId()) == teams.end())
-                teams.push_back(arenateam->GetId());
-
-            bool needSave = false;
-
-            // Fill incomplete teams (e.g., captain-only teams from a previous restart)
-            if (arenateam->GetMembersSize() < (uint32)arenateam->GetType())
-            {
-                ObjectGuid captainGuid = arenateam->GetCaptain();
-                CharacterCacheEntry const* captainEntry = sCharacterCache->GetCharacterCacheByGuid(captainGuid);
-                TeamId captainTeamId = captainEntry ? TeamId(Player::TeamIdForRace(captainEntry->Race)) : TEAM_ALLIANCE;
-
-                GuidVector availableMembers;
-                for (uint32 botId : randomBots)
-                {
-                    ObjectGuid memberGuid = ObjectGuid::Create<HighGuid::Player>(botId);
-                    if (memberGuid == captainGuid)
-                        continue;
-                    if (sCharacterCache->GetCharacterArenaTeamIdByGuid(memberGuid, arenateam->GetSlot()) != 0)
-                        continue;
-                    CharacterCacheEntry const* entry = sCharacterCache->GetCharacterCacheByGuid(memberGuid);
-                    if (!entry || entry->Level < 80)
-                        continue;
-                    if (Player::TeamIdForRace(entry->Race) != captainTeamId)
-                        continue;
-                    if (entry->GuildId && PlayerbotGuildMgr::instance().IsRealGuild(entry->GuildId))
-                        continue;
-                    if (sPlayerbotAIConfig.realPlayerFriendBotGuids.count(memberGuid.GetRawValue()))
-                        continue;
-                    availableMembers.push_back(memberGuid);
-                }
-
-                uint32 membersNeeded = (uint32)type - arenateam->GetMembersSize();
-                uint32 membersAdded = 0;
-                for (uint32 mi = 0; mi < availableMembers.size() && membersAdded < membersNeeded; )
-                {
-                    ObjectGuid memberGuid = availableMembers[mi];
-
-                    Player* memberPlayer = ObjectAccessor::FindConnectedPlayer(memberGuid);
-                    CharacterCacheEntry const* memberEntry = sCharacterCache->GetCharacterCacheByGuid(memberGuid);
-                    uint8 cls = memberPlayer ? memberPlayer->getClass() : (memberEntry ? memberEntry->Class : 0);
-                    if (cls && !sRandomPlayerbotMgr.IsSpecPvp(memberGuid.GetCounter(), cls))
-                    {
-                        for (uint32 i = 0; i < MAX_SPECNO; ++i)
-                        {
-                            std::string const& specName = sPlayerbotAIConfig.premadeSpecName[cls][i];
-                            if (!specName.empty() && specName.find("pvp") != std::string::npos)
-                            {
-                                // Always write specNo — works for offline bots too; gear uses pvp weights on next randomize
-                                sRandomPlayerbotMgr.SetValue(memberGuid.GetCounter(), "specNo", i + 1);
-                                if (memberPlayer)
-                                {
-                                    uint32 pvpGs = sPlayerbotAIConfig.autoGearScoreLimit == 0
-                                        ? 0
-                                        : PlayerbotFactory::CalcMixedGearScore(sPlayerbotAIConfig.autoGearScoreLimit,
-                                                                               sPlayerbotAIConfig.autoGearQualityLimit);
-                                    PlayerbotFactory factory(memberPlayer, memberPlayer->GetLevel(),
-                                                             sPlayerbotAIConfig.autoGearQualityLimit, pvpGs);
-                                    factory.InitEquipment(false, sPlayerbotAIConfig.twoRoundsGearInit);
-                                    factory.Refresh();
-                                    LOG_DEBUG("playerbots", "Assigned pvp spec '{}' and gear to online arena bot {}", specName, memberPlayer->GetName());
-                                }
-                                else
-                                {
-                                    LOG_DEBUG("playerbots", "Assigned pvp spec '{}' to offline arena bot {} (gear on next randomize)", specName, memberGuid.GetCounter());
-                                }
-                                break;
-                            }
-                        }
-                    }
-
-                    if (arenateam->AddMember(memberGuid))
-                    {
-                        availableMembers.erase(availableMembers.begin() + mi);
-                        availableCaptains.erase(
-                            std::remove(availableCaptains.begin(), availableCaptains.end(), memberGuid),
-                            availableCaptains.end());
-                        ++membersAdded;
-                    }
-                    else
-                    {
-                        ++mi;
-                    }
-                }
-
-                if (membersAdded > 0)
-                {
-                    needSave = true;
-                    LOG_INFO("playerbots", "Арена-команда '{}': добавлено {} участников ({}/{})",
-                             arenateam->GetName(), membersAdded, arenateam->GetMembersSize(), (uint32)type);
-                }
-
-                if (arenateam->GetMembersSize() < (uint32)arenateam->GetType())
-                    LOG_WARN("playerbots", "Арена-команда '{}' всё ещё неполная: {}/{} участников",
-                             arenateam->GetName(), arenateam->GetMembersSize(), (uint32)type);
-            }
-
-            // Populate member guid set — skip guild bots and friend-list bots (they must not
-            // receive arena-bot always-online protection or invite-blocking behaviour).
-            for (auto const& member : arenateam->GetMembers())
-            {
-                CharacterCacheEntry const* mEntry = sCharacterCache->GetCharacterCacheByGuid(member.Guid);
-                if (mEntry && mEntry->GuildId && PlayerbotGuildMgr::instance().IsRealGuild(mEntry->GuildId))
-                    continue;
-                if (sPlayerbotAIConfig.realPlayerFriendBotGuids.count(member.Guid.GetRawValue()))
-                    continue;
-                sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.insert(member.Guid.GetRawValue());
-            }
-
-            if (sPlayerbotAIConfig.deleteRandomBotArenaTeams)
-            {
-                uint32 newRating = urand(sPlayerbotAIConfig.randomBotArenaTeamMinRating,
-                                         sPlayerbotAIConfig.randomBotArenaTeamMaxRating);
-                arenateam->SetRatingForAll(newRating);
-                for (auto& m : arenateam->GetMembers())
-                {
-                    m.MatchMakerRating = m.PersonalRating;
-                    m.MaxMMR = std::max(m.MaxMMR, m.PersonalRating);
-                }
-                needSave = true;
-            }
-
-            if (needSave)
-                arenateam->SaveToDB(true);
-        }
-        else
-        {
-            Player* player = ObjectAccessor::FindConnectedPlayer(captain);
-
-            if (!arenateam && player && player->GetLevel() >= 80 &&
-                !(player->GetGuildId() && PlayerbotGuildMgr::instance().IsRealGuild(player->GetGuildId())) &&
-                !sPlayerbotAIConfig.realPlayerFriendBotGuids.count(captain.GetRawValue()))
-                availableCaptains.push_back(captain);
-        }
+        LOG_WARN("playerbots", "No arena team names left in playerbots_arena_team_names");
+        return;
     }
 
-    for (; arenaTeamNumber < count; ++arenaTeamNumber)
+    do
     {
-        std::string const arenaTeamName = CreateRandomArenaTeamName();
-        if (arenaTeamName.empty())
-            continue;
+        Field* fields = result->Fetch();
+        _availableArenaTeamNames.push_back(fields[0].Get<std::string>());
+    } while (result->NextRow());
 
-        if (availableCaptains.empty())
+    for (size_t i = _availableArenaTeamNames.size() - 1; i > 0; --i)
+    {
+        size_t j = urand(0, i);
+        std::swap(_availableArenaTeamNames[i], _availableArenaTeamNames[j]);
+    }
+
+    LOG_INFO("playerbots", "Loaded {} available arena team names", _availableArenaTeamNames.size());
+}
+
+void RandomPlayerbotFactory::AssignBotToArenaTeam(Player* bot)
+{
+    if (!sPlayerbotAIConfig.IsInRandomAccountList(bot->GetSession()->GetAccountId()))
+        return;
+
+    if (sPlayerbotAIConfig.deleteRandomBotArenaTeams)
+        return;
+
+    if (bot->GetLevel() < 70)
+        return;
+
+    for (uint32 arena_slot = 0; arena_slot < MAX_ARENA_SLOT; ++arena_slot)
+    {
+        if (bot->GetArenaTeamId(arena_slot))
+            return;
+    }
+
+    PlayerbotWorldThreadProcessor::instance().QueueOperation(
+        std::make_unique<ArenaTeamAssignOperation>(bot->GetGUID()));
+}
+
+void RandomPlayerbotFactory::AssignBotToArenaTeamInternal(Player* bot)
+{
+    // Check if bot has team, only one per bot to avoid queue conflicts
+    for (uint32 arena_slot = 0; arena_slot < MAX_ARENA_SLOT; ++arena_slot)
+    {
+        if (bot->GetArenaTeamId(arena_slot) ||
+            sCharacterCache->GetCharacterArenaTeamIdByGuid(bot->GetGUID(), arena_slot))
+            return;
+    }
+
+    TeamId const botTeam = bot->GetTeamId();
+
+    // Randomize type order so no single type starves the others
+    std::array<ArenaType, 3> order{ARENA_TYPE_2v2, ARENA_TYPE_3v3, ARENA_TYPE_5v5};
+    for (size_t i = order.size() - 1; i > 0; --i)
+        std::swap(order[i], order[urand(0, i)]);
+
+    std::vector<ArenaTeam*> candidates;
+    for (ArenaType type : order)
+        CollectJoinableBotArenaTeams(type, botTeam, candidates);
+
+    for (size_t i = candidates.size(); i > 0; --i)
+    {
+        size_t const index = urand(0, i - 1);
+        ArenaTeam* team = candidates[index];
+        candidates[index] = candidates[i - 1];
+
+        if (!team->AddMember(bot->GetGUID()))
         {
-            LOG_ERROR("playerbots", "No captains for random arena teams available");
-            continue;
-        }
-
-        uint32 index = urand(0, availableCaptains.size() - 1);
-        ObjectGuid captain = availableCaptains[index];
-        availableCaptains.erase(availableCaptains.begin() + index);
-        Player* player = ObjectAccessor::FindConnectedPlayer(captain);
-        if (!player)
-        {
-            LOG_ERROR("playerbots", "Cannot find player for captain {}", captain.ToString().c_str());
-            continue;
-        }
-
-        if (player->GetLevel() < 80)
-        {
-            LOG_ERROR("playerbots", "Bot {} must be level 80 to create an arena team", captain.ToString().c_str());
-            continue;
-        }
-
-        // Below query no longer required as now user has control over the number of each type of arena team they want
-        // to create. Keeping commented for potential future reference. QueryResult results =
-        // CharacterDatabase.Query("SELECT `type` FROM playerbots_arena_team_names WHERE name = '{}'",
-        // arenaTeamName.c_str()); if (!results)
-        // {
-        //     LOG_ERROR("playerbots", "No valid types for arena teams");
-        //     return;
-        // }
-
-        // Field* fields = results->Fetch();
-        // uint8 slot = fields[0].Get<uint8>();
-
-        uint8 arenaSlot = ArenaTeam::GetSlotByType(type);
-
-        if (player->GetArenaTeamId(arenaSlot) ||
-            sCharacterCache->GetCharacterArenaTeamIdByGuid(player->GetGUID(), arenaSlot) != 0)
-        {
-            continue;
-        }
-
-        // Assign PvP spec if bot doesn't already have one
-        if (!sRandomPlayerbotMgr.IsSpecPvp(player->GetGUID().GetCounter(), player->getClass()))
-        {
-            uint8 cls = player->getClass();
-            for (uint32 i = 0; i < MAX_SPECNO; ++i)
-            {
-                std::string const& specName = sPlayerbotAIConfig.premadeSpecName[cls][i];
-                if (!specName.empty() && specName.find("pvp") != std::string::npos)
-                {
-                    sRandomPlayerbotMgr.SetValue(player->GetGUID().GetCounter(), "specNo", i + 1);
-                    uint32 pvpGs = sPlayerbotAIConfig.autoGearScoreLimit == 0
-                        ? 0
-                        : PlayerbotFactory::CalcMixedGearScore(sPlayerbotAIConfig.autoGearScoreLimit,
-                                                               sPlayerbotAIConfig.autoGearQualityLimit);
-                    PlayerbotFactory factory(player, player->GetLevel(),
-                                            sPlayerbotAIConfig.autoGearQualityLimit, pvpGs);
-                    factory.InitEquipment(false, sPlayerbotAIConfig.twoRoundsGearInit);
-                    factory.Refresh();
-                    LOG_DEBUG("playerbots", "Assigned pvp spec '{}' to arena bot {}", specName, player->GetName());
-                    break;
-                }
-            }
-        }
-
-        ArenaTeam* arenateam = new ArenaTeam();
-
-        if (!arenateam->Create(player->GetGUID(), type, arenaTeamName, 0, 0, 0, 0, 0))
-        {
-            LOG_ERROR("playerbots", "Error creating arena team {}", arenaTeamName.c_str());
-
-            delete arenateam;
+            LOG_DEBUG("playerbots", "Failed to add bot {} to arena team '{}', trying next candidate",
+                      bot->GetName(), team->GetName());
             continue;
         }
 
-        arenateam->SetCaptain(player->GetGUID());
-
-        // set random rating
-        arenateam->SetRatingForAll(
-            urand(sPlayerbotAIConfig.randomBotArenaTeamMinRating, sPlayerbotAIConfig.randomBotArenaTeamMaxRating));
-
-        // set random emblem
-        uint32 backgroundColor = urand(0xFF000000, 0xFFFFFFFF);
-        uint32 emblemStyle = urand(0, 101);
-        uint32 emblemColor = urand(0xFF000000, 0xFFFFFFFF);
-        uint32 borderStyle = urand(0, 5);
-        uint32 borderColor = urand(0xFF000000, 0xFFFFFFFF);
-        arenateam->SetEmblem(backgroundColor, emblemStyle, emblemColor, borderStyle, borderColor);
-
-        // set random kills (wip)
-        // arenateam->SetStats(STAT_TYPE_GAMES_WEEK, urand(0, 30));
-        // arenateam->SetStats(STAT_TYPE_WINS_WEEK, urand(0, arenateam->GetStats().games_week));
-        // arenateam->SetStats(STAT_TYPE_GAMES_SEASON, urand(arenateam->GetStats().games_week,
-        // arenateam->GetStats().games_week * 5)); arenateam->SetStats(STAT_TYPE_WINS_SEASON,
-        // urand(arenateam->GetStats().wins_week, arenateam->GetStats().games
-
-        // Build a member pool from ALL random bots (online or offline).
-        // AddMember() handles offline bots via sCharacterCache, so we don't need them online.
-        // We only need the captain to be online (required by ArenaTeam::Create).
-        GuidVector availableMembers;
-        for (uint32 botId : randomBots)
+        if (team->GetMembersSize() >= static_cast<uint32>(team->GetType()))
         {
-            ObjectGuid memberGuid = ObjectGuid::Create<HighGuid::Player>(botId);
-            if (memberGuid == captain)
-                continue;
-            // Skip bots already in a team of this slot
-            if (sCharacterCache->GetCharacterArenaTeamIdByGuid(memberGuid, arenateam->GetSlot()) != 0)
-                continue;
-            CharacterCacheEntry const* entry = sCharacterCache->GetCharacterCacheByGuid(memberGuid);
-            if (!entry || entry->Level < 80)
-                continue;
-            // Only same faction as captain
-            if (Player::TeamIdForRace(entry->Race) != player->GetTeamId())
-                continue;
-            // Skip bots that belong to guilds with real players
-            if (entry->GuildId && PlayerbotGuildMgr::instance().IsRealGuild(entry->GuildId))
-                continue;
-            // Skip bots on real players' friend lists
-            if (sPlayerbotAIConfig.realPlayerFriendBotGuids.count(memberGuid.GetRawValue()))
-                continue;
-            availableMembers.push_back(memberGuid);
-        }
+            uint32 teamRating = team->GetRating();
+            team->SetRatingForAll(teamRating);
 
-        // Add remaining members directly so the team is fully formed before going live
-        uint32 membersNeeded = (uint32)type - 1;
-        uint32 membersAdded = 0;
-        for (uint32 mi = 0; mi < availableMembers.size() && membersAdded < membersNeeded; )
-        {
-            ObjectGuid memberGuid = availableMembers[mi];
-
-            // Assign PVP spec only if the bot is currently online
-            Player* memberPlayer = ObjectAccessor::FindConnectedPlayer(memberGuid);
-            if (memberPlayer && !sRandomPlayerbotMgr.IsSpecPvp(memberPlayer->GetGUID().GetCounter(), memberPlayer->getClass()))
-            {
-                uint8 cls = memberPlayer->getClass();
-                for (uint32 i = 0; i < MAX_SPECNO; ++i)
-                {
-                    std::string const& specName = sPlayerbotAIConfig.premadeSpecName[cls][i];
-                    if (!specName.empty() && specName.find("pvp") != std::string::npos)
-                    {
-                        sRandomPlayerbotMgr.SetValue(memberPlayer->GetGUID().GetCounter(), "specNo", i + 1);
-                        uint32 pvpGs = sPlayerbotAIConfig.autoGearScoreLimit == 0
-                            ? 0
-                            : PlayerbotFactory::CalcMixedGearScore(sPlayerbotAIConfig.autoGearScoreLimit,
-                                                                   sPlayerbotAIConfig.autoGearQualityLimit);
-                        PlayerbotFactory factory(memberPlayer, memberPlayer->GetLevel(),
-                                                 sPlayerbotAIConfig.autoGearQualityLimit, pvpGs);
-                        factory.InitEquipment(false, sPlayerbotAIConfig.twoRoundsGearInit);
-                        factory.Refresh();
-                        LOG_DEBUG("playerbots", "Assigned pvp spec '{}' to arena bot {}", specName, memberPlayer->GetName());
-                        break;
-                    }
-                }
-            }
-
-            if (arenateam->AddMember(memberGuid))
-            {
-                availableMembers.erase(availableMembers.begin() + mi);
-                // Remove from captains pool so they won't become a captain later
-                availableCaptains.erase(
-                    std::remove(availableCaptains.begin(), availableCaptains.end(), memberGuid),
-                    availableCaptains.end());
-                ++membersAdded;
-            }
-            else
-            {
-                ++mi;
-            }
-        }
-
-        if (membersAdded < membersNeeded)
-            LOG_WARN("playerbots", "Arena team '{}' only got {}/{} members (not enough available bots of same faction)",
-                     arenaTeamName, membersAdded + 1, (uint32)type);
-
-        // Sync all member ratings and MMR to team rating now that the roster is complete
-        if (arenateam->GetMembersSize() >= (uint32)arenateam->GetType())
-        {
-            uint32 teamRating = arenateam->GetRating();
-            arenateam->SetRatingForAll(teamRating);
-            for (auto& member : arenateam->GetMembers())
+            // Keep MMR synchronized with team rating so matchmaking reflects artificial bot strength
+            // (1000-2000 range) instead of the global CONFIG_ARENA_START_MATCHMAKER_RATING default.
+            for (auto& member : team->GetMembers())
             {
                 member.MatchMakerRating = member.PersonalRating;
                 member.MaxMMR = std::max(member.MaxMMR, member.PersonalRating);
             }
+            team->SaveToDB(true);
         }
-
-        arenateam->SaveToDB(true);
-        sArenaTeamMgr->AddArenaTeam(arenateam);
-        {
-            auto& teams = sPlayerbotAIConfig.randomBotArenaTeams;
-            if (std::find(teams.begin(), teams.end(), arenateam->GetId()) == teams.end())
-                teams.push_back(arenateam->GetId());
-        }
-
-        for (auto const& member : arenateam->GetMembers())
-        {
-            CharacterCacheEntry const* mEntry = sCharacterCache->GetCharacterCacheByGuid(member.Guid);
-            if (mEntry && mEntry->GuildId && PlayerbotGuildMgr::instance().IsRealGuild(mEntry->GuildId))
-                continue;
-            if (sPlayerbotAIConfig.realPlayerFriendBotGuids.count(member.Guid.GetRawValue()))
-                continue;
-            sPlayerbotAIConfig.randomBotArenaTeamMemberGuids.insert(member.Guid.GetRawValue());
-        }
+        return;
     }
 
-    LOG_DEBUG("playerbots", "{} random bot {}vs{} arena teams available", arenaTeamNumber, type, type);
+    // No joinable team available, create one if under target count
+    for (ArenaType type : order)
+    {
+        if (GetBotArenaTeamCount(type) < _configTargets[type])
+        {
+            CreateBotArenaTeam(bot, type);
+            return;
+        }
+    }
 }
 
-std::string const RandomPlayerbotFactory::CreateRandomArenaTeamName()
+void RandomPlayerbotFactory::CreateBotArenaTeam(Player* bot, ArenaType type)
 {
-    std::string arenaTeamName = "";
+    std::string teamName = CreateRandomArenaTeamName();
+    if (teamName.empty())
+        return;
 
-    QueryResult result = CharacterDatabase.Query("SELECT MAX(name_id) FROM playerbots_arena_team_names");
-    if (!result)
+    ArenaTeam* arenateam = new ArenaTeam();
+    if (!arenateam->Create(bot->GetGUID(), type, teamName, 0, 0, 0, 0, 0))
     {
-        LOG_ERROR("playerbots", "No more names left for random arena teams");
-        return arenaTeamName;
+        LOG_ERROR("playerbots", "Error creating arena team {}", teamName);
+        delete arenateam;
+        _availableArenaTeamNames.push_back(std::move(teamName));
+        return;
     }
 
-    Field* fields = result->Fetch();
-    uint32 maxId = fields[0].Get<uint32>();
+    arenateam->SetRatingForAll(
+        urand(sPlayerbotAIConfig.randomBotArenaTeamMinRating, sPlayerbotAIConfig.randomBotArenaTeamMaxRating));
 
-    uint32 id = urand(0, maxId);
-    result = CharacterDatabase.Query(
-        "SELECT n.name FROM playerbots_arena_team_names n LEFT OUTER JOIN arena_team e ON e.name = n.name "
-        "WHERE e.arenateamid IS NULL AND n.name_id >= {} LIMIT 1",
-        id);
+    uint32 backgroundColor = urand(0xFF000000, 0xFFFFFFFF);
+    uint32 emblemStyle = urand(0, 101);
+    uint32 emblemColor = urand(0xFF000000, 0xFFFFFFFF);
+    uint32 borderStyle = urand(0, 5);
+    uint32 borderColor = urand(0xFF000000, 0xFFFFFFFF);
+    arenateam->SetEmblem(backgroundColor, emblemStyle, emblemColor, borderStyle, borderColor);
 
-    if (!result)
+    arenateam->SaveToDB();
+    sArenaTeamMgr->AddArenaTeam(arenateam);
+    _botArenaTeamRegistry[type].push_back(arenateam->GetId());
+
+    LOG_DEBUG("playerbots", "Created {}v{} arena team '{}' with captain {}",
+              type, type, teamName, bot->GetName());
+}
+
+uint32 RandomPlayerbotFactory::GetBotArenaTeamCount(ArenaType type)
+{
+    auto it = _botArenaTeamRegistry.find(type);
+    return it != _botArenaTeamRegistry.end() ? static_cast<uint32>(it->second.size()) : 0;
+}
+
+void RandomPlayerbotFactory::CollectJoinableBotArenaTeams(ArenaType type, TeamId faction, std::vector<ArenaTeam*>& out)
+{
+    auto it = _botArenaTeamRegistry.find(type);
+    if (it == _botArenaTeamRegistry.end())
+        return;
+
+    uint32 const capacity = static_cast<uint32>(type);
+    for (uint32 teamId : it->second)
     {
-        LOG_ERROR("playerbots", "No more names left for random arena teams");
-        return arenaTeamName;
+        ArenaTeam* team = sArenaTeamMgr->GetArenaTeamById(teamId);
+        if (!team || team->GetMembersSize() >= capacity)
+            continue;
+
+        CharacterCacheEntry const* entry = sCharacterCache->GetCharacterCacheByGuid(team->GetCaptain());
+        if (entry && Player::TeamIdForRace(entry->Race) == faction)
+            out.push_back(team);
+    }
+}
+
+void RandomPlayerbotFactory::DeleteBotArenaTeams()
+{
+    LOG_INFO("playerbots", "Deleting random bot arena teams...");
+
+    std::vector<uint32> teamsToDisband;
+    for (auto const& [id, arenateam] : sArenaTeamMgr->GetArenaTeams())
+    {
+        if (IsBotArenaTeam(arenateam))
+            teamsToDisband.push_back(id);
     }
 
-    fields = result->Fetch();
-    arenaTeamName = fields[0].Get<std::string>();
+    for (uint32 teamId : teamsToDisband)
+    {
+        ArenaTeam* team = sArenaTeamMgr->GetArenaTeamById(teamId);
+        if (team)
+            team->Disband(nullptr);
+    }
 
-    return arenaTeamName;
+    _botArenaTeamRegistry.clear();
+    LOG_INFO("playerbots", "Deleted {} random bot arena teams", teamsToDisband.size());
+}
+
+std::string RandomPlayerbotFactory::CreateRandomArenaTeamName()
+{
+    if (_availableArenaTeamNames.empty())
+    {
+        LOG_ERROR("playerbots", "No more names left for random arena teams");
+        return "";
+    }
+
+    std::string name = std::move(_availableArenaTeamNames.back());
+    _availableArenaTeamNames.pop_back();
+    return name;
 }

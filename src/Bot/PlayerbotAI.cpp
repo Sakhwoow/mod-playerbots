@@ -13,6 +13,7 @@
 #include "CheckMountStateAction.h"
 #include "Common.h"
 #include "CreatureData.h"
+#include "DBCStores.h"
 #include "EmoteAction.h"
 #include "Engine.h"
 #include "EventProcessor.h"
@@ -134,6 +135,7 @@ PlayerbotAI::PlayerbotAI()
 
 PlayerbotAI::PlayerbotAI(Player* bot)
     : PlayerbotAIBase(true),
+      forceRebuff(bot),
       bot(bot),
       master(nullptr),
       chatHelper(this),
@@ -271,10 +273,6 @@ void PlayerbotAI::UpdateAI(uint32 elapsed, bool minimal)
     }
 
     AllowActivity();
-
-    // If we get attacked, drop the pending delay so the engine can switch to combat.
-    if (nextAICheckDelay && bot->IsInCombat() && currentEngine != engines[BOT_STATE_COMBAT])
-        nextAICheckDelay = 0;
 
     if (!CanUpdateAI())
         return;
@@ -1798,6 +1796,12 @@ void PlayerbotAI::ApplyInstanceStrategies(uint32 mapId, bool tellMaster)
             "string_added_instance_strategy", "Added %strategy instance strategy",
             {{"%strategy", strategyName}}));
     }
+}
+
+bool PlayerbotAI::IsInNonRaidDungeon() const
+{
+    MapEntry const* mapEntry = sMapStore.LookupEntry(bot->GetMapId());
+    return mapEntry && mapEntry->IsNonRaidDungeon();
 }
 
 bool PlayerbotAI::HasTargetExclusions() const
@@ -3853,6 +3857,8 @@ bool PlayerbotAI::CastSpell(uint32 spellId, Unit* target, Item* itemTarget)
         out << "Casting " << ChatHelper::FormatSpell(spellInfo);
         TellMasterNoFacing(out);
     }
+
+    forceRebuff.NoteCast(spellInfo);
 
     return true;
 }

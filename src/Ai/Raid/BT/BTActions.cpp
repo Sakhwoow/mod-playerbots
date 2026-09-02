@@ -7,11 +7,12 @@
 #include "BTActions.h"
 #include "BTHelpers.h"
 #include "CreatureAI.h"
+#include "EncounterHelpers.h"
 #include "Playerbots.h"
-#include "RaidBossHelpers.h"
 #include <vector>
 
 using namespace BlackTempleHelpers;
+using namespace EncounterHelpers;
 
 // General
 
@@ -91,7 +92,7 @@ bool HighWarlordNajentusMisdirectBossToMainTankAction::Execute(Event /*event*/)
     if (!najentus)
         return false;
 
-    Player* mainTank = GetGroupMainTank(botAI, bot);
+    Player* mainTank = GetGroupMainTank(bot);
     if (!mainTank)
         return false;
 
@@ -289,9 +290,9 @@ bool SupremusMisdirectBossToMainTankAction::Execute(Event /*event*/)
     if (hunters.empty())
         return false;
 
-    Player* mainTank = GetGroupMainTank(botAI, bot);
-    Player* firstAssistTank = GetGroupAssistTank(botAI, bot, 0);
-    Player* secondAssistTank = GetGroupAssistTank(botAI, bot, 1);
+    Player* mainTank = GetGroupMainTank(bot);
+    Player* firstAssistTank = GetGroupAssistTank(bot, 0);
+    Player* secondAssistTank = GetGroupAssistTank(bot, 1);
 
     Player* misdirectTarget = nullptr;
     if (bot == hunters[0] && mainTank)
@@ -538,7 +539,7 @@ bool TeronGorefiendMisdirectBossToMainTankAction::Execute(Event /*event*/)
     if (!gorefiend)
         return false;
 
-    Player* mainTank = GetGroupMainTank(botAI, bot);
+    Player* mainTank = GetGroupMainTank(bot);
     if (!mainTank)
         return false;
 
@@ -813,7 +814,7 @@ bool GurtoggBloodboilMisdirectBossToMainTankAction::Execute(Event /*event*/)
     if (!group)
         return false;
 
-    Player* mainTank = GetGroupMainTank(botAI, bot);
+    Player* mainTank = GetGroupMainTank(bot);
     if (!mainTank)
         return false;
 
@@ -953,7 +954,7 @@ bool ReliquaryOfSoulsMisdirectBossToMainTankAction::Execute(Event /*event*/)
     if (!desire && !anger)
         return false;
 
-    Player* mainTank = GetGroupMainTank(botAI, bot);
+    Player* mainTank = GetGroupMainTank(bot);
     if (!mainTank)
         return false;
 
@@ -1140,7 +1141,7 @@ bool MotherShahrazMisdirectBossToMainTankAction::Execute(Event /*event*/)
     if (!shahraz)
         return false;
 
-    Player* mainTank = GetGroupMainTank(botAI, bot);
+    Player* mainTank = GetGroupMainTank(bot);
     if (!mainTank)
         return false;
 
@@ -1365,7 +1366,7 @@ bool IllidariCouncilMisdirectBossesToTanksAction::Execute(Event /*event*/)
         councilTarget = AI_VALUE2(Unit*, "find target", "lady malande");
         for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
         {
-            if (Player* member = GetGroupAssistTank(botAI, bot, 0))
+            if (Player* member = GetGroupAssistTank(bot, 0))
             {
                 tankTarget = member;
                 break;
@@ -1377,7 +1378,7 @@ bool IllidariCouncilMisdirectBossesToTanksAction::Execute(Event /*event*/)
         councilTarget = AI_VALUE2(Unit*, "find target", "gathios the shatterer");
         for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
         {
-            if (Player* member = GetGroupMainTank(botAI, bot))
+            if (Player* member = GetGroupMainTank(bot))
             {
                 tankTarget = member;
                 break;
@@ -1389,7 +1390,7 @@ bool IllidariCouncilMisdirectBossesToTanksAction::Execute(Event /*event*/)
         councilTarget = AI_VALUE2(Unit*, "find target", "veras darkshadow");
         for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
         {
-            if (Player* member = GetGroupAssistTank(botAI, bot, 1))
+            if (Player* member = GetGroupAssistTank(bot, 1))
             {
                 tankTarget = member;
                 break;
@@ -1428,7 +1429,7 @@ bool IllidariCouncilMainTankPositionGathiosAction::Execute(Event /*event*/)
     if (MarkTargetWithSquare(bot, gathios))
         return true;
 
-    SetRtiTarget(botAI, "square", gathios);
+    SetRtiTarget(botAI, "square");
 
     if (AI_VALUE(Unit*, "current target") != gathios)
         return Attack(gathios);
@@ -1501,7 +1502,7 @@ bool IllidariCouncilFirstAssistTankFocusMalandeAction::Execute(Event /*event*/)
     if (MarkTargetWithStar(bot, malande))
         return true;
 
-    SetRtiTarget(botAI, "star", malande);
+    SetRtiTarget(botAI, "star");
 
     if (AI_VALUE(Unit*, "current target") != malande)
         return Attack(malande);
@@ -1525,14 +1526,14 @@ bool IllidariCouncilSecondAssistTankPositionDarkshadowAction::Execute(Event /*ev
     if (MarkTargetWithCircle(bot, darkshadow))
         return true;
 
-    SetRtiTarget(botAI, "circle", darkshadow);
+    SetRtiTarget(botAI, "circle");
 
     if (AI_VALUE(Unit*, "current target") != darkshadow)
         return Attack(darkshadow);
 
     if (darkshadow->GetVictim() == bot)
     {
-        Player* mainTank = GetGroupMainTank(botAI, bot);
+        Player* mainTank = GetGroupMainTank(bot);
         if (!mainTank)
             return false;
 
@@ -1570,7 +1571,7 @@ bool IllidariCouncilMageTankPositionZerevorAction::Execute(Event /*event*/)
     if (MarkTargetWithTriangle(bot, zerevor))
         return true;
 
-    SetRtiTarget(botAI, "triangle", zerevor);
+    SetRtiTarget(botAI, "triangle");
 
     if (AI_VALUE(Unit*, "current target") != zerevor)
         return Attack(zerevor);
@@ -1708,7 +1709,7 @@ bool IllidariCouncilAssignDpsTargetsAction::Execute(Event /*event*/)
 
     if (shouldAttackMalande)
     {
-        SetRtiTarget(botAI, "star", malande);
+        SetRtiTarget(botAI, "star");
 
         if (AI_VALUE(Unit*, "current target") != malande)
             return Attack(malande);
@@ -1717,14 +1718,14 @@ bool IllidariCouncilAssignDpsTargetsAction::Execute(Event /*event*/)
              darkshadow && !darkshadow->HasAura(
                 static_cast<uint32>(BlackTempleSpells::SPELL_VANISH)))
     {
-        SetRtiTarget(botAI, "circle", darkshadow);
+        SetRtiTarget(botAI, "circle");
 
         if (AI_VALUE(Unit*, "current target") != darkshadow)
             return Attack(darkshadow);
     }
     else if (Unit* gathios = AI_VALUE2(Unit*, "find target", "gathios the shatterer"))
     {
-        SetRtiTarget(botAI, "square", gathios);
+        SetRtiTarget(botAI, "square");
 
         if (AI_VALUE(Unit*, "current target") != gathios)
             return Attack(gathios);
@@ -1796,8 +1797,8 @@ bool IllidanStormrageMisdirectToTankAction::TryMisdirectToFlameTanks(Group* grou
     if (!eastFlame || !westFlame || eastFlame == westFlame)
         return false;
 
-    Player* firstAssistTank = GetGroupAssistTank(botAI, bot, 0);
-    Player* secondAssistTank = GetGroupAssistTank(botAI, bot, 1);
+    Player* firstAssistTank = GetGroupAssistTank(bot, 0);
+    Player* secondAssistTank = GetGroupAssistTank(bot, 1);
     if (!firstAssistTank || !secondAssistTank)
         return false;
 
