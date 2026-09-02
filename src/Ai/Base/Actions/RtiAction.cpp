@@ -64,9 +64,17 @@ bool MarkRtiAction::Execute(Event /*event*/)
     if (bot->InBattleground())
         return false;
 
-    // Only the group leader marks targets to avoid all bots simultaneously fighting over icons.
-    if (!group->IsLeader(bot->GetGUID()))
-        return false;
+    std::string const rti = AI_VALUE(std::string, "rti");
+    uint8 index = RtiTargetValue::GetRtiIndex(rti);
+
+    // Skip if the RTI slot already holds a live target — no need to re-mark.
+    ObjectGuid currentIcon = group->GetTargetIcon(index);
+    if (!currentIcon.IsEmpty())
+    {
+        if (Unit* current = botAI->GetUnit(currentIcon))
+            if (current->IsAlive())
+                return false;
+    }
 
     Unit* target = nullptr;
     GuidVector attackers = botAI->GetAiObjectContext()->GetValue<GuidVector>("attackers")->Get();
@@ -101,8 +109,6 @@ bool MarkRtiAction::Execute(Event /*event*/)
     if (!target)
         return false;
 
-    std::string const rti = AI_VALUE(std::string, "rti");
-    uint8 index = RtiTargetValue::GetRtiIndex(rti);
     group->SetTargetIcon(index, bot->GetGUID(), target->GetGUID());
     return true;
 }
