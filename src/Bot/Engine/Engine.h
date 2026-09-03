@@ -118,6 +118,8 @@ protected:
     uint32 strategyTypeMask;
     bool hasTargetExclusions = false;
     NamedObjectFactoryList<ActionNode> actionNodeFactories;
+    int _tickDepth = 0;
+    bool _pendingInit = false;
 };
 
 #endif

@@ -116,6 +116,12 @@ void Engine::Reset()
 
 void Engine::Init()
 {
+    if (_tickDepth > 0)
+    {
+        _pendingInit = true;
+        return;
+    }
+
     Reset();
 
     hasTargetExclusions = false;
@@ -142,6 +148,7 @@ void Engine::Init()
 
 bool Engine::DoNextAction(Unit* /*unit*/, uint32 /*depth*/, bool minimal)
 {
+    ++_tickDepth;
     LogAction("--- AI Tick ---");
 
     if (sPlayerbotAIConfig.logValuesPerTick)
@@ -252,6 +259,13 @@ bool Engine::DoNextAction(Unit* /*unit*/, uint32 /*depth*/, bool minimal)
         LogAction("no actions executed");
 
     queue.RemoveExpired();
+
+    --_tickDepth;
+    if (_tickDepth == 0 && _pendingInit)
+    {
+        _pendingInit = false;
+        Init();
+    }
 
     return actionExecuted;
 }
