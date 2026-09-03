@@ -406,8 +406,8 @@ void PlayerbotAI::UpdateAI(uint32 elapsed, bool minimal)
     // Update the bot's group status (moved to helper function)
     UpdateAIGroupMaster();
 
-    // Update internal AI
-    UpdateAIInternal(elapsed, minimal);
+    // Update internal AI — clamp elapsed so elapsed-proportional work is bounded after stalls
+    UpdateAIInternal(std::min(elapsed, uint32(5000)), minimal);
     YieldThread(bot, GetReactDelay());
 }
 
@@ -496,8 +496,9 @@ void PlayerbotAI::UpdateAIInternal([[maybe_unused]] uint32 elapsed, bool minimal
 
     ExternalEventHelper helper(aiObjectContext);
 
-    // chat replies
-    for (auto it = chatReplies.begin(); it != chatReplies.end();)
+    // chat replies — cap drain to 3 per tick to prevent self-sustaining spiral after stalls
+    int chatRepliesProcessed = 0;
+    for (auto it = chatReplies.begin(); it != chatReplies.end() && chatRepliesProcessed < 3;)
     {
         time_t checkTime = it->m_time;
         if (checkTime && time(0) < checkTime)
@@ -508,6 +509,7 @@ void PlayerbotAI::UpdateAIInternal([[maybe_unused]] uint32 elapsed, bool minimal
 
         ChatReplyAction::ChatReplyDo(bot, it->m_type, it->m_guid1, it->m_msg, it->m_chanName, it->m_name);
         it = chatReplies.erase(it);
+        ++chatRepliesProcessed;
     }
 
     HandleCommands();
@@ -6086,7 +6088,13 @@ bool PlayerbotAI::IsInRealGuild()
     return PlayerbotGuildMgr::instance().IsRealGuild(bot->GetGuildId());
 }
 
-void PlayerbotAI::QueueChatResponse(const ChatQueuedReply chatReply) { chatReplies.push_back(std::move(chatReply)); }
+void PlayerbotAI::QueueChatResponse(const ChatQueuedReply chatReply)
+{
+    // Drop when backed up — stale replies contribute to tick spirals
+    if (chatReplies.size() >= 10)
+        return;
+    chatReplies.push_back(std::move(chatReply));
+}
 
 bool PlayerbotAI::EqualLowercaseName(std::string s1, std::string s2)
 {
