@@ -22,6 +22,11 @@ bool LootAction::Execute(Event /*event*/)
         return false;
 
     LootObject prevLoot = AI_VALUE(LootObject, "loot target");
+
+    // Keep the current target while it is still valid to avoid switching mid-path.
+    if (!prevLoot.IsEmpty() && prevLoot.IsLootPossible(bot))
+        return true;
+
     LootObject const& lootObject =
         AI_VALUE(LootObjectStack*, "available loot")->GetLoot(sPlayerbotAIConfig.lootDistance);
 
