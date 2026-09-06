@@ -1051,6 +1051,19 @@ void RandomPlayerbotMgr::CheckBgQueue()
         }
     }
 
+    // If any rated arena queue is active, ensure arena member bots are online so captains
+    // can gather their teams on the next cycle without waiting for async bot login to complete.
+    for (int bracket = BG_BRACKET_ID_FIRST; bracket < MAX_BATTLEGROUND_BRACKETS; ++bracket)
+    {
+        if (BattlegroundData[BATTLEGROUND_QUEUE_2v2][bracket].activeRatedArenaQueue ||
+            BattlegroundData[BATTLEGROUND_QUEUE_3v3][bracket].activeRatedArenaQueue ||
+            BattlegroundData[BATTLEGROUND_QUEUE_5v5][bracket].activeRatedArenaQueue)
+        {
+            EnsureArenaBotsOnline();
+            break;
+        }
+    }
+
     // Process player bots
     for (auto& [guid, bot] : playerBots)
     {
