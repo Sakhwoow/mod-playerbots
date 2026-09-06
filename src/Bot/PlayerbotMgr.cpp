@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license, you may redistribute it
  * and/or modify it under version 3 of the License, or (at your option), any later version.
  */
@@ -1235,8 +1235,8 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
             return messages;
         }
         uint8 teamId = master->GetTeamId(true);
-        const std::unordered_set<ObjectGuid> &guidCache = sRandomPlayerbotMgr.addclassCache[RandomPlayerbotMgr::GetTeamClassIdx(teamId == TEAM_ALLIANCE, claz)];
-        for (const ObjectGuid &guid: guidCache)
+        std::unordered_set<ObjectGuid> const& guidCache = sRandomPlayerbotMgr.addclassCache[RandomPlayerbotMgr::GetTeamClassIdx(teamId == TEAM_ALLIANCE, claz)];
+        for (ObjectGuid const& guid: guidCache)
         {
             // If the user requested a specific gender, skip any character that doesn't match.
             if (gender != -1 && GetOfflinePlayerGender(guid) != gender)
@@ -1925,7 +1925,7 @@ PlayerbotMgr* PlayerbotsMgr::GetPlayerbotMgr(Player* player)
     return nullptr;
 }
 
-void PlayerbotMgr::HandleSetSecurityKeyCommand(Player* player, const std::string& key)
+void PlayerbotMgr::HandleSetSecurityKeyCommand(Player* player, std::string const& key)
 {
     uint32 accountId = player->GetSession()->GetAccountId();
 
@@ -1946,7 +1946,7 @@ void PlayerbotMgr::HandleSetSecurityKeyCommand(Player* player, const std::string
     ChatHandler(player->GetSession()).PSendSysMessage("Security key set successfully.");
 }
 
-void PlayerbotMgr::HandleLinkAccountCommand(Player* player, const std::string& accountName, const std::string& key)
+void PlayerbotMgr::HandleLinkAccountCommand(Player* player, std::string const& accountName, std::string const& key)
 {
     QueryResult result = LoginDatabase.Query("SELECT id FROM account WHERE username = '{}'", accountName);
     if (!result)
@@ -2024,7 +2024,7 @@ void PlayerbotMgr::HandleViewLinkedAccountsCommand(Player* player)
     } while (result->NextRow());
 }
 
-void PlayerbotMgr::HandleUnlinkAccountCommand(Player* player, const std::string& accountName)
+void PlayerbotMgr::HandleUnlinkAccountCommand(Player* player, std::string const& accountName)
 {
     QueryResult result = LoginDatabase.Query("SELECT id FROM account WHERE username = '{}'", accountName);
     if (!result)

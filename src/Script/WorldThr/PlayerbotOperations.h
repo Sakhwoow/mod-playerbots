@@ -384,7 +384,7 @@ public:
         }
 
         // Step 1: Remove all members from their existing groups
-        for (const ObjectGuid& memberGuid : m_memberGuids)
+        for (ObjectGuid const& memberGuid : m_memberGuids)
         {
             Player* member = ObjectAccessor::FindPlayer(memberGuid);
             if (!member)
@@ -423,7 +423,7 @@ public:
 
         // Step 4: Add members to the new group
         uint32 addedMembers = 0;
-        for (const ObjectGuid& memberGuid : m_memberGuids)
+        for (ObjectGuid const& memberGuid : m_memberGuids)
         {
             Player* member = ObjectAccessor::FindPlayer(memberGuid);
             if (!member)
@@ -459,7 +459,7 @@ public:
         }
 
         // Step 5: Teleport members to leader and reset AI
-        for (const ObjectGuid& memberGuid : m_memberGuids)
+        for (ObjectGuid const& memberGuid : m_memberGuids)
         {
             Player* member = ObjectAccessor::FindPlayer(memberGuid);
             if (!member || !newGroup->IsMember(memberGuid))

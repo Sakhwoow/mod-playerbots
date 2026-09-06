@@ -46,8 +46,8 @@ private:
     PlayerbotGuildMgr() = default;
     ~PlayerbotGuildMgr() = default;
 
-    PlayerbotGuildMgr(const PlayerbotGuildMgr&) = delete;
-    PlayerbotGuildMgr& operator=(const PlayerbotGuildMgr&) = delete;
+    PlayerbotGuildMgr(PlayerbotGuildMgr const&) = delete;
+    PlayerbotGuildMgr& operator=(PlayerbotGuildMgr const&) = delete;
 
     PlayerbotGuildMgr(PlayerbotGuildMgr&&) = delete;
     PlayerbotGuildMgr& operator=(PlayerbotGuildMgr&&) = delete;
