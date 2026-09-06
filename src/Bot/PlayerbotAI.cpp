@@ -1653,7 +1653,7 @@ void PlayerbotAI::ApplyInstanceStrategies(uint32 mapId, bool tellMaster)
         "moltencore", "naxx", "onyxia", "rs", "ssc", "tbc-ac", "tbc-mech", "tbc-seth", "vanilla-sm",
         "tempestkeep", "ulduar", "voa", "wotlk-an", "wotlk-cos", "wotlk-dtk", "wotlk-eoe",
         "wotlk-fos", "wotlk-gd", "wotlk-hol", "wotlk-hor", "wotlk-hos", "wotlk-nex", "wotlk-occ", "wotlk-ok",
-        "wotlk-os", "wotlk-pos", "wotlk-toc", "wotlk-uk", "wotlk-up", "wotlk-vh", "zulaman"
+        "tbc-tbm", "wotlk-os", "wotlk-pos", "wotlk-toc", "wotlk-uk", "wotlk-up", "wotlk-vh", "zulaman"
     };
 
     for (const std::string& strat : allInstanceStrategies)
@@ -1697,6 +1697,9 @@ void PlayerbotAI::ApplyInstanceStrategies(uint32 mapId, bool tellMaster)
             break;
         case 550:
             strategyName = "tempestkeep";  // Tempest Keep: The Eye
+            break;
+        case 269:
+            strategyName = "tbc-tbm";   // The Black Morass
             break;
         case 556:
             strategyName = "tbc-seth";  // Auchindoun: Sethekk Halls

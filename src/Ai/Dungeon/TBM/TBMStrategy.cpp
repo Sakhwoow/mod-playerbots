@@ -4,12 +4,10 @@
  * or (at your option) any later version.
  */
 
-#ifndef PLAYERBOTS_TBCDUNGEONTRIGGERCONTEXT_H
-#define PLAYERBOTS_TBCDUNGEONTRIGGERCONTEXT_H
+#include "TBMStrategy.h"
 
-#include "ACTriggerContext.h"
-#include "MechTriggerContext.h"
-#include "SethTriggerContext.h"
-#include "TBMTriggerContext.h"
-
-#endif
+void TbcDungeonBlackMorassStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
+{
+    triggers.push_back(new TriggerNode("tbm wave mob nearby",
+        { NextAction("tbm attack wave mob", ACTION_NORMAL) }));
+}
