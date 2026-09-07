@@ -2442,6 +2442,13 @@ bool RandomPlayerbotMgr::IsRandomBot(ObjectGuid::LowType bot)
     return currentBots.contains(bot);
 }
 
+bool RandomPlayerbotMgr::IsRndBotAccount(uint32 accountId) const
+{
+    if (sPlayerbotAIConfig.IsInRandomAccountList(accountId))
+        return true;
+    return std::find(rndBotTypeAccounts.begin(), rndBotTypeAccounts.end(), accountId) != rndBotTypeAccounts.end();
+}
+
 bool RandomPlayerbotMgr::IsAddclassBot(Player* bot)
 {
     if (bot && GET_PLAYERBOT_AI(bot))
@@ -2963,7 +2970,8 @@ uint32 RandomPlayerbotMgr::GetOnlineGuildBotCount(uint32 guildId)
     uint32 count = 0;
     for (auto const& [guid, bot] : playerBots)
     {
-        if (IsRandomBot(bot) && bot->GetGuildId() == guildId && bot->IsInWorld())
+        uint32 acctId = sCharacterCache->GetCharacterAccountIdByGuid(bot->GetGUID());
+        if (IsRndBotAccount(acctId) && bot->GetGuildId() == guildId && bot->IsInWorld())
             count++;
     }
     return count;
@@ -3007,7 +3015,7 @@ void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId, uint32 precompute
         uint32 charGuid = (*result)[0].Get<uint32>();
         uint32 accountId = (*result)[1].Get<uint32>();
 
-        if (!sPlayerbotAIConfig.IsInRandomAccountList(accountId))
+        if (!IsRndBotAccount(accountId))
             continue;
 
         ObjectGuid botGUID = ObjectGuid::Create<HighGuid::Player>(charGuid);
