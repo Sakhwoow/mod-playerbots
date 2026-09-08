@@ -1156,9 +1156,12 @@ static std::vector<std::string> split(std::string const& str, std::string const&
 
 std::vector<std::vector<uint32>> PlayerbotAIConfig::ParseTempTalentsOrder(uint32 cls, std::string tab_link)
 {
+    std::vector<std::vector<uint32>> res;
+    if (tab_link.empty())
+        return res;
+
     // check bad link
     uint32 classMask = 1 << (cls - 1);
-    std::vector<std::vector<uint32>> res;
     std::vector<std::string> tab_links = split(tab_link, "-");
     std::map<uint32, std::vector<TalentEntry const*>> spells;
     std::vector<std::vector<std::vector<uint32>>> orders(3);
