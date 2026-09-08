@@ -423,10 +423,12 @@ void PlayerbotAI::UpdateAIGroupMaster()
 
     Group* group = bot->GetGroup();
 
-    // If bot is not in group verify that for is RandomBot before clearing  master and resetting.
+    // If bot is not in group, clear master and reset strategies for any managed random bot.
+    // Use IsRndBotAccount so type=1 bots (rndBotTypeAccounts) are also covered, not just rndbot* accounts.
     if (!group)
     {
-        if (master && sRandomPlayerbotMgr.IsRandomBot(bot))
+        uint32 acctId = sCharacterCache->GetCharacterAccountIdByGuid(bot->GetGUID());
+        if (master && sRandomPlayerbotMgr.IsRndBotAccount(acctId))
         {
             SetMaster(nullptr);
             Reset(true);
@@ -441,8 +443,11 @@ void PlayerbotAI::UpdateAIGroupMaster()
 
     // Bot in BG, but master no longer part of a group: release master
     // Exclude alt and addclass bots as they rely on current (real player) master, security-wise.
-    if (bot->InBattleground() && sRandomPlayerbotMgr.IsRandomBot(bot) && master && !master->GetGroup())
-        SetMaster(nullptr);
+    {
+        uint32 bgAcctId = sCharacterCache->GetCharacterAccountIdByGuid(bot->GetGUID());
+        if (bot->InBattleground() && sRandomPlayerbotMgr.IsRndBotAccount(bgAcctId) && master && !master->GetGroup())
+            SetMaster(nullptr);
+    }
 
     PlayerbotAI* masterBotAI = nullptr;
     if (master)
