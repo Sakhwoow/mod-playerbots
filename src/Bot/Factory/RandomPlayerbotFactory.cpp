@@ -350,12 +350,19 @@ uint32 RandomPlayerbotFactory::CalculateTotalAccountCount()
         }
     }
 
-    // Check existing account types
+    // Check existing account types — only among actual rndbot* accounts to avoid
+    // counting real-player or cross-server accounts that end up in playerbots_account_type.
     uint32 existingRndBotAccounts = 0;
     uint32 existingAddClassAccounts = 0;
     uint32 existingUnassignedAccounts = 0;
 
-    QueryResult typeCheck = PlayerbotsDatabase.Query("SELECT account_type, COUNT(*) FROM playerbots_account_type GROUP BY account_type");
+    QueryResult typeCheck = PlayerbotsDatabase.Query(
+        "SELECT pat.account_type, COUNT(*) "
+        "FROM playerbots_account_type pat "
+        "JOIN acore_auth.account a ON pat.account_id = a.id "
+        "WHERE a.username LIKE '{}%' "
+        "GROUP BY pat.account_type",
+        sPlayerbotAIConfig.randomBotAccountPrefix);
     if (typeCheck)
     {
         do
@@ -370,6 +377,12 @@ uint32 RandomPlayerbotFactory::CalculateTotalAccountCount()
         } while (typeCheck->NextRow());
     }
 
+    // Use actual rndbot* account count from auth as the real pool size.
+    QueryResult authCount = LoginDatabase.Query(
+        "SELECT COUNT(*) FROM account WHERE username LIKE '{}%'",
+        sPlayerbotAIConfig.randomBotAccountPrefix);
+    uint32 existingTotal = authCount ? authCount->Fetch()[0].Get<uint32>() : 0;
+
     // Determine divisor based on Death Knight availability and requested A&H faction ratio
     int divisor = CalculateAvailableCharsPerAccount();
 
@@ -383,9 +396,6 @@ uint32 RandomPlayerbotFactory::CalculateTotalAccountCount()
     // Result is rounded up for maxBots not cleanly divisible by the divisor
     uint32 neededRndBotAccounts = (maxBots + divisor - 1) / divisor;
     uint32 neededAddClassAccounts = sPlayerbotAIConfig.addClassAccountPoolSize;
-
-    // Start with existing total
-    uint32 existingTotal = existingRndBotAccounts + existingAddClassAccounts + existingUnassignedAccounts;
 
     // Calculate shortfalls after using unassigned accounts
     uint32 availableUnassigned = existingUnassignedAccounts;
