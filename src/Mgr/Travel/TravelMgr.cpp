@@ -4817,6 +4817,12 @@ void TravelMgr::PrepareDestinationCache()
         {
             CreatureTemplate const* creatureTemplate = sObjectMgr->GetCreatureTemplate(creatureDataList[0].id);
             uint32 level = (creatureTemplate->minlevel + creatureTemplate->maxlevel + 1) / 2;
+
+            float avgZ = 0.0f;
+            for (auto const& cd : creatureDataList)
+                avgZ += cd.posZ;
+            avgZ /= static_cast<float>(creatureDataList.size());
+
             for (int32 l = (int32)level - (int32)sPlayerbotAIConfig.randomBotTeleLowerLevel;
                  l <= (int32)level + (int32)sPlayerbotAIConfig.randomBotTeleHigherLevel; l++)
             {
@@ -4826,7 +4832,7 @@ void TravelMgr::PrepareDestinationCache()
                 locsPerLevelCache[(uint8)l].push_back(WorldLocation(std::get<0>(gridTuple),
                     static_cast<float>(std::get<1>(gridTuple)) * 50.0f,
                     static_cast<float>(std::get<2>(gridTuple)) * 50.0f,
-                    static_cast<float>(std::get<3>(gridTuple)) * 50.0f));
+                    avgZ));
             }
         }
     }
