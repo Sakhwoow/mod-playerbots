@@ -556,7 +556,7 @@ void PlayerbotHolder::OnBotLogin(Player* const bot)
             if (sPlayerbotAIConfig.KeepAltsInGroup())
             {
                 uint32 account = sCharacterCache->GetCharacterAccountIdByGuid(member);
-                if (!sPlayerbotAIConfig.IsInRandomAccountList(account))
+                if (!sPlayerbotAIConfig.IsRandomBotAccount(account))
                 {
                     groupValid = true;
                     break;
@@ -632,7 +632,7 @@ void PlayerbotHolder::OnBotLogin(Player* const bot)
     //     // bot->TeleportTo(master);
     // }
     uint32 accountId = bot->GetSession()->GetAccountId();
-    bool isRandomAccount = sPlayerbotAIConfig.IsInRandomAccountList(accountId);
+    bool isRandomAccount = sPlayerbotAIConfig.IsRandomBotAccount(accountId);
 
     if (isRandomAccount && sPlayerbotAIConfig.randomBotFixedLevel)
     {

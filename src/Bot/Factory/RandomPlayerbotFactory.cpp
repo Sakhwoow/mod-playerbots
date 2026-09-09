@@ -829,7 +829,7 @@ bool RandomPlayerbotFactory::IsBotArenaTeam(ArenaTeam const* team)
         return false;
 
     uint32 accountId = sCharacterCache->GetCharacterAccountIdByGuid(captainGuid);
-    return accountId && sPlayerbotAIConfig.IsInRandomAccountList(accountId);
+    return accountId && sPlayerbotAIConfig.IsRandomBotAccount(accountId);
 }
 
 void RandomPlayerbotFactory::LoadArenaTeamData()
