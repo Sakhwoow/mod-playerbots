@@ -991,15 +991,30 @@ WorldPosition NewRpgBaseAction::SelectRandomGrindPos(Player* bot)
             continue;
 
         if (bot->GetExactDist(loc) < hiRange)
-        {
             hi_prepared_locs.push_back(loc);
-        }
 
         if (bot->GetExactDist(loc) < loRange)
-        {
             lo_prepared_locs.push_back(loc);
+    }
+
+    // If the bot's current zone has no grind mobs (e.g. Crystalsong Forest under
+    // Dalaran, or a transition zone), search the whole map within range instead of
+    // staying stuck forever in REST.
+    if (lo_prepared_locs.empty())
+    {
+        for (auto& loc : locs)
+        {
+            if (bot->GetMapId() != loc.GetMapId())
+                continue;
+
+            if (bot->GetExactDist(loc) < hiRange)
+                hi_prepared_locs.push_back(loc);
+
+            if (bot->GetExactDist(loc) < loRange)
+                lo_prepared_locs.push_back(loc);
         }
     }
+
     WorldPosition dest{};
     if (urand(1, 100) <= 50 && !hi_prepared_locs.empty())
     {
