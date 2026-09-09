@@ -1101,9 +1101,12 @@ bool NewRpgBaseAction::RandomChangeStatus(std::vector<NewRpgStatus> candidateSta
         return true;
     }
 
-    // If only REST is available the bot is stranded (wrong continent for its level,
-    // no nearby flight master, etc.). Teleport it to the appropriate zone immediately.
-    if (availableStatus.size() == 1 && availableStatus[0] == RPG_REST)
+    // If only REST is available and this is a random bot, it is stranded on the wrong
+    // continent for its level. Teleport it to the appropriate zone immediately.
+    // Personal (player-owned) bots are intentionally excluded — they must stay near
+    // their owner even when no RPG action is possible in that area.
+    if (availableStatus.size() == 1 && availableStatus[0] == RPG_REST &&
+        sRandomPlayerbotMgr.IsRandomBot(bot))
         sRandomPlayerbotMgr.RandomTeleportForLevel(bot);
 
     uint32 rand = urand(1, probSum);
