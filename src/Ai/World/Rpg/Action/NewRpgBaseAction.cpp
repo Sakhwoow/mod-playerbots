@@ -1100,6 +1100,12 @@ bool NewRpgBaseAction::RandomChangeStatus(std::vector<NewRpgStatus> candidateSta
         bot->SetStandState(UNIT_STAND_STATE_SIT);
         return true;
     }
+
+    // If only REST is available the bot is stranded (wrong continent for its level,
+    // no nearby flight master, etc.). Teleport it to the appropriate zone immediately.
+    if (availableStatus.size() == 1 && availableStatus[0] == RPG_REST)
+        sRandomPlayerbotMgr.RandomTeleportForLevel(bot);
+
     uint32 rand = urand(1, probSum);
     uint32 accumulate = 0;
     NewRpgStatus chosenStatus = RPG_STATUS_END;
