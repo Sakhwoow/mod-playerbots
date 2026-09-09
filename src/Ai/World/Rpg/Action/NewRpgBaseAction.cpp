@@ -1102,12 +1102,13 @@ bool NewRpgBaseAction::RandomChangeStatus(std::vector<NewRpgStatus> candidateSta
     }
 
     // If only REST is available and this is a random bot, it is stranded on the wrong
-    // continent for its level. Teleport it to the appropriate zone immediately.
+    // continent for its level (e.g. level-80 bot in Stormwind). Use the grind-teleport
+    // path (no banker/city chance) so the bot lands on the correct continent every time.
     // Personal (player-owned) bots are intentionally excluded — they must stay near
     // their owner even when no RPG action is possible in that area.
     if (availableStatus.size() == 1 && availableStatus[0] == RPG_REST &&
         sRandomPlayerbotMgr.IsRandomBot(bot))
-        sRandomPlayerbotMgr.RandomTeleportForLevel(bot);
+        sRandomPlayerbotMgr.RandomTeleportGrindForLevel(bot);
 
     uint32 rand = urand(1, probSum);
     uint32 accumulate = 0;
