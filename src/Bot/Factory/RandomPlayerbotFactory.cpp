@@ -653,6 +653,16 @@ void RandomPlayerbotFactory::CreateRandomBots()
     int bot_creation = 0;
     timer = getMSTime();
     bool nameCached = false;
+
+    // Only create characters for accounts that are actually needed as active bots.
+    // Extra accounts in the pool are registered in randomBotAccounts but skipped for char creation.
+    uint32 charsPerAccount = CalculateAvailableCharsPerAccount();
+    uint32 neededRndBotAccounts = ((uint32)sPlayerbotAIConfig.maxRandomBots + charsPerAccount - 1) / charsPerAccount;
+    if (sPlayerbotAIConfig.enablePeriodicOnlineOffline)
+        neededRndBotAccounts = (uint32)std::ceil(neededRndBotAccounts * sPlayerbotAIConfig.periodicOnlineOfflineRatio);
+    uint32 neededAccounts = neededRndBotAccounts + (uint32)sPlayerbotAIConfig.addClassAccountPoolSize;
+    uint32 accountsReadyForBots = 0;
+
     for (uint32 accountNumber = 0; accountNumber < totalAccountCount; ++accountNumber)
     {
         std::ostringstream out;
@@ -673,8 +683,13 @@ void RandomPlayerbotFactory::CreateRandomBots()
         uint32 count = AccountMgr::GetCharactersCount(accountId);
         if (count >= 10)
         {
+            accountsReadyForBots++;
             continue;
         }
+
+        // Don't create characters for accounts beyond what's needed for active bots.
+        if (accountsReadyForBots >= neededAccounts)
+            continue;
 
         if (!nameCached)
         {
@@ -737,6 +752,7 @@ void RandomPlayerbotFactory::CreateRandomBots()
             delete playerBot;
             bot_creation++;
         }
+        accountsReadyForBots++;
     }
 
     if (bot_creation)
