@@ -63,7 +63,7 @@ PlayerbotSecurityLevel PlayerbotSecurity::LevelFor(Player* from, DenyReason* rea
 
         if (fromGroup && botGroup && fromGroup == botGroup && !ignoreGroup)
         {
-            if (botAI->GetMaster() == from)
+            if (botAI->GetMaster() == from || fromGroup->GetLeaderGUID() == from->GetGUID())
                 return PLAYERBOT_SECURITY_ALLOW_ALL;
 
             if (reason)
