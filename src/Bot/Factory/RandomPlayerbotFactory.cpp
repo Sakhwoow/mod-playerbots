@@ -885,7 +885,7 @@ void RandomPlayerbotFactory::LoadArenaTeamData()
 
 void RandomPlayerbotFactory::AssignBotToArenaTeam(Player* bot)
 {
-    if (!sPlayerbotAIConfig.IsInRandomAccountList(bot->GetSession()->GetAccountId()))
+    if (!sPlayerbotAIConfig.IsRandomBotAccount(bot->GetSession()->GetAccountId()))
         return;
 
     if (sPlayerbotAIConfig.deleteRandomBotArenaTeams)
