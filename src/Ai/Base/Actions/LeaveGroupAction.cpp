@@ -123,6 +123,10 @@ bool LeaveFarAwayAction::isUseful()
     if (groupLeader && !groupLeaderBotAI)
         return false;
 
+    // Selfbot leaders are real players — treat them the same as a pure real player leader.
+    if (groupLeader && IsSelfBot(groupLeader))
+        return false;
+
     if (trueMaster && !GET_PLAYERBOT_AI(trueMaster))
         return false;
 
