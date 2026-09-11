@@ -2054,10 +2054,7 @@ void RandomPlayerbotMgr::Init()
 void RandomPlayerbotMgr::InitArenaTeams()
 {
     if (sPlayerbotAIConfig.deleteRandomBotArenaTeams)
-    {
         RandomPlayerbotFactory::DeleteBotArenaTeams();
-        return;
-    }
 
     RandomPlayerbotFactory::LoadArenaTeamData();
 

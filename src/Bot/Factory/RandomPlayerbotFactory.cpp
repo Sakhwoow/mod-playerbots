@@ -888,9 +888,6 @@ void RandomPlayerbotFactory::AssignBotToArenaTeam(Player* bot)
     if (!sRandomPlayerbotMgr.IsRndBotAccount(bot->GetSession()->GetAccountId()))
         return;
 
-    if (sPlayerbotAIConfig.deleteRandomBotArenaTeams)
-        return;
-
     if (bot->GetLevel() < 70)
         return;
 
