@@ -15,7 +15,7 @@ class Unit;
 class GrindTargetValue : public TargetValue
 {
 public:
-    GrindTargetValue(PlayerbotAI* botAI, std::string const name = "grind target") : TargetValue(botAI, name) {}
+    GrindTargetValue(PlayerbotAI* botAI, std::string const name = "grind target") : TargetValue(botAI, name, 1000) {}
 
     Unit* Calculate() override;
 

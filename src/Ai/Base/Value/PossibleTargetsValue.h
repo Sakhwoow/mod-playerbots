@@ -17,7 +17,7 @@ class PossibleTargetsValue : public NearestUnitsValue
 public:
     PossibleTargetsValue(PlayerbotAI* botAI, std::string const name = "possible targets",
                          float range = sPlayerbotAIConfig.sightDistance, bool ignoreLos = false)
-        : NearestUnitsValue(botAI, name, range, ignoreLos)
+        : NearestUnitsValue(botAI, name, range, ignoreLos, 500)
     {
     }
 

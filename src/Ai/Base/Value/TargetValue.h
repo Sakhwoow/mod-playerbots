@@ -133,7 +133,7 @@ public:
 class FindTargetValue : public UnitCalculatedValue, public Qualified
 {
 public:
-    FindTargetValue(PlayerbotAI* botAI) : UnitCalculatedValue(botAI, "find target", /*2 * 1000*/ 1) {}
+    FindTargetValue(PlayerbotAI* botAI) : UnitCalculatedValue(botAI, "find target", 500) {}
 
 public:
     Unit* Calculate();
