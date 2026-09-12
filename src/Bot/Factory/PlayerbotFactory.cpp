@@ -3509,6 +3509,11 @@ void PlayerbotFactory::InitAvailableSpells()
     for (auto const& ref : trainerSpellRefCache[cls])
     {
         // simplified version of Trainer::TeachSpell method
+
+        // Fast-path: skip already-known spells before the expensive CanTeachSpell check
+        if (bot->HasSpell(ref.spell->SpellId))
+            continue;
+
         if (!IsTrainerSpellAllowedForBot(bot, ref.trainer, ref.spell))
             continue;
 
