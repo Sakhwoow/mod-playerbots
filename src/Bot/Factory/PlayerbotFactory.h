@@ -231,7 +231,13 @@ private:
     uint32 itemQuality;
     uint32 gearScoreLimit;
     static std::list<uint32> specialQuestIds;
+    struct CachedTrainerSpellRef
+    {
+        Trainer::Trainer const* trainer;
+        Trainer::Spell const* spell;
+    };
     static std::unordered_map<uint32, std::vector<uint32>> trainerIdCache;
+    static std::unordered_map<uint8, std::vector<CachedTrainerSpellRef>> trainerSpellRefCache;
     static std::vector<uint32> enchantSpellIdCache;
     static std::vector<uint32> enchantGemIdCache;
     static std::vector<uint32> ccBreakTrinketCache;

@@ -65,6 +65,7 @@ std::list<uint32> PlayerbotFactory::specialQuestIds;
 std::vector<uint32> PlayerbotFactory::enchantSpellIdCache;
 std::vector<uint32> PlayerbotFactory::enchantGemIdCache;
 std::unordered_map<uint32, std::vector<uint32>> PlayerbotFactory::trainerIdCache;
+std::unordered_map<uint8, std::vector<PlayerbotFactory::CachedTrainerSpellRef>> PlayerbotFactory::trainerSpellRefCache;
 std::vector<uint32> PlayerbotFactory::ccBreakTrinketCache;
 
 namespace
@@ -3460,7 +3461,9 @@ void PlayerbotFactory::SetRandomSkill(uint16 id)
 
 void PlayerbotFactory::InitAvailableSpells()
 {
-    if (trainerIdCache[bot->getClass()].empty())
+    uint8 const cls = bot->getClass();
+
+    if (trainerIdCache[cls].empty())
     {
         CreatureTemplateContainer const* creatureTemplateContainer = sObjectMgr->GetCreatureTemplates();
         for (CreatureTemplateContainer::const_iterator i = creatureTemplateContainer->begin();
@@ -3479,32 +3482,43 @@ void PlayerbotFactory::InitAvailableSpells()
                 !trainer->IsTrainerValidForPlayer(bot))
                 continue;
 
-            trainerIdCache[bot->getClass()].push_back(i->first);
+            trainerIdCache[cls].push_back(i->first);
         }
     }
-    for (uint32 trainerId : trainerIdCache[bot->getClass()])
+
+    // Build flat spell ref cache once per class to avoid repeated sObjectMgr->GetTrainer() lookups
+    if (trainerSpellRefCache[cls].empty())
     {
-        Trainer::Trainer* trainer = sObjectMgr->GetTrainer(trainerId);
-
-        for (auto& spell : trainer->GetSpells())
+        for (uint32 trainerId : trainerIdCache[cls])
         {
-            // simplified version of Trainer::TeachSpell method
-
-            Trainer::Spell const* trainerSpell = trainer->GetSpell(spell.SpellId);
-            if (!trainerSpell)
+            Trainer::Trainer* trainer = sObjectMgr->GetTrainer(trainerId);
+            if (!trainer)
                 continue;
 
-            if (!IsTrainerSpellAllowedForBot(bot, trainer, trainerSpell))
-                continue;
+            for (auto& spell : trainer->GetSpells())
+            {
+                Trainer::Spell const* trainerSpell = trainer->GetSpell(spell.SpellId);
+                if (!trainerSpell)
+                    continue;
 
-            if (!trainer->CanTeachSpell(bot, trainerSpell))
-                continue;
-
-            if (trainerSpell->IsCastable())
-                bot->CastSpell(bot, trainerSpell->SpellId, true);
-            else
-                bot->learnSpell(trainerSpell->SpellId, false);
+                trainerSpellRefCache[cls].push_back({trainer, trainerSpell});
+            }
         }
+    }
+
+    for (auto const& ref : trainerSpellRefCache[cls])
+    {
+        // simplified version of Trainer::TeachSpell method
+        if (!IsTrainerSpellAllowedForBot(bot, ref.trainer, ref.spell))
+            continue;
+
+        if (!ref.trainer->CanTeachSpell(bot, ref.spell))
+            continue;
+
+        if (ref.spell->IsCastable())
+            bot->CastSpell(bot, ref.spell->SpellId, true);
+        else
+            bot->learnSpell(ref.spell->SpellId, false);
     }
 }
 
