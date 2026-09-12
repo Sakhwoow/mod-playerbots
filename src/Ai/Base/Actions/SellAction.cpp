@@ -5,6 +5,7 @@
  */
 
 #include "SellAction.h"
+#include "ChatHelper.h"
 #include "Event.h"
 #include "ItemPackets.h"
 #include "PlayerbotTextMgr.h"
@@ -27,18 +28,48 @@ private:
     SellAction* action;
 };
 
-class SellGrayItemsVisitor : public SellItemsVisitor
+class SellQualityItemsVisitor : public SellItemsVisitor
 {
 public:
-    SellGrayItemsVisitor(SellAction* action) : SellItemsVisitor(action) {}
+    SellQualityItemsVisitor(SellAction* action, uint32 maxQuality, bool allClasses)
+        : SellItemsVisitor(action), maxQuality(maxQuality), allClasses(allClasses)
+    {
+    }
 
     bool Visit(Item* item) override
     {
-        if (item->GetTemplate()->Quality != ITEM_QUALITY_POOR)
+        ItemTemplate const* proto = item->GetTemplate();
+        if (proto->Quality > maxQuality)
+            return true;
+
+        if (IsProfessionTool(proto))
+            return true;
+
+        if (!allClasses && proto->Quality > ITEM_QUALITY_POOR && !IsEquipment(proto))
             return true;
 
         return SellItemsVisitor::Visit(item);
     }
+
+private:
+    static bool IsEquipment(ItemTemplate const* proto)
+    {
+        return proto->Class == ITEM_CLASS_ARMOR || proto->Class == ITEM_CLASS_WEAPON;
+    }
+
+    static bool IsProfessionTool(ItemTemplate const* proto)
+    {
+        if (proto->Class != ITEM_CLASS_WEAPON)
+            return false;
+
+        if (proto->SubClass == ITEM_SUBCLASS_WEAPON_MISC || proto->SubClass == ITEM_SUBCLASS_WEAPON_FISHING_POLE)
+            return true;
+
+        return proto->TotemCategory != 0;
+    }
+
+    uint32 maxQuality;
+    bool allClasses;
 };
 
 class SellVendorItemsVisitor : public SellItemsVisitor
@@ -63,7 +94,7 @@ bool SellAction::Execute(Event event)
     std::string const text = event.getParam();
     if (text == "gray" || text == "*")
     {
-        SellGrayItemsVisitor visitor(this);
+        SellQualityItemsVisitor visitor(this, ITEM_QUALITY_POOR, false);
         IterateItems(&visitor);
         return true;
     }
@@ -71,6 +102,24 @@ bool SellAction::Execute(Event event)
     if (text == "vendor")
     {
         SellVendorItemsVisitor visitor(this, context);
+        IterateItems(&visitor);
+        return true;
+    }
+
+    std::string quality = text;
+    bool allClasses = false;
+
+    size_t const split = quality.rfind(' ');
+    if (split != std::string::npos && quality.substr(split + 1) == "all")
+    {
+        quality.erase(split);
+        allClasses = true;
+    }
+
+    uint32 const maxQuality = ChatHelper::parseItemQuality(quality);
+    if (maxQuality != MAX_ITEM_QUALITY)
+    {
+        SellQualityItemsVisitor visitor(this, maxQuality, allClasses);
         IterateItems(&visitor);
         return true;
     }
@@ -85,7 +134,7 @@ bool SellAction::Execute(Event event)
         return true;
     }
 
-    botAI->TellError("Использование: s gray/*/vendor/[ссылка на предмет]");
+    botAI->TellError("Использование: s gray/*/vendor/<quality> [all]/[ссылка на предмет]");
     return false;
 }
 
