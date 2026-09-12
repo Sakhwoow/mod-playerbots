@@ -1256,13 +1256,22 @@ bool NewRpgBaseAction::CheckRpgStatusAvailable(NewRpgStatus status)
         }
         case RPG_GO_GRIND:
         {
-            WorldPosition pos = SelectRandomGrindPos(bot);
-            return pos != WorldPosition();
+            // Lightweight map-level check: avoid expensive per-position GetZoneId calls.
+            // Full zone filtering happens in SelectRandomGrindPos when the status is chosen.
+            std::vector<WorldLocation> const& locs = sTravelMgr.GetLocsPerLevelCache(bot->GetLevel());
+            for (auto const& loc : locs)
+                if (loc.GetMapId() == bot->GetMapId())
+                    return true;
+            return false;
         }
         case RPG_GO_CAMP:
         {
-            WorldPosition pos = SelectRandomCampPos(bot);
-            return pos != WorldPosition();
+            // Lightweight map-level check; full zone filtering done in SelectRandomCampPos.
+            std::vector<WorldLocation> const hubs = sTravelMgr.GetTravelHubs(bot);
+            for (auto const& loc : hubs)
+                if (loc.GetMapId() == bot->GetMapId())
+                    return true;
+            return false;
         }
         case RPG_WANDER_NPC:
         {
@@ -1288,10 +1297,9 @@ bool NewRpgBaseAction::CheckRpgStatusAvailable(NewRpgStatus status)
         }
         case RPG_TRAVEL_FLIGHT:
         {
-            uint32 flightMasterEntry = 0;
-            WorldPosition flightMasterPos;
-            std::vector<uint32> path;
-            return SelectRandomFlightTaxiNode(flightMasterEntry, flightMasterPos, path);
+            // Lightweight check: only verify a nearby flight master exists.
+            // Full path computation happens in SelectRandomFlightTaxiNode when the status is chosen.
+            return sTravelMgr.GetNearestFlightMasterInfo(bot) != nullptr;
         }
         case RPG_OUTDOOR_PVP:
         {
