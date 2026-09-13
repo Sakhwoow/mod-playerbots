@@ -262,6 +262,7 @@ private:
     uint32 processTicks;
     bool randomizedThisTick = false;
     std::deque<WorldSession*> _pendingPersonalBotLogouts;
+    std::deque<ObjectGuid> _pendingGuildBotLogouts;
 
     // std::map<uint32, std::vector<WorldLocation>> rpgLocsCache;
     std::map<uint32, std::map<uint32, std::vector<WorldLocation>>> rpgLocsCacheLevel;

@@ -2956,16 +2956,25 @@ void RandomPlayerbotMgr::QueuePersonalBotLogout(WorldSession* session)
 
 void RandomPlayerbotMgr::ProcessPendingLogouts()
 {
-    if (_pendingPersonalBotLogouts.empty())
-        return;
+    if (!_pendingPersonalBotLogouts.empty())
+    {
+        WorldSession* session = _pendingPersonalBotLogouts.front();
+        _pendingPersonalBotLogouts.pop_front();
 
-    WorldSession* session = _pendingPersonalBotLogouts.front();
-    _pendingPersonalBotLogouts.pop_front();
+        if (session && !session->isLogingOut())
+            session->LogoutPlayer(true);
 
-    if (session && !session->isLogingOut())
-        session->LogoutPlayer(true);
+        delete session;
+    }
 
-    delete session;
+    if (!_pendingGuildBotLogouts.empty())
+    {
+        ObjectGuid botGuid = _pendingGuildBotLogouts.front();
+        _pendingGuildBotLogouts.pop_front();
+
+        if (GetPlayerBot(botGuid))
+            LogoutPlayerBot(botGuid);
+    }
 }
 
 void RandomPlayerbotMgr::OnPlayerLogout(Player* player)
@@ -3170,9 +3179,8 @@ void RandomPlayerbotMgr::EnsureGuildBotsOffline(uint32 guildId)
         uint32 botLow = botGuid.GetCounter();
         SetEventValue(botLow, "add", 0, 0);
         currentBots.erase(botLow);
-        if (GetPlayerBot(botGuid))
-            LogoutPlayerBot(botGuid);
-        LOG_DEBUG("playerbots", "EnsureGuildBotsOffline: logging out guild bot {} (guild {})", botLow, guildId);
+        _pendingGuildBotLogouts.push_back(botGuid);
+        LOG_DEBUG("playerbots", "EnsureGuildBotsOffline: queuing guild bot {} for logout (guild {})", botLow, guildId);
     }
 }
 
