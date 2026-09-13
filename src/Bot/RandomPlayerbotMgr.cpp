@@ -775,7 +775,7 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
                 hordeChars.push_back(charInfo);
         }
 
-        // Refresh guild-bot GUID cache at most once per 60 seconds
+        // Refresh guild-bot GUID cache at most once per 5 minutes
         if (sPlayerbotAIConfig.guildBotMinOnline && !rndBotTypeAccounts.empty())
         {
             time_t now = time(nullptr);
@@ -2993,6 +2993,7 @@ void RandomPlayerbotMgr::OnPlayerLogout(Player* player)
         players.erase(i);
 
     if (sPlayerbotAIConfig.guildBotMinOnline && player->GetGuildId() &&
+        !IsRandomBot(player) &&
         PlayerbotGuildMgr::instance().IsRealGuild(player->GetGuildId()))
     {
         EnsureGuildBotsOffline(player->GetGuildId());
