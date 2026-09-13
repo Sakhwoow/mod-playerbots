@@ -5,6 +5,9 @@
  */
 
 #include "RSScripts.h"
+#include "AllCreatureScript.h"
+#include "AllMapScript.h"
+#include "Map.h"
 #include "Player.h"
 #include "Playerbots.h"
 #include "RSActions.h"
@@ -49,35 +52,96 @@ static uint8 RsHalionReadCorporealityIndex(Creature* creature)
     return 5;
 }
 
-class RsHalionRootScript : public AllCreatureScript
+// Registry of relevant Ruby Sanctum creature GUIDs per instance.
+// Populated by RsHalionCreatureTrackerScript (AllCreatureScript add/remove hooks)
+// and consumed by RsHalionRootScript (AllMapScript per-tick update).
+namespace
+{
+    std::mutex s_rsCreatureMutex;
+    std::unordered_map<uint32, std::vector<ObjectGuid>> s_rsTrackedCreatures; // instanceId → GUIDs
+}
+
+static void RsMeteorMarkProcess(Creature* mark)
+{
+    if (!mark->IsAlive())
+        return;
+
+    RubySanctumHelpers::RsInstanceState& instState = RubySanctumHelpers::RsState(mark->GetMap()->GetInstanceId());
+
+    if (!instState.seenMeteorMarks.insert(mark->GetGUID()).second)
+        return;
+
+    RubySanctumHelpers::MeteorPingPong& state = instState.meteorPingPong;
+    state.lastCastTime = getMSTime();
+
+    bool const tankMeteor = mark->GetExactDist2d(RS_HALION_TANK_POSITION.GetPositionX(), RS_HALION_TANK_POSITION.GetPositionY()) <= 10.0f;
+    bool const tankEscapeMeteor = mark->GetExactDist2d(RS_HALION_TANK_METEOR_SPOT.GetPositionX(), RS_HALION_TANK_METEOR_SPOT.GetPositionY()) <= 10.0f;
+    if (tankMeteor)
+        state.tankMeteorTime = getMSTime();
+    else if (tankEscapeMeteor)
+        state.tankReturnTime = getMSTime();
+    else
+        ++state.count;
+}
+
+// Fires once per active Ruby Sanctum map instance per tick instead of once per every creature
+// in the world. Handles Halion root, cutter timing, and living add tracking.
+class RsHalionRootScript : public AllMapScript
 {
 public:
-    RsHalionRootScript() : AllCreatureScript("RsHalionRootScript") { }
+    RsHalionRootScript() : AllMapScript("RsHalionRootScript") {}
 
-    void OnAllCreatureUpdate(Creature* creature, uint32 ) override
+    void OnMapUpdate(Map* map, uint32 /*diff*/) override
     {
-        if (!creature || creature->GetMapId() != RS_MAP_RUBY_SANCTUM)
+        if (map->GetId() != RS_MAP_RUBY_SANCTUM)
             return;
 
-        if (creature->GetEntry() == NPC_METEOR_STRIKE_MARK)
+        uint32 const instanceId = map->GetInstanceId();
+
+        std::vector<ObjectGuid> guids;
         {
-            HandleMeteorMark(creature);
-            return;
+            std::lock_guard<std::mutex> lock(s_rsCreatureMutex);
+            auto it = s_rsTrackedCreatures.find(instanceId);
+            if (it == s_rsTrackedCreatures.end())
+                return;
+            guids = it->second;
         }
 
-        if (creature->GetEntry() == NPC_HALION)
-            HandleHalionRoot(creature);
+        for (ObjectGuid const& guid : guids)
+        {
+            Creature* creature = map->GetCreature(guid);
+            if (!creature)
+                continue;
 
-        if (creature->GetEntry() == NPC_TWILIGHT_HALION)
-            HandleTwilightHalionRoot(creature);
+            switch (creature->GetEntry())
+            {
+                case NPC_HALION:
+                    HandleHalionRoot(creature);
+                    break;
+                case NPC_TWILIGHT_HALION:
+                    HandleTwilightHalionRoot(creature);
+                    break;
+                case NPC_ORB_CARRIER:
+                    HandleCutterTiming(creature);
+                    break;
+                case NPC_LIVING_INFERNO:
+                case NPC_LIVING_EMBER:
+                    if (creature->IsAlive())
+                        RubySanctumHelpers::RsState(instanceId).portalAddGate.lastAddAliveTime = getMSTime();
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 
-        if (creature->GetEntry() == NPC_ORB_CARRIER)
-            HandleCutterTiming(creature);
+    void OnDestroyMap(Map* map) override
+    {
+        if (map->GetId() != RS_MAP_RUBY_SANCTUM)
+            return;
 
-        if ((creature->GetEntry() == NPC_LIVING_INFERNO || creature->GetEntry() == NPC_LIVING_EMBER) &&
-            creature->IsAlive())
-            RubySanctumHelpers::RsState(creature->GetMap()->GetInstanceId())
-                .portalAddGate.lastAddAliveTime = getMSTime();
+        std::lock_guard<std::mutex> lock(s_rsCreatureMutex);
+        s_rsTrackedCreatures.erase(map->GetInstanceId());
     }
 
 private:
@@ -135,7 +199,6 @@ private:
             return;
         last = now;
 
-        // SPELL_EXPERIENCED (ICC spell reused): +% damage done
         constexpr uint32 RS_BOT_DMG_BONUS_SPELL = 71188;
 
         Map::PlayerList const& players = creature->GetMap()->GetPlayers();
@@ -462,28 +525,6 @@ private:
             HandleConsumptionGodMode(creature);
         }
     }
-    void HandleMeteorMark(Creature* mark)
-    {
-        if (!mark->IsAlive())
-            return;
-
-        RubySanctumHelpers::RsInstanceState& instState = RubySanctumHelpers::RsState(mark->GetMap()->GetInstanceId());
-
-        if (!instState.seenMeteorMarks.insert(mark->GetGUID()).second)
-            return;
-
-        RubySanctumHelpers::MeteorPingPong& state = instState.meteorPingPong;
-        state.lastCastTime = getMSTime();
-
-        bool const tankMeteor = mark->GetExactDist2d(RS_HALION_TANK_POSITION.GetPositionX(), RS_HALION_TANK_POSITION.GetPositionY()) <= 10.0f;
-        bool const tankEscapeMeteor = mark->GetExactDist2d(RS_HALION_TANK_METEOR_SPOT.GetPositionX(), RS_HALION_TANK_METEOR_SPOT.GetPositionY()) <= 10.0f;
-        if (tankMeteor)
-            state.tankMeteorTime = getMSTime();
-        else if (tankEscapeMeteor)
-            state.tankReturnTime = getMSTime();
-        else
-            ++state.count;
-    }
 
     void HandleHalionRoot(Creature* creature)
     {
@@ -557,6 +598,58 @@ private:
     }
 };
 
+// Tracks per-instance Ruby Sanctum creature GUIDs so RsHalionRootScript (AllMapScript) can
+// iterate only the relevant creatures instead of every creature in the world.
+// Also handles one-time meteor mark processing on creature spawn.
+class RsHalionCreatureTrackerScript : public AllCreatureScript
+{
+public:
+    RsHalionCreatureTrackerScript() : AllCreatureScript("RsHalionCreatureTrackerScript") {}
+
+    void OnCreatureAddWorld(Creature* creature) override
+    {
+        if (creature->GetMapId() != RS_MAP_RUBY_SANCTUM)
+            return;
+
+        uint32 const entry = creature->GetEntry();
+
+        if (entry == NPC_METEOR_STRIKE_MARK)
+        {
+            RsMeteorMarkProcess(creature);
+            return;
+        }
+
+        if (entry != NPC_HALION && entry != NPC_TWILIGHT_HALION &&
+            entry != NPC_ORB_CARRIER && entry != NPC_LIVING_INFERNO &&
+            entry != NPC_LIVING_EMBER)
+            return;
+
+        std::lock_guard<std::mutex> lock(s_rsCreatureMutex);
+        s_rsTrackedCreatures[creature->GetMap()->GetInstanceId()].push_back(creature->GetGUID());
+    }
+
+    void OnCreatureRemoveWorld(Creature* creature) override
+    {
+        if (creature->GetMapId() != RS_MAP_RUBY_SANCTUM)
+            return;
+
+        uint32 const entry = creature->GetEntry();
+        if (entry != NPC_HALION && entry != NPC_TWILIGHT_HALION &&
+            entry != NPC_ORB_CARRIER && entry != NPC_LIVING_INFERNO &&
+            entry != NPC_LIVING_EMBER)
+            return;
+
+        std::lock_guard<std::mutex> lock(s_rsCreatureMutex);
+        uint32 const instanceId = creature->GetMap()->GetInstanceId();
+        auto it = s_rsTrackedCreatures.find(instanceId);
+        if (it == s_rsTrackedCreatures.end())
+            return;
+
+        auto& vec = it->second;
+        vec.erase(std::remove(vec.begin(), vec.end(), creature->GetGUID()), vec.end());
+    }
+};
+
 // Dark Breath (Twilight Halion) immunity for real players in the twilight realm.
 //
 // HandleBreathGodMode gives RS_SPELL_MAGIC_BARRIER to bot non-tanks while the breath
@@ -613,5 +706,6 @@ public:
 void AddSC_RubySanctumBotScripts()
 {
     new RsHalionRootScript();
+    new RsHalionCreatureTrackerScript();
     new RsHalionDarkBreathImmunity();
 }

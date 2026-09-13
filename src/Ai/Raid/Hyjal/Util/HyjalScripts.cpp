@@ -5,15 +5,18 @@
  */
 
 #include "AllCreatureScript.h"
+#include "AllMapScript.h"
 #include "DynamicObjectScript.h"
 #include "EncounterHelpers.h"
 #include "HyjalHelpers.h"
+#include "Map.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
 #include "Playerbots.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
 #include "Timer.h"
+#include <mutex>
 
 using namespace HyjalSummitHelpers;
 using namespace EncounterHelpers;
@@ -99,60 +102,30 @@ public:
     }
 };
 
-// Records the position of each Doomfire NPC at regular intervals so that bots can avoid
-// the persistent fire trail it leaves behind. Each sample is tagged with a timestamp and
-// expires after TRAIL_DURATION ms, matching the lifetime of a Doomfire DynamicObject (18s)
+namespace
+{
+    std::mutex s_doomfireMutex;
+    // instanceId → active Doomfire creature GUIDs
+    std::unordered_map<uint32, std::vector<ObjectGuid>> s_doomfireGuids;
+}
+
+// Maintains a registry of Doomfire creature GUIDs per Hyjal instance.
+// Per-tick trail sampling is handled by ArchimondeDoomfireUpdateScript (AllMapScript),
+// which runs once per active Hyjal instance instead of once per every creature in the world.
 class ArchimondeDoomfireTrailScript : public AllCreatureScript
 {
 public:
     ArchimondeDoomfireTrailScript() : AllCreatureScript("ArchimondeDoomfireTrailScript") {}
 
-    void OnAllCreatureUpdate(Creature* creature, uint32 /*diff*/) override
+    void OnCreatureAddWorld(Creature* creature) override
     {
         if (creature->GetEntry() != static_cast<uint32>(HyjalSummitNpcs::NPC_DOOMFIRE))
             return;
-
-        uint32 now = getMSTime();
-        ObjectGuid guid = creature->GetGUID();
-
-        auto& lastSample = doomfireLastSampleTime[guid];
-        if (getMSTimeDiff(lastSample, now) < 500)
+        if (creature->GetMapId() != HYJAL_SUMMIT_MAP_ID)
             return;
 
-        lastSample = now;
-
-        uint32 instanceId = creature->GetMap()->GetInstanceId();
-        auto& trail = doomfireTrails[instanceId];
-
-        DoomfireTrailData data;
-        data.position = creature->GetPosition();
-        data.recordTime = now;
-        trail.push_back(data);
-
-        constexpr uint32 TRAIL_DURATION = 18000;
-        trail.erase(std::remove_if(trail.begin(), trail.end(),
-            [now](DoomfireTrailData const& d)
-            {
-                return getMSTimeDiff(d.recordTime, now) > TRAIL_DURATION;
-            }), trail.end());
-
-        constexpr float DOOMFIRE_DANGER_RANGE = 10.0f;
-        Map::PlayerList const& players = creature->GetMap()->GetPlayers();
-        for (Map::PlayerList::const_iterator it = players.begin(); it != players.end(); ++it)
-        {
-            Player* player = it->GetSource();
-            if (!player || !player->IsAlive())
-                continue;
-
-            PlayerbotAI* botAI = GET_PLAYERBOT_AI(player);
-            if (!botAI || !botAI->HasStrategy("hyjal", BOT_STATE_COMBAT) ||
-                creature->GetDistance(player) > DOOMFIRE_DANGER_RANGE)
-            {
-                continue;
-            }
-
-            botAI->RequestSpellInterrupt();
-        }
+        std::lock_guard<std::mutex> lock(s_doomfireMutex);
+        s_doomfireGuids[creature->GetMap()->GetInstanceId()].push_back(creature->GetGUID());
     }
 
     void OnCreatureRemoveWorld(Creature* creature) override
@@ -161,6 +134,96 @@ public:
             return;
 
         doomfireLastSampleTime.erase(creature->GetGUID());
+
+        std::lock_guard<std::mutex> lock(s_doomfireMutex);
+        uint32 instanceId = creature->GetMap()->GetInstanceId();
+        auto it = s_doomfireGuids.find(instanceId);
+        if (it == s_doomfireGuids.end())
+            return;
+
+        auto& vec = it->second;
+        vec.erase(std::remove(vec.begin(), vec.end(), creature->GetGUID()), vec.end());
+    }
+};
+
+// Fires once per active Hyjal map instance per tick (instead of once per every creature in
+// the world). Samples Doomfire NPC positions to build trail data for bot avoidance.
+class ArchimondeDoomfireUpdateScript : public AllMapScript
+{
+public:
+    ArchimondeDoomfireUpdateScript() : AllMapScript("ArchimondeDoomfireUpdateScript") {}
+
+    void OnMapUpdate(Map* map, uint32 /*diff*/) override
+    {
+        if (map->GetId() != HYJAL_SUMMIT_MAP_ID)
+            return;
+
+        uint32 const instanceId = map->GetInstanceId();
+
+        std::vector<ObjectGuid> guids;
+        {
+            std::lock_guard<std::mutex> lock(s_doomfireMutex);
+            auto it = s_doomfireGuids.find(instanceId);
+            if (it == s_doomfireGuids.end() || it->second.empty())
+                return;
+            guids = it->second;
+        }
+
+        uint32 const now = getMSTime();
+        auto& trail = doomfireTrails[instanceId];
+
+        for (ObjectGuid const& guid : guids)
+        {
+            Creature* creature = map->GetCreature(guid);
+            if (!creature)
+                continue;
+
+            auto& lastSample = doomfireLastSampleTime[guid];
+            if (getMSTimeDiff(lastSample, now) < 500)
+                continue;
+
+            lastSample = now;
+
+            DoomfireTrailData data;
+            data.position = creature->GetPosition();
+            data.recordTime = now;
+            trail.push_back(data);
+
+            constexpr float DOOMFIRE_DANGER_RANGE = 10.0f;
+            Map::PlayerList const& players = map->GetPlayers();
+            for (Map::PlayerList::const_iterator it = players.begin(); it != players.end(); ++it)
+            {
+                Player* player = it->GetSource();
+                if (!player || !player->IsAlive())
+                    continue;
+
+                PlayerbotAI* botAI = GET_PLAYERBOT_AI(player);
+                if (!botAI || !botAI->HasStrategy("hyjal", BOT_STATE_COMBAT) ||
+                    creature->GetDistance(player) > DOOMFIRE_DANGER_RANGE)
+                {
+                    continue;
+                }
+
+                botAI->RequestSpellInterrupt();
+            }
+        }
+
+        // Expire old trail entries once per map tick
+        constexpr uint32 TRAIL_DURATION = 18000;
+        trail.erase(std::remove_if(trail.begin(), trail.end(),
+            [now](DoomfireTrailData const& d)
+            {
+                return getMSTimeDiff(d.recordTime, now) > TRAIL_DURATION;
+            }), trail.end());
+    }
+
+    void OnDestroyMap(Map* map) override
+    {
+        if (map->GetId() != HYJAL_SUMMIT_MAP_ID)
+            return;
+
+        std::lock_guard<std::mutex> lock(s_doomfireMutex);
+        s_doomfireGuids.erase(map->GetInstanceId());
     }
 };
 
@@ -209,5 +272,6 @@ void AddSC_HyjalSummitBotScripts()
 {
     new AzgalorRainOfFireScript();
     new ArchimondeDoomfireTrailScript();
+    new ArchimondeDoomfireUpdateScript();
     new ArchimondeAirBurstSpellListenerScript();
 }
