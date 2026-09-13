@@ -775,6 +775,33 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
                 hordeChars.push_back(charInfo);
         }
 
+        // Build set of guild bot GUIDs to skip — they load only via EnsureGuildBotsOnline
+        std::unordered_set<uint32> guildBotGuids;
+        if (sPlayerbotAIConfig.guildBotMinOnline && !rndBotTypeAccounts.empty())
+        {
+            std::string acctList;
+            for (uint32 id : rndBotTypeAccounts)
+            {
+                if (!acctList.empty()) acctList += ',';
+                acctList += std::to_string(id);
+            }
+            if (QueryResult guildResult = CharacterDatabase.Query(
+                    "SELECT c.guid FROM characters c "
+                    "JOIN guild_member gm ON c.guid = gm.guid "
+                    "WHERE c.account IN ({}) "
+                    "AND EXISTS ("
+                    "  SELECT 1 FROM guild_member gm2 "
+                    "  JOIN characters c2 ON gm2.guid = c2.guid "
+                    "  WHERE gm2.guildid = gm.guildid "
+                    "  AND c2.account NOT IN ({}))",
+                    acctList, acctList))
+            {
+                do {
+                    guildBotGuids.insert(guildResult->Fetch()[0].Get<uint32>());
+                } while (guildResult->NextRow());
+            }
+        }
+
         // Lambda to handle bot login logic
         auto tryLoginBot = [&](CharacterInfo const& charInfo) -> bool
         {
@@ -782,7 +809,8 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
                 GetEventValue(charInfo.guid, "logout") ||
                 GetPlayerBot(charInfo.guid) ||
                 currentBots.contains(charInfo.guid) ||
-                (sPlayerbotAIConfig.disableDeathKnightLogin && charInfo.rClass == CLASS_DEATH_KNIGHT))
+                (sPlayerbotAIConfig.disableDeathKnightLogin && charInfo.rClass == CLASS_DEATH_KNIGHT) ||
+                guildBotGuids.count(charInfo.guid))
             {
                 return false;
             }
@@ -2958,6 +2986,12 @@ void RandomPlayerbotMgr::OnPlayerLogout(Player* player)
     std::vector<Player*>::iterator i = std::find(players.begin(), players.end(), player);
     if (i != players.end())
         players.erase(i);
+
+    if (sPlayerbotAIConfig.guildBotMinOnline && player->GetGuildId() &&
+        PlayerbotGuildMgr::instance().IsRealGuild(player->GetGuildId()))
+    {
+        EnsureGuildBotsOffline(player->GetGuildId());
+    }
 }
 
 void RandomPlayerbotMgr::OnBotLoginInternal(Player* const bot)
@@ -3104,6 +3138,35 @@ void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId, uint32 precompute
         toLogin--;
 
     } while (result->NextRow());
+}
+
+void RandomPlayerbotMgr::EnsureGuildBotsOffline(uint32 guildId)
+{
+    if (!sPlayerbotAIConfig.guildBotMinOnline)
+        return;
+
+    if (HasRealPlayerInGuild(guildId))
+        return;
+
+    std::vector<ObjectGuid> toLogout;
+    for (auto const& [guid, bot] : playerBots)
+    {
+        if (!bot->IsInWorld() || bot->GetGuildId() != guildId)
+            continue;
+        uint32 acctId = sCharacterCache->GetCharacterAccountIdByGuid(bot->GetGUID());
+        if (!IsRndBotAccount(acctId))
+            continue;
+        toLogout.push_back(bot->GetGUID());
+    }
+
+    for (ObjectGuid const& botGuid : toLogout)
+    {
+        uint32 botLow = botGuid.GetCounter();
+        SetEventValue(botLow, "add", 0, 0);
+        currentBots.erase(botLow);
+        LogoutPlayerBot(botGuid);
+        LOG_DEBUG("playerbots", "EnsureGuildBotsOffline: logging out guild bot {} (guild {})", botLow, guildId);
+    }
 }
 
 void RandomPlayerbotMgr::EnsureArenaBotsOnline()

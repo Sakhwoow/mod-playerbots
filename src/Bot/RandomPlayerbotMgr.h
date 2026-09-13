@@ -123,6 +123,7 @@ public:
     void OnPlayerLogout(Player* player);
     void OnPlayerLogin(Player* player);
     void EnsureGuildBotsOnline(uint32 guildId, uint32 precomputedCount = UINT32_MAX);
+    void EnsureGuildBotsOffline(uint32 guildId);
     void EnsureArenaBotsOnline();
     void EnsurePlayerArenaBotsOnline(Player* player);
     void QueuePersonalBotLogout(WorldSession* session);
