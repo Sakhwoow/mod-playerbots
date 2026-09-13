@@ -775,30 +775,35 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
                 hordeChars.push_back(charInfo);
         }
 
-        // Build set of guild bot GUIDs to skip — they load only via EnsureGuildBotsOnline
-        std::unordered_set<uint32> guildBotGuids;
+        // Refresh guild-bot GUID cache at most once per 60 seconds
         if (sPlayerbotAIConfig.guildBotMinOnline && !rndBotTypeAccounts.empty())
         {
-            std::string acctList;
-            for (uint32 id : rndBotTypeAccounts)
+            time_t now = time(nullptr);
+            if (now - _guildBotGuidsCacheTime >= 60)
             {
-                if (!acctList.empty()) acctList += ',';
-                acctList += std::to_string(id);
-            }
-            if (QueryResult guildResult = CharacterDatabase.Query(
-                    "SELECT c.guid FROM characters c "
-                    "JOIN guild_member gm ON c.guid = gm.guid "
-                    "WHERE c.account IN ({}) "
-                    "AND EXISTS ("
-                    "  SELECT 1 FROM guild_member gm2 "
-                    "  JOIN characters c2 ON gm2.guid = c2.guid "
-                    "  WHERE gm2.guildid = gm.guildid "
-                    "  AND c2.account NOT IN ({}))",
-                    acctList, acctList))
-            {
-                do {
-                    guildBotGuids.insert(guildResult->Fetch()[0].Get<uint32>());
-                } while (guildResult->NextRow());
+                _guildBotGuidsCacheTime = now;
+                _guildBotGuidsCache.clear();
+                std::string acctList;
+                for (uint32 id : rndBotTypeAccounts)
+                {
+                    if (!acctList.empty()) acctList += ',';
+                    acctList += std::to_string(id);
+                }
+                if (QueryResult guildResult = CharacterDatabase.Query(
+                        "SELECT c.guid FROM characters c "
+                        "JOIN guild_member gm ON c.guid = gm.guid "
+                        "WHERE c.account IN ({}) "
+                        "AND EXISTS ("
+                        "  SELECT 1 FROM guild_member gm2 "
+                        "  JOIN characters c2 ON gm2.guid = c2.guid "
+                        "  WHERE gm2.guildid = gm.guildid "
+                        "  AND c2.account NOT IN ({}))",
+                        acctList, acctList))
+                {
+                    do {
+                        _guildBotGuidsCache.insert(guildResult->Fetch()[0].Get<uint32>());
+                    } while (guildResult->NextRow());
+                }
             }
         }
 
@@ -810,7 +815,7 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
                 GetPlayerBot(charInfo.guid) ||
                 currentBots.contains(charInfo.guid) ||
                 (sPlayerbotAIConfig.disableDeathKnightLogin && charInfo.rClass == CLASS_DEATH_KNIGHT) ||
-                guildBotGuids.count(charInfo.guid))
+                _guildBotGuidsCache.count(charInfo.guid))
             {
                 return false;
             }
@@ -3148,13 +3153,17 @@ void RandomPlayerbotMgr::EnsureGuildBotsOffline(uint32 guildId)
     if (HasRealPlayerInGuild(guildId))
         return;
 
+    auto const& arenaGuids = sPlayerbotAIConfig.randomBotArenaTeamMemberGuids;
+
     std::vector<ObjectGuid> toLogout;
     for (auto const& [guid, bot] : playerBots)
     {
-        if (!bot->IsInWorld() || bot->GetGuildId() != guildId)
+        if (bot->GetGuildId() != guildId)
             continue;
         uint32 acctId = sCharacterCache->GetCharacterAccountIdByGuid(bot->GetGUID());
         if (!IsRndBotAccount(acctId))
+            continue;
+        if (!arenaGuids.empty() && arenaGuids.count(bot->GetGUID().GetRawValue()))
             continue;
         toLogout.push_back(bot->GetGUID());
     }
@@ -3164,7 +3173,8 @@ void RandomPlayerbotMgr::EnsureGuildBotsOffline(uint32 guildId)
         uint32 botLow = botGuid.GetCounter();
         SetEventValue(botLow, "add", 0, 0);
         currentBots.erase(botLow);
-        LogoutPlayerBot(botGuid);
+        if (GetPlayerBot(botGuid))
+            LogoutPlayerBot(botGuid);
         LOG_DEBUG("playerbots", "EnsureGuildBotsOffline: logging out guild bot {} (guild {})", botLow, guildId);
     }
 }
