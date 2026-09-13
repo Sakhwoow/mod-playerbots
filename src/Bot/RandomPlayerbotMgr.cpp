@@ -779,7 +779,7 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
         if (sPlayerbotAIConfig.guildBotMinOnline && !rndBotTypeAccounts.empty())
         {
             time_t now = time(nullptr);
-            if (now - _guildBotGuidsCacheTime >= 60)
+            if (now - _guildBotGuidsCacheTime >= 300)
             {
                 _guildBotGuidsCacheTime = now;
                 _guildBotGuidsCache.clear();
@@ -3136,7 +3136,7 @@ void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId, uint32 precompute
 
         currentBots.insert(charGuid);
 
-        SetEventValue(charGuid, "add", 1, sPlayerbotAIConfig.maxRandomBotInWorldTime);
+        SetEventValue(charGuid, "add", 1, sPlayerbotAIConfig.minRandomBotInWorldTime);
         AddPlayerBot(botGUID, 0);
 
         LOG_DEBUG("playerbots", "GuildBotMinOnline: logging in guild bot {} for guild {}", charGuid, guildId);
@@ -3153,8 +3153,6 @@ void RandomPlayerbotMgr::EnsureGuildBotsOffline(uint32 guildId)
     if (HasRealPlayerInGuild(guildId))
         return;
 
-    auto const& arenaGuids = sPlayerbotAIConfig.randomBotArenaTeamMemberGuids;
-
     std::vector<ObjectGuid> toLogout;
     for (auto const& [guid, bot] : playerBots)
     {
@@ -3162,8 +3160,6 @@ void RandomPlayerbotMgr::EnsureGuildBotsOffline(uint32 guildId)
             continue;
         uint32 acctId = sCharacterCache->GetCharacterAccountIdByGuid(bot->GetGUID());
         if (!IsRndBotAccount(acctId))
-            continue;
-        if (!arenaGuids.empty() && arenaGuids.count(bot->GetGUID().GetRawValue()))
             continue;
         toLogout.push_back(bot->GetGUID());
     }
