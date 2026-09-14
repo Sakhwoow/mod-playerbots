@@ -409,12 +409,13 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
             if (IsRandomBot(bot) && bot->GetGuildId() && bot->IsInWorld())
                 guildBotCounts[bot->GetGuildId()]++;
 
-        // players are guaranteed real — IsRealGuild() check is redundant here.
         time_t now = time(nullptr);
         std::set<uint32> checkedGuilds;
         for (Player* player : players)
         {
             if (!player || !player->IsInWorld())
+                continue;
+            if (GET_PLAYERBOT_AI(player))
                 continue;
             uint32 guildId = player->GetGuildId();
             if (!guildId || !checkedGuilds.insert(guildId).second)
@@ -2970,6 +2971,7 @@ void RandomPlayerbotMgr::OnPlayerLogout(Player* player)
 
     if (sPlayerbotAIConfig.guildBotMinOnline && player->GetGuildId() &&
         !IsRandomBot(player) &&
+        !GET_PLAYERBOT_AI(player) &&
         PlayerbotGuildMgr::instance().IsRealGuild(player->GetGuildId()))
     {
         EnsureGuildBotsOffline(player->GetGuildId());
@@ -3070,7 +3072,7 @@ bool RandomPlayerbotMgr::HasRealPlayerInGuild(uint32 guildId)
 {
     for (Player* p : players)
     {
-        if (p->GetGuildId() == guildId)
+        if (p->GetGuildId() == guildId && !GET_PLAYERBOT_AI(p))
             return true;
     }
     return false;
@@ -3359,6 +3361,7 @@ void RandomPlayerbotMgr::OnPlayerLogin(Player* player)
         LOG_DEBUG("playerbots", "Including non-random bot player {} into random bot update", player->GetName().c_str());
 
         if (sPlayerbotAIConfig.guildBotMinOnline && player->GetGuildId() &&
+            !GET_PLAYERBOT_AI(player) &&
             PlayerbotGuildMgr::instance().IsRealGuild(player->GetGuildId()))
         {
             EnsureGuildBotsOnline(player->GetGuildId());
