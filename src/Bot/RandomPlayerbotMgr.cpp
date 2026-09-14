@@ -775,30 +775,30 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
                 hordeChars.push_back(charInfo);
         }
 
-        // Refresh guild-bot GUID cache at most once per 5 minutes
-        if (sPlayerbotAIConfig.guildBotMinOnline && !rndBotTypeAccounts.empty())
+        // Refresh guild-bot GUID cache at most once per 5 minutes.
+        // Uses JOIN with playerbots_account_type (indexed PK) instead of a huge IN-list
+        // to avoid building a 100+ KB string and blocking the main thread.
+        if (sPlayerbotAIConfig.guildBotMinOnline)
         {
             time_t now = time(nullptr);
             if (now - _guildBotGuidsCacheTime >= 300)
             {
                 _guildBotGuidsCacheTime = now;
                 _guildBotGuidsCache.clear();
-                std::string acctList;
-                for (uint32 id : rndBotTypeAccounts)
-                {
-                    if (!acctList.empty()) acctList += ',';
-                    acctList += std::to_string(id);
-                }
-                if (QueryResult guildResult = CharacterDatabase.Query(
-                        "SELECT c.guid FROM characters c "
-                        "JOIN guild_member gm ON c.guid = gm.guid "
-                        "WHERE c.account IN ({}) "
-                        "AND EXISTS ("
-                        "  SELECT 1 FROM guild_member gm2 "
-                        "  JOIN characters c2 ON gm2.guid = c2.guid "
-                        "  WHERE gm2.guildid = gm.guildid "
-                        "  AND c2.account NOT IN ({}))",
-                        acctList, acctList))
+                std::string pbDb(PlayerbotsDatabase.GetDatabaseName());
+                // Find bot characters that are in guilds that also contain real (non-bot) players.
+                QueryResult guildResult = CharacterDatabase.Query(
+                    "SELECT c.guid FROM characters c "
+                    "JOIN guild_member gm ON c.guid = gm.guid "
+                    "JOIN {}.playerbots_account_type bat ON c.account = bat.account_id AND bat.account_type = 1 "
+                    "WHERE gm.guildid IN ("
+                    "  SELECT DISTINCT gm2.guildid FROM guild_member gm2 "
+                    "  JOIN characters c2 ON gm2.guid = c2.guid "
+                    "  LEFT JOIN {}.playerbots_account_type bat2 ON c2.account = bat2.account_id AND bat2.account_type = 1 "
+                    "  WHERE bat2.account_id IS NULL"
+                    ")",
+                    pbDb, pbDb);
+                if (guildResult)
                 {
                     do {
                         _guildBotGuidsCache.insert(guildResult->Fetch()[0].Get<uint32>());
