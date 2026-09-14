@@ -3113,6 +3113,7 @@ void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId, uint32 precompute
 
         currentBots.insert(charGuid);
 
+        SetEventValue(charGuid, "logout", 0, 0);
         SetEventValue(charGuid, "add", 1, sPlayerbotAIConfig.minRandomBotInWorldTime);
         AddPlayerBot(botGUID, 0);
 
@@ -3145,6 +3146,8 @@ void RandomPlayerbotMgr::EnsureGuildBotsOffline(uint32 guildId)
     {
         uint32 botLow = botGuid.GetCounter();
         SetEventValue(botLow, "add", 0, 0);
+        SetEventValue(botLow, "logout", 1,
+                      urand(sPlayerbotAIConfig.minRandomBotInWorldTime, sPlayerbotAIConfig.maxRandomBotInWorldTime));
         currentBots.erase(botLow);
         _pendingGuildBotLogouts.push_back(botGuid);
         LOG_DEBUG("playerbots", "EnsureGuildBotsOffline: queuing guild bot {} for logout (guild {})", botLow, guildId);
