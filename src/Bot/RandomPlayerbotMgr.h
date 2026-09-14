@@ -249,8 +249,7 @@ private:
     time_t printStatsTimer;
     time_t GuildBotCheckTimer = 0;
     std::unordered_map<uint32, time_t> _guildEnsureLastCheck;
-    std::unordered_set<uint32> _guildBotGuidsCache;
-    time_t _guildBotGuidsCacheTime = 0;
+
     uint32 AddRandomBots();
     bool ProcessBot(uint32 bot);
     void ScheduleRandomize(uint32 bot, uint32 time);

@@ -775,38 +775,6 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
                 hordeChars.push_back(charInfo);
         }
 
-        // Refresh guild-bot GUID cache at most once per 5 minutes
-        if (sPlayerbotAIConfig.guildBotMinOnline && !rndBotTypeAccounts.empty())
-        {
-            time_t now = time(nullptr);
-            if (now - _guildBotGuidsCacheTime >= 300)
-            {
-                _guildBotGuidsCacheTime = now;
-                _guildBotGuidsCache.clear();
-                std::string acctList;
-                for (uint32 id : rndBotTypeAccounts)
-                {
-                    if (!acctList.empty()) acctList += ',';
-                    acctList += std::to_string(id);
-                }
-                if (QueryResult guildResult = CharacterDatabase.Query(
-                        "SELECT c.guid FROM characters c "
-                        "JOIN guild_member gm ON c.guid = gm.guid "
-                        "WHERE c.account IN ({}) "
-                        "AND EXISTS ("
-                        "  SELECT 1 FROM guild_member gm2 "
-                        "  JOIN characters c2 ON gm2.guid = c2.guid "
-                        "  WHERE gm2.guildid = gm.guildid "
-                        "  AND c2.account NOT IN ({}))",
-                        acctList, acctList))
-                {
-                    do {
-                        _guildBotGuidsCache.insert(guildResult->Fetch()[0].Get<uint32>());
-                    } while (guildResult->NextRow());
-                }
-            }
-        }
-
         // Lambda to handle bot login logic
         auto tryLoginBot = [&](CharacterInfo const& charInfo) -> bool
         {
@@ -814,8 +782,7 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
                 GetEventValue(charInfo.guid, "logout") ||
                 GetPlayerBot(charInfo.guid) ||
                 currentBots.contains(charInfo.guid) ||
-                (sPlayerbotAIConfig.disableDeathKnightLogin && charInfo.rClass == CLASS_DEATH_KNIGHT) ||
-                _guildBotGuidsCache.count(charInfo.guid))
+                (sPlayerbotAIConfig.disableDeathKnightLogin && charInfo.rClass == CLASS_DEATH_KNIGHT))
             {
                 return false;
             }
