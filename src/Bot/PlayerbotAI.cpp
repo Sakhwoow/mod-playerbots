@@ -492,15 +492,6 @@ void PlayerbotAI::UpdateAIInternal([[maybe_unused]] uint32 elapsed, bool minimal
     if (!bot->GetMap())
         return; // instances are created and destroyed on demand
 
-    // Throttle instance bots that are not in combat: they update at full frequency only when fighting.
-    // Without this, every bot in a raid updates every ~300ms even while idle/looting/running,
-    // causing severe tick spikes when multiple raids run simultaneously.
-    if (!WorldPosition(bot).isOverworld() && !bot->IsInCombat())
-    {
-        SetNextCheckDelay(sPlayerbotAIConfig.reactDelay * 5);
-        return;
-    }
-
     // kinda expensive call to make on every single updateAI, do we really need this information?
     std::string const mapString = WorldPosition(bot).isOverworld() ? std::to_string(bot->GetMapId()) : "I";
     PerfMonitorOperation* pmo =
@@ -571,6 +562,25 @@ void PlayerbotAI::UpdateAIInternal([[maybe_unused]] uint32 elapsed, bool minimal
     botOutgoingPacketHandlers.Handle(helper);
     masterIncomingPacketHandlers.Handle(helper);
     masterOutgoingPacketHandlers.Handle(helper);
+
+    // Throttle DoNextAction for non-combat instance bots.
+    // Commands and packet handlers above run every ~300ms as normal.
+    // Only DoNextAction (the expensive AI decision loop) is delayed to once per reactDelay*5.
+    if (!WorldPosition(bot).isOverworld() && !bot->IsInCombat())
+    {
+        if (m_instanceNonCombatThrottle > elapsed)
+        {
+            m_instanceNonCombatThrottle -= elapsed;
+            if (pmo)
+                pmo->finish();
+            return;
+        }
+        m_instanceNonCombatThrottle = sPlayerbotAIConfig.reactDelay * 5;
+    }
+    else
+    {
+        m_instanceNonCombatThrottle = 0;
+    }
 
     DoNextAction(minimal);
 
