@@ -34,7 +34,7 @@ public:
 class PetIsDeadValue : public BoolCalculatedValue
 {
 public:
-    PetIsDeadValue(PlayerbotAI* botAI, std::string const name = "pet dead") : BoolCalculatedValue(botAI, name) {}
+    PetIsDeadValue(PlayerbotAI* botAI, std::string const name = "pet dead") : BoolCalculatedValue(botAI, name, 5) {}
 
     bool Calculate() override;
 };
