@@ -2940,9 +2940,7 @@ void RandomPlayerbotMgr::ProcessPendingLogouts()
         ObjectGuid botGuid = _pendingGuildBotLogouts.front();
         _pendingGuildBotLogouts.pop_front();
 
-        uint32 botLow = botGuid.GetCounter();
-        // Skip if EnsureGuildBotsOnline re-added this bot while it was queued for logout
-        if (GetPlayerBot(botGuid) && !GetEventValue(botLow, "add"))
+        if (GetPlayerBot(botGuid))
             LogoutPlayerBot(botGuid);
     }
 }
@@ -3119,10 +3117,6 @@ void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId, uint32 precompute
 
         SetEventValue(charGuid, "logout", 0, 0);
         SetEventValue(charGuid, "add", 1, sPlayerbotAIConfig.minRandomBotInWorldTime);
-        // Remove from pending logout queue so the stagger doesn't evict a bot we just re-added
-        _pendingGuildBotLogouts.erase(
-            std::remove(_pendingGuildBotLogouts.begin(), _pendingGuildBotLogouts.end(), botGUID),
-            _pendingGuildBotLogouts.end());
         AddPlayerBot(botGUID, 0);
 
         LOG_DEBUG("playerbots", "GuildBotMinOnline: logging in guild bot {} for guild {}", charGuid, guildId);
