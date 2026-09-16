@@ -2940,7 +2940,9 @@ void RandomPlayerbotMgr::ProcessPendingLogouts()
         ObjectGuid botGuid = _pendingGuildBotLogouts.front();
         _pendingGuildBotLogouts.pop_front();
 
-        if (GetPlayerBot(botGuid))
+        uint32 botLow = botGuid.GetCounter();
+        // Skip if EnsureGuildBotsOnline re-added this bot while it was queued for logout
+        if (GetPlayerBot(botGuid) && !GetEventValue(botLow, "add"))
             LogoutPlayerBot(botGuid);
     }
 }
@@ -3083,6 +3085,22 @@ void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId, uint32 precompute
     if (!sPlayerbotAIConfig.guildBotMinOnline)
         return;
 
+    // A real player is now in this guild — cancel any pending logouts for its bots.
+    // EnsureGuildBotsOffline queues online bots; EnsureGuildBotsOnline must undo that
+    // even when onlineCount >= needed (the bots are still online but queued for eviction).
+    _pendingGuildBotLogouts.erase(
+        std::remove_if(_pendingGuildBotLogouts.begin(), _pendingGuildBotLogouts.end(),
+            [&](ObjectGuid const& guid) {
+                Player* bot = ObjectAccessor::FindPlayer(guid);
+                if (!bot || bot->GetGuildId() != guildId)
+                    return false;
+                uint32 low = guid.GetCounter();
+                SetEventValue(low, "logout", 0, 0);
+                SetEventValue(low, "add", 1, sPlayerbotAIConfig.minRandomBotInWorldTime);
+                return true;
+            }),
+        _pendingGuildBotLogouts.end());
+
     uint32 onlineCount = (precomputedCount != UINT32_MAX) ? precomputedCount : GetOnlineGuildBotCount(guildId);
     uint32 needed = sPlayerbotAIConfig.guildBotMinOnline;
     if (onlineCount >= needed)
@@ -3117,6 +3135,10 @@ void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId, uint32 precompute
 
         SetEventValue(charGuid, "logout", 0, 0);
         SetEventValue(charGuid, "add", 1, sPlayerbotAIConfig.minRandomBotInWorldTime);
+        // Remove from pending logout queue so the stagger doesn't evict a bot we just re-added
+        _pendingGuildBotLogouts.erase(
+            std::remove(_pendingGuildBotLogouts.begin(), _pendingGuildBotLogouts.end(), botGUID),
+            _pendingGuildBotLogouts.end());
         AddPlayerBot(botGUID, 0);
 
         LOG_DEBUG("playerbots", "GuildBotMinOnline: logging in guild bot {} for guild {}", charGuid, guildId);
@@ -3133,6 +3155,8 @@ void RandomPlayerbotMgr::EnsureGuildBotsOffline(uint32 guildId)
     if (HasRealPlayerInGuild(guildId))
         return;
 
+    auto const& arenaGuids = sPlayerbotAIConfig.randomBotArenaTeamMemberGuids;
+
     std::vector<ObjectGuid> toLogout;
     for (auto const& [guid, bot] : playerBots)
     {
@@ -3140,6 +3164,9 @@ void RandomPlayerbotMgr::EnsureGuildBotsOffline(uint32 guildId)
             continue;
         uint32 acctId = sCharacterCache->GetCharacterAccountIdByGuid(bot->GetGUID());
         if (!IsRndBotAccount(acctId))
+            continue;
+        // Skip arena-team bots: EnsureArenaBotsOnline will put them right back
+        if (!arenaGuids.empty() && arenaGuids.count(bot->GetGUID().GetRawValue()))
             continue;
         toLogout.push_back(bot->GetGUID());
     }

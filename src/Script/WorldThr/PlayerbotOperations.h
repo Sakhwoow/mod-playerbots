@@ -185,11 +185,8 @@ public:
 
         botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("hello", "Hello", {}));
 
-        if (sPlayerbotAIConfig.summonWhenGroup && bot->GetDistance(inviter) > sPlayerbotAIConfig.sightDistance)
-        {
-            SummonAction summonAction(botAI, "group summon");
-            summonAction.Teleport(inviter, bot, true);
-        }
+        // Teleport is deferred to the bot's follow action to avoid batching all teleports
+        // into one world-thread tick when many bots join a party simultaneously.
 
         return true;
     }
