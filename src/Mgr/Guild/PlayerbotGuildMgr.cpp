@@ -9,7 +9,7 @@
 #include "DatabaseEnv.h"
 #include "Guild.h"
 #include "GuildMgr.h"
-#include "GuildScript.h"
+// #include "GuildScript.h"  // no longer needed: BotGuildLimitGuildScript moved to mod-guild-bots
 #include "PlayerbotAIConfig.h"
 #include "Player.h"
 #include "ScriptMgr.h"
@@ -137,33 +137,7 @@ void PlayerbotGuildMgr::OnGuildUpdate(Guild* guild)
 {
     auto it = _guildCache.find(guild->GetId());
     if (it == _guildCache.end())
-    {
-        // New guild created while server is running — add it to cache immediately
-        ObjectGuid leaderGuid = guild->GetLeaderGUID();
-        CharacterCacheEntry const* leaderEntry = sCharacterCache->GetCharacterCacheByGuid(leaderGuid);
-
-        GuildCache entry;
-        entry.name = guild->GetName();
-        entry.maxMembers = sPlayerbotAIConfig.randomBotGuildSizeMax;
-        entry.memberCount = guild->GetMemberCount();
-        entry.status = entry.memberCount > 0 ? 1 : 0;
-
-        if (leaderEntry)
-        {
-            entry.hasRealPlayer = !(sPlayerbotAIConfig.IsRandomBotAccount(leaderEntry->AccountId));
-            entry.faction = Player::TeamIdForRace(leaderEntry->Race);
-        }
-        else
-        {
-            entry.hasRealPlayer = true; // safe default: protect unknown guilds
-            entry.faction = TEAM_ALLIANCE;
-        }
-
-        _guildCache[guild->GetId()] = entry;
-        LOG_DEBUG("playerbots", "OnGuildUpdate: added new guild {} '{}' to cache (hasRealPlayer={})",
-                  guild->GetId(), guild->GetName(), entry.hasRealPlayer);
         return;
-    }
 
     GuildCache& entry = it->second;
     entry.memberCount = guild->GetMemberCount();
@@ -249,29 +223,11 @@ void PlayerbotGuildMgr::ValidateGuildCache()
             continue;
 
         cache.memberCount = guild->GetMemberCount();
-
-        // Determine faction from leader
         ObjectGuid leaderGuid = guild->GetLeaderGUID();
         CharacterCacheEntry const* leaderEntry = sCharacterCache->GetCharacterCacheByGuid(leaderGuid);
-        cache.faction = leaderEntry ? Player::TeamIdForRace(leaderEntry->Race) : TEAM_ALLIANCE;
-
-        // Check all guild members: if any account is NOT a bot account → real guild
-        cache.hasRealPlayer = false;
-        if (QueryResult memberResult = CharacterDatabase.Query(
-                "SELECT c.account FROM guild_member gm "
-                "JOIN characters c ON gm.guid = c.guid "
-                "WHERE gm.guildid = {}", guildId))
-        {
-            do
-            {
-                uint32 accountId = (*memberResult)[0].Get<uint32>();
-                if (!sPlayerbotAIConfig.IsRandomBotAccount(accountId))
-                {
-                    cache.hasRealPlayer = true;
-                    break;
-                }
-            } while (memberResult->NextRow());
-        }
+        uint32 leaderAccount = leaderEntry->AccountId;
+        cache.hasRealPlayer = !(sPlayerbotAIConfig.IsInRandomAccountList(leaderAccount));
+        cache.faction = Player::TeamIdForRace(leaderEntry->Race);
         if (cache.memberCount == 0)
             cache.status = 0; // empty
         else if (cache.memberCount < cache.maxMembers)
@@ -335,38 +291,13 @@ bool PlayerbotGuildMgr::IsRealGuild(uint32 guildId)
     if (!guildId)
         return false;
 
-    auto now = std::chrono::steady_clock::now();
-    constexpr auto TTL = std::chrono::seconds(60);
-
     auto it = _guildCache.find(guildId);
-    if (it != _guildCache.end() && (now - it->second.realPlayerCheckedAt) < TTL)
-        return it->second.hasRealPlayer;
+    if (it == _guildCache.end())
+        return false;
 
-    // Cache miss or expired — query DB for this specific guild
-    bool hasReal = false;
-    if (QueryResult result = CharacterDatabase.Query(
-            "SELECT c.account FROM guild_member gm "
-            "JOIN characters c ON gm.guid = c.guid "
-            "WHERE gm.guildid = {}", guildId))
-    {
-        do
-        {
-            uint32 accountId = (*result)[0].Get<uint32>();
-            if (!sPlayerbotAIConfig.IsRandomBotAccount(accountId))
-            {
-                hasReal = true;
-                break;
-            }
-        } while (result->NextRow());
-    }
-
-    if (it != _guildCache.end())
-    {
-        it->second.hasRealPlayer = hasReal;
-        it->second.realPlayerCheckedAt = now;
-    }
-
-    return hasReal;
+    // A "real guild" is one whose leader's account is not in the bot accounts list.
+    // Guild membership by real players does not affect this, only the leader's account type does.
+    return it->second.hasRealPlayer;
 }
 
 class BotGuildCacheWorldScript : public WorldScript
@@ -392,114 +323,16 @@ class BotGuildCacheWorldScript : public WorldScript
         uint32 _validateTimer;
 };
 
-void PlayerbotGuildMgr::LoadGuildBotCounts()
-{
-    _guildBotCount.clear();
-    QueryResult result = CharacterDatabase.Query(
-        "SELECT gm.guildid, c.account FROM guild_member gm "
-        "JOIN characters c ON gm.guid = c.guid");
-    if (result)
-    {
-        do
-        {
-            uint32 guildId = (*result)[0].Get<uint32>();
-            uint32 accountId = (*result)[1].Get<uint32>();
-            if (sPlayerbotAIConfig.IsRandomBotAccount(accountId))
-                _guildBotCount[guildId]++;
-        } while (result->NextRow());
-    }
-    _guildBotCountLoaded = true;
-}
+// void PlayerbotGuildMgr::LoadGuildBotCounts() — moved to mod-guild-bots: GuildBotMgr::GetBotCountInGuild
+// void PlayerbotGuildMgr::IncrementGuildBotCount(uint32) — moved to mod-guild-bots
+// void PlayerbotGuildMgr::DecrementGuildBotCount(uint32) — moved to mod-guild-bots
+// uint32 PlayerbotGuildMgr::GetGuildBotCount(uint32) — moved to mod-guild-bots
+// void PlayerbotGuildMgr::SetHasRealPlayer(uint32, bool) — moved to mod-guild-bots
 
-void PlayerbotGuildMgr::IncrementGuildBotCount(uint32 guildId)
-{
-    _guildBotCount[guildId]++;
-}
-
-void PlayerbotGuildMgr::DecrementGuildBotCount(uint32 guildId)
-{
-    auto it = _guildBotCount.find(guildId);
-    if (it != _guildBotCount.end() && it->second > 0)
-        it->second--;
-}
-
-uint32 PlayerbotGuildMgr::GetGuildBotCount(uint32 guildId)
-{
-    if (!_guildBotCountLoaded)
-        LoadGuildBotCounts();
-    auto it = _guildBotCount.find(guildId);
-    return it != _guildBotCount.end() ? it->second : 0;
-}
-
-void PlayerbotGuildMgr::SetHasRealPlayer(uint32 guildId, bool value)
-{
-    auto it = _guildCache.find(guildId);
-    if (it != _guildCache.end())
-        it->second.hasRealPlayer = value;
-}
-
-class BotGuildLimitGuildScript : public GuildScript
-{
-public:
-    BotGuildLimitGuildScript() : GuildScript("BotGuildLimitGuildScript",
-        {GUILDHOOK_CAN_ADD_MEMBER, GUILDHOOK_ON_ADD_MEMBER, GUILDHOOK_ON_REMOVE_MEMBER}) {}
-
-    void OnAddMember(Guild* guild, Player* player, uint8& /*plRank*/) override
-    {
-        if (!player)
-            return;
-        uint32 accountId = player->GetSession()->GetAccountId();
-        if (sPlayerbotAIConfig.IsRandomBotAccount(accountId))
-        {
-            PlayerbotGuildMgr::instance().IncrementGuildBotCount(guild->GetId());
-        }
-        else
-        {
-            // Real player joined — mark guild as real immediately
-            PlayerbotGuildMgr::instance().SetHasRealPlayer(guild->GetId(), true);
-        }
-    }
-
-    void OnRemoveMember(Guild* guild, Player* player, bool isDisbanding, bool /*isKicked*/) override
-    {
-        if (isDisbanding || !player)
-            return;
-        if (sPlayerbotAIConfig.IsRandomBotAccount(player->GetSession()->GetAccountId()))
-            PlayerbotGuildMgr::instance().DecrementGuildBotCount(guild->GetId());
-    }
-
-    bool CanGuildAddMember(Guild* guild, Player* player, uint8& /*plRank*/) override
-    {
-        if (!player)
-            return true;
-
-        // Arena team bots are never allowed to join guilds
-        if (sPlayerbotAIConfig.IsArenaTeamBot(player->GetGUID()))
-            return false;
-
-        uint32 maxBots = sPlayerbotAIConfig.maxBotsInRealGuild;
-        if (maxBots == 0)
-            return true;
-
-        if (!PlayerbotGuildMgr::instance().IsRealGuild(guild->GetId()))
-            return true;
-
-        if (!sPlayerbotAIConfig.IsRandomBotAccount(player->GetSession()->GetAccountId()))
-            return true;
-
-        uint32 botCount = PlayerbotGuildMgr::instance().GetGuildBotCount(guild->GetId());
-        if (botCount >= maxBots)
-        {
-            LOG_DEBUG("playerbots", "CanGuildAddMember: bot limit {}/{} reached in guild '{}', rejecting {}",
-                botCount, maxBots, guild->GetName(), player->GetName());
-            return false;
-        }
-        return true;
-    }
-};
+// BotGuildLimitGuildScript — moved to mod-guild-bots: GuildBotGuildScript (GuildBotScripts.cpp)
 
 void PlayerBotsGuildValidationScript()
 {
     new BotGuildCacheWorldScript();
-    new BotGuildLimitGuildScript();
+    // new BotGuildLimitGuildScript();  // moved to mod-guild-bots: GuildBotGuildScript
 }

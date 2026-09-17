@@ -5,16 +5,11 @@
  */
 
 #include "GuildAcceptAction.h"
-#include "Chat.h"
-#include "DatabaseEnv.h"
 #include "Event.h"
 #include "GuildPackets.h"
-#include "PlayerbotAIConfig.h"
-#include "PlayerbotGuildMgr.h"
 #include "PlayerbotSecurity.h"
 #include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
-#include "StringFormat.h"
 
 bool GuildAcceptAction::Execute(Event event)
 {
@@ -50,27 +45,6 @@ bool GuildAcceptAction::Execute(Event event)
             "guild_accept_declined", "Sorry, I don't want to join your guild :(", {}));
         accept = false;
     }
-    else if (sPlayerbotAIConfig.IsArenaTeamBot(bot->GetGUID()))
-    {
-        accept = false;
-    }
-    else if (sPlayerbotAIConfig.IsRandomBotAccount(bot->GetSession()->GetAccountId()))
-    {
-        uint32 maxBots = sPlayerbotAIConfig.maxBotsInRealGuild;
-        if (maxBots > 0 && PlayerbotGuildMgr::instance().IsRealGuild(guildId))
-        {
-            uint32 botCount = PlayerbotGuildMgr::instance().GetGuildBotCount(guildId);
-            if (botCount >= maxBots)
-            {
-                std::string msg = Acore::StringFormat("|cFFFF0000Превышен лимит ботов в гильдии {}/{}|r", botCount, maxBots);
-                WorldPacket notif(SMSG_NOTIFICATION, msg.size() + 1);
-                notif << msg;
-                inviter->GetSession()->SendPacket(&notif);
-                accept = false;
-            }
-        }
-    }
-
     if (accept)
     {
         WorldPackets::Guild::AcceptGuildInvite data = WorldPacket(CMSG_GUILD_ACCEPT);

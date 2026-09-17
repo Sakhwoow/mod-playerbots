@@ -10,7 +10,7 @@
 #include "Guild.h"
 #include "Player.h"
 #include "PlayerbotAI.h"
-#include <chrono>
+// #include <chrono>  // was needed for realPlayerCheckedAt — moved to mod-guild-bots
 
 class PlayerbotGuildMgr
 {
@@ -34,15 +34,15 @@ public:
     bool IsRealGuild(uint32 guildId);
     bool IsRealGuild(Player* bot);
 
-    void IncrementGuildBotCount(uint32 guildId);
-    void DecrementGuildBotCount(uint32 guildId);
-    uint32 GetGuildBotCount(uint32 guildId);
-    void SetHasRealPlayer(uint32 guildId, bool value);
+    // void IncrementGuildBotCount(uint32 guildId);  // moved to mod-guild-bots
+    // void DecrementGuildBotCount(uint32 guildId);  // moved to mod-guild-bots
+    // uint32 GetGuildBotCount(uint32 guildId);      // moved to mod-guild-bots
+    // void SetHasRealPlayer(uint32 guildId, bool value);  // moved to mod-guild-bots
 
 private:
-    void LoadGuildBotCounts();
-    bool _guildBotCountLoaded = false;
-    std::unordered_map<uint32, uint32> _guildBotCount;
+    // void LoadGuildBotCounts();                        // moved to mod-guild-bots
+    // bool _guildBotCountLoaded = false;               // moved to mod-guild-bots
+    // std::unordered_map<uint32, uint32> _guildBotCount;  // moved to mod-guild-bots
     PlayerbotGuildMgr() = default;
     ~PlayerbotGuildMgr() = default;
 
@@ -62,7 +62,7 @@ private:
         uint32 memberCount = 0;
         uint8 faction = 0;
         bool hasRealPlayer = false;
-        std::chrono::steady_clock::time_point realPlayerCheckedAt = {};
+        // std::chrono::steady_clock::time_point realPlayerCheckedAt = {};  // removed: TTL cache moved to mod-guild-bots
     };
     std::unordered_map<uint32 , GuildCache> _guildCache;
     std::vector<std::string> _shuffled_guild_keys;

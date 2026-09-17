@@ -397,40 +397,8 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
             sRandomPlayerbotMgr.CheckLfgQueue();
     }
 
-    if (sPlayerbotAIConfig.guildBotMinOnline && !players.empty() &&
-        time(nullptr) > (GuildBotCheckTimer + 30))
-    {
-        GuildBotCheckTimer = time(nullptr);
-
-        // Single pass over all bots: count how many bot-guild members are online per guild.
-        // Avoids O(bots × guilds) repeated scans in GetOnlineGuildBotCount.
-        std::unordered_map<uint32, uint32> guildBotCounts;
-        for (auto const& [guid, bot] : playerBots)
-            if (IsRandomBot(bot) && bot->GetGuildId() && bot->IsInWorld())
-                guildBotCounts[bot->GetGuildId()]++;
-
-        time_t now = time(nullptr);
-        std::set<uint32> checkedGuilds;
-        for (Player* player : players)
-        {
-            if (!player || !player->IsInWorld())
-                continue;
-            if (GET_PLAYERBOT_AI(player))
-                continue;
-            uint32 guildId = player->GetGuildId();
-            if (!guildId || !checkedGuilds.insert(guildId).second)
-                continue;
-            uint32 onlineCount = guildBotCounts.count(guildId) ? guildBotCounts[guildId] : 0;
-            if (onlineCount >= sPlayerbotAIConfig.guildBotMinOnline)
-                continue;
-            // Rate-limit the DB query per guild; OnPlayerLogin bypasses this and triggers immediately.
-            time_t& lastCheck = _guildEnsureLastCheck[guildId];
-            if (now - lastCheck < 300)
-                continue;
-            lastCheck = now;
-            EnsureGuildBotsOnline(guildId, onlineCount);
-        }
-    }
+    // Guild bot periodic check moved to mod-guild-bots: GuildBotMgr::PeriodicCheck
+    // if (sPlayerbotAIConfig.guildBotMinOnline && !players.empty() && ...) { ... }
 
     if (sPlayerbotAIConfig.randomBotAutologin && sPlayerbotAIConfig.randomBotPrintStatsInterval &&
         time(nullptr) > (printStatsTimer + sPlayerbotAIConfig.randomBotPrintStatsInterval))
@@ -1509,18 +1477,8 @@ bool RandomPlayerbotMgr::ProcessBot(uint32 bot)
                 return false;
             }
 
-            // Keep guild bot online while a real player is in the guild and the minimum isn't met
-            if (player && sPlayerbotAIConfig.guildBotMinOnline && player->GetGuildId())
-            {
-                uint32 guildId = player->GetGuildId();
-                if (PlayerbotGuildMgr::instance().IsRealGuild(guildId) &&
-                    HasRealPlayerInGuild(guildId) &&
-                    GetOnlineGuildBotCount(guildId) <= sPlayerbotAIConfig.guildBotMinOnline)
-                {
-                    SetEventValue(bot, "add", 1, sPlayerbotAIConfig.maxRandomBotInWorldTime);
-                    return false;
-                }
-            }
+            // Guild bot keep-alive moved to mod-guild-bots: GuildBotMgr owns the lifecycle for guild bots
+            // (they are not in currentBots so ProcessBot(uint32) never runs for them anyway)
 
             // Keep mixed-team arena bot online while the real player from its team is online
             if (player && !sPlayerbotAIConfig.IsArenaTeamBot(player->GetGUID()))
@@ -2935,16 +2893,8 @@ void RandomPlayerbotMgr::ProcessPendingLogouts()
         delete session;
     }
 
-    if (!_pendingGuildBotLogouts.empty())
-    {
-        ObjectGuid botGuid = _pendingGuildBotLogouts.front();
-        _pendingGuildBotLogouts.pop_front();
-
-        uint32 botLow = botGuid.GetCounter();
-        // Skip if EnsureGuildBotsOnline re-added this bot while it was queued for logout
-        if (GetPlayerBot(botGuid) && !GetEventValue(botLow, "add"))
-            LogoutPlayerBot(botGuid);
-    }
+    // Guild bot stagger logout moved to mod-guild-bots: GuildBotMgr::ProcessStaggeredLogout
+    // if (!_pendingGuildBotLogouts.empty()) { ... }
 }
 
 void RandomPlayerbotMgr::OnPlayerLogout(Player* player)
@@ -2971,13 +2921,7 @@ void RandomPlayerbotMgr::OnPlayerLogout(Player* player)
     if (i != players.end())
         players.erase(i);
 
-    if (sPlayerbotAIConfig.guildBotMinOnline && player->GetGuildId() &&
-        !IsRandomBot(player) &&
-        !GET_PLAYERBOT_AI(player) &&
-        PlayerbotGuildMgr::instance().IsRealGuild(player->GetGuildId()))
-    {
-        EnsureGuildBotsOffline(player->GetGuildId());
-    }
+    // Guild bot offline trigger moved to mod-guild-bots: GuildBotMgr::OnRealPlayerLogout
 }
 
 void RandomPlayerbotMgr::OnBotLoginInternal(Player* const bot)
@@ -3058,28 +3002,10 @@ void RandomPlayerbotMgr::OnBotLoginInternal(Player* const bot)
     }
 }
 
-uint32 RandomPlayerbotMgr::GetOnlineGuildBotCount(uint32 guildId)
-{
-    uint32 count = 0;
-    for (auto const& [guid, bot] : playerBots)
-    {
-        uint32 acctId = sCharacterCache->GetCharacterAccountIdByGuid(bot->GetGUID());
-        if (IsRndBotAccount(acctId) && bot->GetGuildId() == guildId && bot->IsInWorld())
-            count++;
-    }
-    return count;
-}
+// uint32 RandomPlayerbotMgr::GetOnlineGuildBotCount — moved to mod-guild-bots
+// bool RandomPlayerbotMgr::HasRealPlayerInGuild — moved to mod-guild-bots
 
-bool RandomPlayerbotMgr::HasRealPlayerInGuild(uint32 guildId)
-{
-    for (Player* p : players)
-    {
-        if (p->GetGuildId() == guildId && !GET_PLAYERBOT_AI(p))
-            return true;
-    }
-    return false;
-}
-
+/* EnsureGuildBotsOnline — moved to mod-guild-bots: GuildBotMgr::EnsureGuildBotsOnline
 void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId, uint32 precomputedCount)
 {
     if (!sPlayerbotAIConfig.guildBotMinOnline)
@@ -3146,42 +3072,12 @@ void RandomPlayerbotMgr::EnsureGuildBotsOnline(uint32 guildId, uint32 precompute
 
     } while (result->NextRow());
 }
+*/ // end EnsureGuildBotsOnline — moved to mod-guild-bots
 
-void RandomPlayerbotMgr::EnsureGuildBotsOffline(uint32 guildId)
-{
-    if (!sPlayerbotAIConfig.guildBotMinOnline)
-        return;
-
-    if (HasRealPlayerInGuild(guildId))
-        return;
-
-    auto const& arenaGuids = sPlayerbotAIConfig.randomBotArenaTeamMemberGuids;
-
-    std::vector<ObjectGuid> toLogout;
-    for (auto const& [guid, bot] : playerBots)
-    {
-        if (bot->GetGuildId() != guildId)
-            continue;
-        uint32 acctId = sCharacterCache->GetCharacterAccountIdByGuid(bot->GetGUID());
-        if (!IsRndBotAccount(acctId))
-            continue;
-        // Skip arena-team bots: EnsureArenaBotsOnline will put them right back
-        if (!arenaGuids.empty() && arenaGuids.count(bot->GetGUID().GetRawValue()))
-            continue;
-        toLogout.push_back(bot->GetGUID());
-    }
-
-    for (ObjectGuid const& botGuid : toLogout)
-    {
-        uint32 botLow = botGuid.GetCounter();
-        SetEventValue(botLow, "add", 0, 0);
-        SetEventValue(botLow, "logout", 1,
-                      urand(sPlayerbotAIConfig.minRandomBotInWorldTime, sPlayerbotAIConfig.maxRandomBotInWorldTime));
-        currentBots.erase(botLow);
-        _pendingGuildBotLogouts.push_back(botGuid);
-        LOG_DEBUG("playerbots", "EnsureGuildBotsOffline: queuing guild bot {} for logout (guild {})", botLow, guildId);
-    }
-}
+// EnsureGuildBotsOffline — moved to mod-guild-bots: GuildBotMgr::EnsureGuildBotsOffline
+/*
+void RandomPlayerbotMgr::EnsureGuildBotsOffline(uint32 guildId) { ... }
+*/ // end EnsureGuildBotsOffline
 
 void RandomPlayerbotMgr::EnsureArenaBotsOnline()
 {
@@ -3209,7 +3105,7 @@ void RandomPlayerbotMgr::EnsureArenaBotsOnline()
                 if (candidate->GetGroup())
                     continue;
                 uint32 cGuildId = candidate->GetGuildId();
-                if (cGuildId && HasRealPlayerInGuild(cGuildId))
+                if (cGuildId && PlayerbotGuildMgr::instance().IsRealGuild(cGuildId))
                     continue;
                 bool candidateInArena = false;
                 for (uint32 slot = 0; slot < MAX_ARENA_SLOT; ++slot)
@@ -3273,7 +3169,7 @@ void RandomPlayerbotMgr::EnsurePlayerArenaBotsOnline(Player* player)
                     if (candidate->GetGroup())
                         continue;
                     uint32 cGuildId = candidate->GetGuildId();
-                    if (cGuildId && HasRealPlayerInGuild(cGuildId))
+                    if (cGuildId && PlayerbotGuildMgr::instance().IsRealGuild(cGuildId))
                         continue;
                     if (sPlayerbotAIConfig.IsArenaTeamBot(candidate->GetGUID()))
                         continue;
@@ -3387,12 +3283,7 @@ void RandomPlayerbotMgr::OnPlayerLogin(Player* player)
         players.push_back(player);
         LOG_DEBUG("playerbots", "Including non-random bot player {} into random bot update", player->GetName().c_str());
 
-        if (sPlayerbotAIConfig.guildBotMinOnline && player->GetGuildId() &&
-            !GET_PLAYERBOT_AI(player) &&
-            PlayerbotGuildMgr::instance().IsRealGuild(player->GetGuildId()))
-        {
-            EnsureGuildBotsOnline(player->GetGuildId());
-        }
+        // Guild bot login trigger moved to mod-guild-bots: GuildBotMgr::OnRealPlayerLogin
 
         EnsureArenaBotsOnline();
         EnsurePlayerArenaBotsOnline(player);

@@ -122,14 +122,14 @@ public:
     std::string const HandleRemoteCommand(std::string const request);
     void OnPlayerLogout(Player* player);
     void OnPlayerLogin(Player* player);
-    void EnsureGuildBotsOnline(uint32 guildId, uint32 precomputedCount = UINT32_MAX);
-    void EnsureGuildBotsOffline(uint32 guildId);
+    // void EnsureGuildBotsOnline(uint32 guildId, uint32 precomputedCount = UINT32_MAX);  // moved to mod-guild-bots
+    // void EnsureGuildBotsOffline(uint32 guildId);                                       // moved to mod-guild-bots
     void EnsureArenaBotsOnline();
     void EnsurePlayerArenaBotsOnline(Player* player);
     void QueuePersonalBotLogout(WorldSession* session);
     void ProcessPendingLogouts();
-    uint32 GetOnlineGuildBotCount(uint32 guildId);
-    bool HasRealPlayerInGuild(uint32 guildId);
+    // uint32 GetOnlineGuildBotCount(uint32 guildId);  // moved to mod-guild-bots
+    // bool HasRealPlayerInGuild(uint32 guildId);      // moved to mod-guild-bots
     void OnPlayerLoginError(uint32 bot);
     Player* GetRandomPlayer();
     std::vector<Player*> GetPlayers() { return players; };
@@ -247,8 +247,8 @@ private:
     time_t RealPlayerLastTimeSeen = 0;
     time_t DelayLoginBotsTimer;
     time_t printStatsTimer;
-    time_t GuildBotCheckTimer = 0;
-    std::unordered_map<uint32, time_t> _guildEnsureLastCheck;
+    // time_t GuildBotCheckTimer = 0;                          // moved to mod-guild-bots
+    // std::unordered_map<uint32, time_t> _guildEnsureLastCheck;  // moved to mod-guild-bots
 
     uint32 AddRandomBots();
     bool ProcessBot(uint32 bot);
@@ -261,7 +261,7 @@ private:
     uint32 processTicks;
     bool randomizedThisTick = false;
     std::deque<WorldSession*> _pendingPersonalBotLogouts;
-    std::deque<ObjectGuid> _pendingGuildBotLogouts;
+    // std::deque<ObjectGuid> _pendingGuildBotLogouts;  // moved to mod-guild-bots
 
     // std::map<uint32, std::vector<WorldLocation>> rpgLocsCache;
     std::map<uint32, std::map<uint32, std::vector<WorldLocation>>> rpgLocsCacheLevel;

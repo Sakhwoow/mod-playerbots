@@ -306,8 +306,8 @@ public:
     bool deleteRandomBotAccounts;
     uint32 randomBotGuildCount, randomBotGuildSizeMax;
     bool deleteRandomBotGuilds;
-    uint32 maxBotsInRealGuild;
-    uint32 guildBotMinOnline;
+    // uint32 maxBotsInRealGuild;   // moved to mod-guild-bots: GuildBot.MaxBotsInGuild
+    // uint32 guildBotMinOnline;    // moved to mod-guild-bots: GuildBot.MinOnline
     std::vector<uint32> pvpProhibitedZoneIds;
     std::vector<uint32> pvpProhibitedAreaIds;
     bool fastReactInBG;

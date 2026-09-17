@@ -586,8 +586,8 @@ bool PlayerbotAIConfig::Initialize()
     randomBotGuildCount = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotGuildCount", 20);
     randomBotGuildSizeMax = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotGuildSizeMax", 15);
     deleteRandomBotGuilds = sConfigMgr->GetOption<bool>("AiPlayerbot.DeleteRandomBotGuilds", false);
-    maxBotsInRealGuild = sConfigMgr->GetOption<uint32>("AiPlayerbot.MaxBotsInRealGuild", 50);
-    guildBotMinOnline = sConfigMgr->GetOption<uint32>("AiPlayerbot.GuildBotMinOnline", 0);
+    // maxBotsInRealGuild = sConfigMgr->GetOption<uint32>("AiPlayerbot.MaxBotsInRealGuild", 50);  // mod-guild-bots
+    // guildBotMinOnline = sConfigMgr->GetOption<uint32>("AiPlayerbot.GuildBotMinOnline", 0);      // mod-guild-bots
 
     botSendMailEnabled = sConfigMgr->GetOption<bool>("AiPlayerbot.BotSendMailEnabled", true);
 
