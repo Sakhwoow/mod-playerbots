@@ -1364,7 +1364,9 @@ bool MovementAction::Flee(Unit* target)
         }
     }
 
-    Unit* currentVictim = target->GetThreatMgr().GetCurrentVictim();
+    Unit* currentVictim = nullptr;
+    if (target->GetThreatMgr().CanHaveThreatList())
+        currentVictim = target->GetThreatMgr().GetCurrentVictim();
     if (currentVictim && currentVictim == bot)  // bot is target - try to flee to tank or master
     {
         if (Group* group = bot->GetGroup())
