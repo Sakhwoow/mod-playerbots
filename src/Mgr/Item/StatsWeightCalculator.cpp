@@ -75,7 +75,6 @@ StatsWeightCalculator::StatsWeightCalculator(Player* player) : player_(player)
 
     enable_overflow_penalty_ = true;
     enable_item_set_bonus_ = true;
-    enable_quality_blend_ = true;
 }
 
 void StatsWeightCalculator::Reset()
@@ -117,17 +116,6 @@ float StatsWeightCalculator::CalculateItem(uint32 itemId, int32 randomPropertyId
         CalculateItemSetMod(player_, proto);
 
     CalculateSocketBonus(player_, proto);
-
-    if (enable_quality_blend_)
-    {
-        // Heirloom items scale with player level
-        // Use player level as effective item level for heirlooms - Quality EPIC
-        // Else - Blend with item quality and level for normal items
-        if (proto->Quality == ITEM_QUALITY_HEIRLOOM)
-            weight_ *= PlayerbotFactory::CalcMixedGearScore(lvl, ITEM_QUALITY_EPIC);
-        else
-            weight_ *= PlayerbotFactory::CalcMixedGearScore(proto->ItemLevel, proto->Quality);
-    }
 
     // Apply weapon speed governance if slot is provided and this is a weapon
     if (sPlayerbotAIConfig.preferredSpecWeapons && slot >= 0 && proto->Class == ITEM_CLASS_WEAPON)
@@ -560,8 +548,6 @@ void StatsWeightCalculator::GenerateAdditionalWeights(Player* player)
 
     if (pvpSpec_ && !exclude_resilience_)
         stats_weights_[STATS_TYPE_RESILIENCE] += 7.0f;
-    else if (!pvpSpec_)
-        stats_weights_[STATS_TYPE_RESILIENCE] -= 3.0f;
 }
 
 void StatsWeightCalculator::CalculateItemSetMod(Player* player, ItemTemplate const* proto)
