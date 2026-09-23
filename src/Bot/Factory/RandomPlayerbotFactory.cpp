@@ -685,44 +685,31 @@ void RandomPlayerbotFactory::CreateRandomBots()
     uint32 accountsReadyForBots = 0;
 
     // Batch-load account ids (all rndbot* accounts now exist in DB).
+    // One cross-DB JOIN: account names + ids + existing char counts in a single query.
+    // Avoids building a huge IN(22k ids) clause which is slow on MySQL.
     std::unordered_map<std::string, uint32> accountIdMap;  // lowercase name → id
+    std::unordered_map<uint32, uint32>      charCountMap;  // accountId → char count
     {
-        QueryResult res = LoginDatabase.Query(
-            "SELECT LOWER(username), id FROM account WHERE username LIKE '{}%'",
+        std::string loginDBName = LoginDatabase.GetConnectionInfo()->database;
+        QueryResult res = CharacterDatabase.Query(
+            "SELECT LOWER(a.username), a.id, COUNT(c.guid) "
+            "FROM {}.account a "
+            "LEFT JOIN characters c ON c.account = a.id "
+            "WHERE a.username LIKE '{}%' "
+            "GROUP BY a.id, a.username",
+            loginDBName,
             sPlayerbotAIConfig.randomBotAccountPrefix);
         if (res)
         {
             do
             {
-                std::string name = res->Fetch()[0].Get<std::string>();
-                uint32 id        = res->Fetch()[1].Get<uint32>();
+                Field* f = res->Fetch();
+                std::string name = f[0].Get<std::string>();
+                uint32 id        = f[1].Get<uint32>();
+                uint32 cnt       = f[2].Get<uint32>();
                 accountIdMap[name] = id;
-            } while (res->NextRow());
-        }
-    }
-
-    // Batch-load character counts for all known accounts.
-    std::unordered_map<uint32, uint32> charCountMap;  // accountId → existing char count
-    if (!accountIdMap.empty())
-    {
-        std::ostringstream ids;
-        bool first = true;
-        for (auto const& [name, id] : accountIdMap)
-        {
-            if (!first) ids << ',';
-            ids << id;
-            first = false;
-        }
-        QueryResult res = CharacterDatabase.Query(
-            "SELECT account, COUNT(*) FROM characters WHERE account IN ({}) GROUP BY account",
-            ids.str());
-        if (res)
-        {
-            do
-            {
-                uint32 accId = res->Fetch()[0].Get<uint32>();
-                uint32 cnt   = res->Fetch()[1].Get<uint32>();
-                charCountMap[accId] = cnt;
+                if (cnt > 0)
+                    charCountMap[id] = cnt;
             } while (res->NextRow());
         }
     }
