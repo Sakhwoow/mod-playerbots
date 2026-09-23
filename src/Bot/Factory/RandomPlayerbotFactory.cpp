@@ -615,19 +615,30 @@ void RandomPlayerbotFactory::CreateRandomBots()
     uint32 totalAccountCount = CalculateTotalAccountCount();
     uint32 timer = getMSTime();
 
+    // Load all existing bot accounts in one batch query instead of one per account.
+    // AC stores account names in upper case; LOWER() normalises for the set lookup below.
+    std::unordered_set<std::string> existingAccounts;
+    {
+        QueryResult res = LoginDatabase.Query(
+            "SELECT LOWER(username) FROM account WHERE username LIKE '{}%'",
+            sPlayerbotAIConfig.randomBotAccountPrefix);
+        if (res)
+        {
+            do
+                existingAccounts.insert(res->Fetch()[0].Get<std::string>());
+            while (res->NextRow());
+        }
+    }
+
     for (uint32 accountNumber = 0; accountNumber < totalAccountCount; ++accountNumber)
     {
         std::ostringstream out;
         out << sPlayerbotAIConfig.randomBotAccountPrefix << accountNumber;
         std::string const accountName = out.str();
 
-        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_GET_ACCOUNT_ID_BY_USERNAME);
-        stmt->SetData(0, accountName);
-        PreparedQueryResult result = LoginDatabase.Query(stmt);
-        if (result)
-        {
+        if (existingAccounts.count(accountName))
             continue;
-        }
+
         account_creation++;
         std::string password = "";
         if (sPlayerbotAIConfig.randomBotRandomPassword)
