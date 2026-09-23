@@ -488,6 +488,24 @@ bool PlayerbotAIConfig::Initialize()
 
     LOG_INFO("server.loading", "Loading TalentSpecs...");
 
+    // Pre-populate spec links in one config pass instead of cls×spec×level GetOption calls.
+    // On servers with many configured specs (e.g. 287) the naive loop would call GetOption
+    // ~22 000 times, each triggering env-var string work; GetKeysByString reads the config
+    // map once and we call GetOption only for keys that actually exist.
+    {
+        static const std::string linkPrefix = "AiPlayerbot.PremadeSpecLink.";
+        for (std::string const& key : sConfigMgr->GetKeysByString(linkPrefix))
+        {
+            uint32 cls, spec, level;
+            if (sscanf(key.c_str() + linkPrefix.size(), "%u.%u.%u", &cls, &spec, &level) != 3)
+                continue;
+            if (cls == 0 || cls >= MAX_CLASSES || cls == 10 || spec >= MAX_SPECNO || level >= MAX_LEVEL)
+                continue;
+            premadeSpecLink[cls][spec][level] = sConfigMgr->GetOption<std::string>(key, "", false);
+            parsedSpecLinkOrder[cls][spec][level] = ParseTempTalentsOrder(cls, premadeSpecLink[cls][spec][level]);
+        }
+    }
+
     for (uint32 cls = 1; cls < MAX_CLASSES; ++cls)
     {
         if (cls == 10)
@@ -509,18 +527,6 @@ bool PlayerbotAIConfig::Initialize()
                 if (split.size() != 0)
                 {
                     parsedSpecGlyph[cls][spec].push_back(atoi(split.c_str()));
-                }
-            }
-            // Only scan per-level links if this spec is actually configured.
-            if (!premadeSpecName[cls][spec].empty())
-            {
-                for (uint32 level = 0; level < MAX_LEVEL; ++level)
-                {
-                    os.str("");
-                    os.clear();
-                    os << "AiPlayerbot.PremadeSpecLink." << cls << "." << spec << "." << level;
-                    premadeSpecLink[cls][spec][level] = sConfigMgr->GetOption<std::string>(os.str().c_str(), "", false);
-                    parsedSpecLinkOrder[cls][spec][level] = ParseTempTalentsOrder(cls, premadeSpecLink[cls][spec][level]);
                 }
             }
         }
