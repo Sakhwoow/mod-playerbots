@@ -511,21 +511,28 @@ bool PlayerbotAIConfig::Initialize()
                     parsedSpecGlyph[cls][spec].push_back(atoi(split.c_str()));
                 }
             }
-            for (uint32 level = 0; level < MAX_LEVEL; ++level)
+            // Only scan per-level links if this spec is actually configured.
+            if (!premadeSpecName[cls][spec].empty())
             {
-                std::ostringstream os;
-                os << "AiPlayerbot.PremadeSpecLink." << cls << "." << spec << "." << level;
-                premadeSpecLink[cls][spec][level] = sConfigMgr->GetOption<std::string>(os.str().c_str(), "", false);
-                parsedSpecLinkOrder[cls][spec][level] = ParseTempTalentsOrder(cls, premadeSpecLink[cls][spec][level]);
+                for (uint32 level = 0; level < MAX_LEVEL; ++level)
+                {
+                    os.str("");
+                    os.clear();
+                    os << "AiPlayerbot.PremadeSpecLink." << cls << "." << spec << "." << level;
+                    premadeSpecLink[cls][spec][level] = sConfigMgr->GetOption<std::string>(os.str().c_str(), "", false);
+                    parsedSpecLinkOrder[cls][spec][level] = ParseTempTalentsOrder(cls, premadeSpecLink[cls][spec][level]);
+                }
             }
         }
         for (uint32 spec = 0; spec < 3; ++spec)
         {
+            std::ostringstream petOs;
             for (uint32 points = 0; points < 21; ++points)
             {
-                std::ostringstream os;
-                os << "AiPlayerbot.PremadeHunterPetLink." << spec << "." << points;
-                premadeHunterPetLink[spec][points] = sConfigMgr->GetOption<std::string>(os.str().c_str(), "", false);
+                petOs.str("");
+                petOs.clear();
+                petOs << "AiPlayerbot.PremadeHunterPetLink." << spec << "." << points;
+                premadeHunterPetLink[spec][points] = sConfigMgr->GetOption<std::string>(petOs.str().c_str(), "", false);
                 parsedHunterPetLinkOrder[spec][points] =
                     ParseTempPetTalentsOrder(spec, premadeHunterPetLink[spec][points]);
             }
