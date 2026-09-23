@@ -487,6 +487,7 @@ bool PlayerbotAIConfig::Initialize()
     botTaxiGapJitterMs = sConfigMgr->GetOption<uint32>("AiPlayerbot.BotTaxiGapJitterMs", 100);
 
     LOG_INFO("server.loading", "Loading TalentSpecs...");
+    uint32 tsTimer = getMSTime();
 
     // Pre-populate spec links in one config pass instead of cls×spec×level GetOption calls.
     // On servers with many configured specs (e.g. 287) the naive loop would call GetOption
@@ -773,36 +774,63 @@ bool PlayerbotAIConfig::Initialize()
 
     selfBotLevel = sConfigMgr->GetOption<int32>("AiPlayerbot.SelfBotLevel", 1);
 
+    LOG_INFO("server.loading", ">> TalentSpecs config loaded in {} ms", GetMSTimeDiffToNow(tsTimer));
+
+    tsTimer = getMSTime();
     RandomPlayerbotFactory::CreateRandomBots();
+    LOG_INFO("server.loading", ">> CreateRandomBots done in {} ms", GetMSTimeDiffToNow(tsTimer));
     if (World::IsStopped())
     {
         return true;
     }
 
     // Assign account types after accounts are created
+    tsTimer = getMSTime();
     sRandomPlayerbotMgr.AssignAccountTypes();
+    LOG_INFO("server.loading", ">> AssignAccountTypes done in {} ms", GetMSTimeDiffToNow(tsTimer));
 
     if (sPlayerbotAIConfig.enabled)
     {
+        tsTimer = getMSTime();
         sRandomPlayerbotMgr.Init();
+        LOG_INFO("server.loading", ">> RandomPlayerbotMgr::Init done in {} ms", GetMSTimeDiffToNow(tsTimer));
     }
 
+    tsTimer = getMSTime();
     PlayerbotGuildMgr::instance().Init();
+    LOG_INFO("server.loading", ">> PlayerbotGuildMgr::Init done in {} ms", GetMSTimeDiffToNow(tsTimer));
+
+    tsTimer = getMSTime();
     sRandomPlayerbotMgr.InitArenaTeams();
+    LOG_INFO("server.loading", ">> InitArenaTeams done in {} ms", GetMSTimeDiffToNow(tsTimer));
+
+    tsTimer = getMSTime();
     sRandomItemMgr.Init();
     sRandomItemMgr.InitAfterAhBot();
+    LOG_INFO("server.loading", ">> RandomItemMgr::Init done in {} ms", GetMSTimeDiffToNow(tsTimer));
+
+    tsTimer = getMSTime();
     sBisListMgr->LoadAll();
+    LOG_INFO("server.loading", ">> BisListMgr::LoadAll done in {} ms", GetMSTimeDiffToNow(tsTimer));
+
+    tsTimer = getMSTime();
     PlayerbotTextMgr::instance().LoadBotTexts();
     PlayerbotTextMgr::instance().LoadBotTextChance();
-    PlayerbotFactory::Init();
+    LOG_INFO("server.loading", ">> PlayerbotTextMgr loaded in {} ms", GetMSTimeDiffToNow(tsTimer));
 
+    tsTimer = getMSTime();
+    PlayerbotFactory::Init();
     AiObjectContext::BuildAllSharedContexts();
+    LOG_INFO("server.loading", ">> PlayerbotFactory::Init + BuildAllSharedContexts done in {} ms", GetMSTimeDiffToNow(tsTimer));
 
     if (sPlayerbotAIConfig.randomBotSuggestDungeons)
     {
         PlayerbotDungeonRepository::instance().LoadDungeonSuggestions();
     }
+
+    tsTimer = getMSTime();
     sTravelMgr.Init();
+    LOG_INFO("server.loading", ">> TravelMgr::Init done in {} ms", GetMSTimeDiffToNow(tsTimer));
 
     excludedHunterPetFamilies.clear();
     LoadList<std::vector<uint32>>(sConfigMgr->GetOption<std::string>("AiPlayerbot.ExcludedHunterPetFamilies", ""), excludedHunterPetFamilies);
