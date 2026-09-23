@@ -1169,53 +1169,60 @@ std::vector<std::vector<uint32>> PlayerbotAIConfig::ParseTempTalentsOrder(uint32
     if (tab_link.empty())
         return res;
 
-    // check bad link
-    uint32 classMask = 1 << (cls - 1);
-    std::vector<std::string> tab_links = split(tab_link, "-");
-    std::map<uint32, std::vector<TalentEntry const*>> spells;
-    std::vector<std::vector<std::vector<uint32>>> orders(3);
-    for (uint32 i = 0; i < sTalentStore.GetNumRows(); ++i)
+    // Cache the TalentStore scan per class.  With 287 configured specs × 80 levels
+    // the scan would otherwise run ~22 000 times at startup; build it once per class.
+    using TabSpells = std::map<uint32, std::vector<TalentEntry const*>>;
+    static std::map<uint32, TabSpells> classSpellsCache;
+
+    auto it = classSpellsCache.find(cls);
+    if (it == classSpellsCache.end())
     {
-        TalentEntry const* talentInfo = sTalentStore.LookupEntry(i);
-        if (!talentInfo)
-            continue;
-
-        TalentTabEntry const* talentTabInfo = sTalentTabStore.LookupEntry(talentInfo->TalentTab);
-        if (!talentTabInfo)
-            continue;
-
-        if ((classMask & talentTabInfo->ClassMask) == 0)
-            continue;
-
-        spells[talentTabInfo->tabpage].push_back(talentInfo);
+        uint32 classMask = 1 << (cls - 1);
+        TabSpells& spells = classSpellsCache[cls];
+        for (uint32 i = 0; i < sTalentStore.GetNumRows(); ++i)
+        {
+            TalentEntry const* talentInfo = sTalentStore.LookupEntry(i);
+            if (!talentInfo)
+                continue;
+            TalentTabEntry const* talentTabInfo = sTalentTabStore.LookupEntry(talentInfo->TalentTab);
+            if (!talentTabInfo)
+                continue;
+            if ((classMask & talentTabInfo->ClassMask) == 0)
+                continue;
+            spells[talentTabInfo->tabpage].push_back(talentInfo);
+        }
+        for (auto& [tab, entries] : spells)
+            std::sort(entries.begin(), entries.end(),
+                      [](TalentEntry const* lhs, TalentEntry const* rhs)
+                      { return lhs->Row != rhs->Row ? lhs->Row < rhs->Row : lhs->Col < rhs->Col; });
+        it = classSpellsCache.find(cls);
     }
+
+    TabSpells const& spells = it->second;
+    std::vector<std::string> tab_links = split(tab_link, "-");
+    std::vector<std::vector<std::vector<uint32>>> orders(3);
     for (int tab = 0; tab < 3; tab++)
     {
         if (tab_links.size() <= (size_t)tab)
-        {
             break;
-        }
-        std::sort(spells[tab].begin(), spells[tab].end(),
-                  [&](TalentEntry const* lhs, TalentEntry const* rhs)
-                  { return lhs->Row != rhs->Row ? lhs->Row < rhs->Row : lhs->Col < rhs->Col; });
+        auto sit = spells.find(tab);
+        if (sit == spells.end())
+            break;
+        std::vector<TalentEntry const*> const& tabSpells = sit->second;
         for (uint32 i = 0; i < tab_links[tab].size(); i++)
         {
-            if (i >= spells[tab].size())
-            {
+            if (i >= tabSpells.size())
                 break;
-            }
             int lvl = tab_links[tab][i] - '0';
             if (lvl == 0)
                 continue;
-            orders[tab].push_back({(uint32)tab, spells[tab][i]->Row, spells[tab][i]->Col, (uint32)lvl});
+            orders[tab].push_back({(uint32)tab, tabSpells[i]->Row, tabSpells[i]->Col, (uint32)lvl});
         }
     }
     // sort by talent tab size
-    std::sort(orders.begin(), orders.end(), [&](auto& lhs, auto& rhs) { return lhs.size() > rhs.size(); });
+    std::sort(orders.begin(), orders.end(), [](auto& lhs, auto& rhs) { return lhs.size() > rhs.size(); });
     for (auto& order : orders)
-    {
         res.insert(res.end(), order.begin(), order.end());
-    }
     return res;
 }
 
