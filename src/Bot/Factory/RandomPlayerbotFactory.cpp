@@ -684,24 +684,67 @@ void RandomPlayerbotFactory::CreateRandomBots()
     uint32 neededAccounts = neededRndBotAccounts + (uint32)sPlayerbotAIConfig.addClassAccountPoolSize;
     uint32 accountsReadyForBots = 0;
 
+    // Batch-load account ids (all rndbot* accounts now exist in DB).
+    std::unordered_map<std::string, uint32> accountIdMap;  // lowercase name → id
+    {
+        QueryResult res = LoginDatabase.Query(
+            "SELECT LOWER(username), id FROM account WHERE username LIKE '{}%'",
+            sPlayerbotAIConfig.randomBotAccountPrefix);
+        if (res)
+        {
+            do
+            {
+                std::string name = res->Fetch()[0].Get<std::string>();
+                uint32 id        = res->Fetch()[1].Get<uint32>();
+                accountIdMap[name] = id;
+            } while (res->NextRow());
+        }
+    }
+
+    // Batch-load character counts for all known accounts.
+    std::unordered_map<uint32, uint32> charCountMap;  // accountId → existing char count
+    if (!accountIdMap.empty())
+    {
+        std::ostringstream ids;
+        bool first = true;
+        for (auto const& [name, id] : accountIdMap)
+        {
+            if (!first) ids << ',';
+            ids << id;
+            first = false;
+        }
+        QueryResult res = CharacterDatabase.Query(
+            "SELECT account, COUNT(*) FROM characters WHERE account IN ({}) GROUP BY account",
+            ids.str());
+        if (res)
+        {
+            do
+            {
+                uint32 accId = res->Fetch()[0].Get<uint32>();
+                uint32 cnt   = res->Fetch()[1].Get<uint32>();
+                charCountMap[accId] = cnt;
+            } while (res->NextRow());
+        }
+    }
+
     for (uint32 accountNumber = 0; accountNumber < totalAccountCount; ++accountNumber)
     {
         std::ostringstream out;
         out << sPlayerbotAIConfig.randomBotAccountPrefix << accountNumber;
         std::string const accountName = out.str();
 
-        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_GET_ACCOUNT_ID_BY_USERNAME);
-        stmt->SetData(0, accountName);
-        PreparedQueryResult result = LoginDatabase.Query(stmt);
-        if (!result)
+        auto idIt = accountIdMap.find(accountName);
+        if (idIt == accountIdMap.end())
             continue;
-
-        Field* fields = result->Fetch();
-        uint32 accountId = fields[0].Get<uint32>();
+        uint32 accountId = idIt->second;
 
         sPlayerbotAIConfig.randomBotAccounts.push_back(accountId);
 
-        uint32 count = AccountMgr::GetCharactersCount(accountId);
+        uint32 count = 0;
+        auto cntIt = charCountMap.find(accountId);
+        if (cntIt != charCountMap.end())
+            count = cntIt->second;
+
         if (count > 0)
         {
             accountsReadyForBots++;
@@ -790,9 +833,14 @@ void RandomPlayerbotFactory::CreateRandomBots()
     for (WorldSession* session : sessionBots)
         delete session;
 
+    // Use cached counts; fall back to DB only for accounts that had characters created this run.
     for (uint32 accountId : sPlayerbotAIConfig.randomBotAccounts)
     {
-        totalRandomBotChars += AccountMgr::GetCharactersCount(accountId);
+        auto it = charCountMap.find(accountId);
+        if (it != charCountMap.end() && it->second > 0)
+            totalRandomBotChars += it->second;
+        else
+            totalRandomBotChars += AccountMgr::GetCharactersCount(accountId);
     }
 
     LOG_INFO("server.loading", ">> {} random bot accounts with {} characters available",
