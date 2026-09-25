@@ -322,6 +322,9 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
 
 void UseItemAction::TellConsumableUse(Item* item, std::string const action, float percent)
 {
+    if (!sPlayerbotAIConfig.AnnounceConsumableUse)
+        return;
+
     std::ostringstream out;
     out << action << " " << chat->FormatItem(item->GetTemplate());
 
