@@ -18,6 +18,7 @@
 #include "PlayerbotFactory.h"
 #include "PlayerbotOperations.h"
 #include "PlayerbotWorldThreadProcessor.h"
+#include "Playerbots.h"
 #include "RaceMgr.h"
 #include "RandomPlayerbotMgr.h"
 #include "ScriptMgr.h"
@@ -1035,17 +1036,39 @@ void RandomPlayerbotFactory::LoadArenaTeamData()
     LOG_INFO("playerbots", "Loaded {} available arena team names", _availableArenaTeamNames.size());
 }
 
+bool RandomPlayerbotFactory::IsEligibleForBotArenaTeam(Player* bot)
+{
+    if (!bot || !bot->GetSession())
+        return false;
+
+    uint32 const accountId = bot->GetSession()->GetAccountId();
+    // IsRndBotAccount (not IsInRandomAccountList): also covers type-1 and guild-bot accounts
+    if (!sRandomPlayerbotMgr.IsRndBotAccount(accountId))
+        return false;
+
+    if (sRandomPlayerbotMgr.IsAddClassAccount(accountId))
+        return false;
+
+    if (PlayerbotAI* botAI = GET_PLAYERBOT_AI(bot))
+    {
+        if (botAI->HasGameClientMaster())
+            return false;
+    }
+
+    return true;
+}
+
 void RandomPlayerbotFactory::AssignBotToArenaTeam(Player* bot)
 {
-    if (!sRandomPlayerbotMgr.IsRndBotAccount(bot->GetSession()->GetAccountId()))
+    if (!IsEligibleForBotArenaTeam(bot))
         return;
 
     if (bot->GetLevel() < 70)
         return;
 
-    for (uint32 arena_slot = 0; arena_slot < MAX_ARENA_SLOT; ++arena_slot)
+    for (uint8 arenaSlot = ARENA_SLOT_2v2; arenaSlot <= ARENA_SLOT_5v5; ++arenaSlot)
     {
-        if (bot->GetArenaTeamId(arena_slot))
+        if (bot->GetArenaTeamId(arenaSlot))
             return;
     }
 
@@ -1056,10 +1079,10 @@ void RandomPlayerbotFactory::AssignBotToArenaTeam(Player* bot)
 void RandomPlayerbotFactory::AssignBotToArenaTeamInternal(Player* bot)
 {
     // Check if bot has team, only one per bot to avoid queue conflicts
-    for (uint32 arena_slot = 0; arena_slot < MAX_ARENA_SLOT; ++arena_slot)
+    for (uint8 arenaSlot = ARENA_SLOT_2v2; arenaSlot <= ARENA_SLOT_5v5; ++arenaSlot)
     {
-        if (bot->GetArenaTeamId(arena_slot) ||
-            sCharacterCache->GetCharacterArenaTeamIdByGuid(bot->GetGUID(), arena_slot))
+        if (bot->GetArenaTeamId(arenaSlot) ||
+            sCharacterCache->GetCharacterArenaTeamIdByGuid(bot->GetGUID(), arenaSlot))
             return;
     }
 
