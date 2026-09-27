@@ -468,6 +468,19 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
     if (pmo)
         pmo->finish();
 
+    // Drive guild bots alongside random bots without counting them against MaxRandomBots.
+    // Snapshot avoids iterator invalidation if ProcessBot causes a logout.
+    if (!guildBots.empty())
+    {
+        std::unordered_set<uint32> guildBotSnapshot = guildBots;
+        for (uint32 bot : guildBotSnapshot)
+        {
+            if (!GetPlayerBot(ObjectGuid::Create<HighGuid::Player>(bot)))
+                continue;
+            ProcessBot(bot);
+        }
+    }
+
     if (sPlayerbotAIConfig.hasLog("player_location.csv"))
     {
         LogPlayerLocation();
@@ -1465,6 +1478,14 @@ bool RandomPlayerbotMgr::ProcessBot(uint32 bot)
     Player* player = GetPlayerBot(botGUID);
     PlayerbotAI* botAI = player ? GET_PLAYERBOT_AI(player) : nullptr;
 
+    // Guild bots: lifecycle is owned entirely by GuildBotMgr.
+    // If online — drive AI directly, skip all lifecycle checks.
+    // If offline — GuildBotMgr handles login; nothing to do here.
+    if (player && IsAccountType(player->GetSession()->GetAccountId(), 3))
+        return ProcessBot(player);
+    if (!player && guildBots.count(bot))
+        return false;
+
     uint32 isValid = GetEventValue(bot, "add");
     if (!isValid)
     {
@@ -2407,6 +2428,16 @@ void RandomPlayerbotMgr::ResetIdleTimers(uint32 botId)
 {
     SetEventValue(botId, "randomize", 0, 0);
     SetEventValue(botId, "teleport", 0, 0);
+}
+
+void RandomPlayerbotMgr::AddGuildBotToAI(uint32 guidLow)
+{
+    guildBots.insert(guidLow);
+}
+
+void RandomPlayerbotMgr::RemoveGuildBotFromAI(uint32 guidLow)
+{
+    guildBots.erase(guidLow);
 }
 
 void RandomPlayerbotMgr::Refresh(Player* bot)

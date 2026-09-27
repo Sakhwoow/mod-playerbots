@@ -190,6 +190,11 @@ public:
     // Reset idle/teleport event timers so ProcessBot gives the bot a task on its next tick.
     void ResetIdleTimers(uint32 botId);
 
+    // Called by mod-guild-bots when a guild bot logs in/out so it is driven alongside
+    // random bots without counting against MaxRandomBots.
+    void AddGuildBotToAI(uint32 guidLow);
+    void RemoveGuildBotFromAI(uint32 guidLow);
+
 protected:
     void OnBotLoginInternal(Player* const bot) override;
 
@@ -271,6 +276,9 @@ private:
     std::map<TeamId, std::map<BattlegroundTypeId, std::vector<uint32>>> BattleMastersCache;
     std::unordered_map<uint32, BotEventCache> eventCache;
     std::unordered_set<uint32> currentBots;
+    // Guild bots driven here without counting against MaxRandomBots; lifecycle
+    // (login/logout) remains fully owned by mod-guild-bots.
+    std::unordered_set<uint32> guildBots;
     uint32 playersLevel;
 
     // Account lists
