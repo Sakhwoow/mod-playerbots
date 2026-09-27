@@ -175,16 +175,15 @@ bool LfgRoleCheckAction::Execute(Event /*event*/)
     if (bot->GetGroup())
     {
         uint32 newRoles = GetRoles();
-        // if (currentRoles == newRoles)
-        //     return false;
+        uint8 currentRoles = sLFGMgr->GetRoles(bot->GetGUID());
+        if (currentRoles == newRoles)
+            return false;
 
         WorldPacket* packet = new WorldPacket(CMSG_LFG_SET_ROLES);
         *packet << (uint8)newRoles;
         bot->GetSession()->QueuePacket(packet);
-        // sLFGMgr->SetRoles(bot->GetGUID(), newRoles);
-        // sLFGMgr->UpdateRoleCheck(group->GetGUID(), bot->GetGUID(), newRoles);
 
-        LOG_INFO("playerbots", "Bot {} {}:{} <{}>: LFG roles checked", bot->GetGUID().ToString().c_str(),
+        LOG_DEBUG("playerbots", "Bot {} {}:{} <{}>: LFG roles checked", bot->GetGUID().ToString().c_str(),
                  bot->GetTeamId() == TEAM_ALLIANCE ? "A" : "H", bot->GetLevel(), bot->GetName().c_str());
 
         return true;
