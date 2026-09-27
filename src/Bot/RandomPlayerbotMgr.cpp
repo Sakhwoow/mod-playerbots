@@ -2403,6 +2403,12 @@ void RandomPlayerbotMgr::Clear(Player* bot)
 }
 
 
+void RandomPlayerbotMgr::ResetIdleTimers(uint32 botId)
+{
+    SetEventValue(botId, "randomize", 0, 0);
+    SetEventValue(botId, "teleport", 0, 0);
+}
+
 void RandomPlayerbotMgr::Refresh(Player* bot)
 {
     PlayerbotAI* botAI = GET_PLAYERBOT_AI(bot);

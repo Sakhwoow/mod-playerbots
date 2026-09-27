@@ -187,6 +187,9 @@ public:
     void AssignAccountTypes();
     bool IsAccountType(uint32 accountId, uint8 accountType);
 
+    // Reset idle/teleport event timers so ProcessBot gives the bot a task on its next tick.
+    void ResetIdleTimers(uint32 botId);
+
 protected:
     void OnBotLoginInternal(Player* const bot) override;
 
