@@ -127,7 +127,7 @@ bool LeaveFarAwayAction::isUseful()
     if (groupLeader && IsSelfBot(groupLeader))
         return false;
 
-    if (trueMaster && !GET_PLAYERBOT_AI(trueMaster))
+    if (trueMaster && (!GET_PLAYERBOT_AI(trueMaster) || IsSelfBot(trueMaster)))
         return false;
 
     if (botAI->IsAltBot() &&
