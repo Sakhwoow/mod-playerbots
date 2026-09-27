@@ -319,8 +319,10 @@ bool BisGearAction::Execute(Event event)
         return false;
     }
 
+    uint32 const acctIdBis = bot->GetSession()->GetAccountId();
     if (!sPlayerbotAIConfig.autoGearCommandAltBots &&
-        !sRandomPlayerbotMgr.IsRndBotAccount(bot->GetSession()->GetAccountId()))
+        !sRandomPlayerbotMgr.IsRndBotAccount(acctIdBis) &&
+        !sRandomPlayerbotMgr.IsAccountType(acctIdBis, 3))
     {
         botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault(
             "bis_altbot_refused_error", "You cannot use bis on alt bots.", {}));
@@ -575,8 +577,10 @@ bool AutoGearAction::Execute(Event event)
         return false;
     }
 
+    uint32 const acctIdAg = bot->GetSession()->GetAccountId();
     if (!sPlayerbotAIConfig.autoGearCommandAltBots &&
-        !sRandomPlayerbotMgr.IsRndBotAccount(bot->GetSession()->GetAccountId()))
+        !sRandomPlayerbotMgr.IsRndBotAccount(acctIdAg) &&
+        !sRandomPlayerbotMgr.IsAccountType(acctIdAg, 3))
     {
         botAI->TellError(PlayerbotTextMgr::instance().GetBotTextOrDefault("autogear_altbot_refused_error",
                                                                           "You cannot use autogear on alt bots.", {}));
