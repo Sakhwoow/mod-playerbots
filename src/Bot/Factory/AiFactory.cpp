@@ -410,7 +410,8 @@ void AiFactory::AddDefaultCombatStrategies(Player* player, PlayerbotAI* const fa
             engine->addStrategy("healer dps", false);
     }
 
-    if (IsSelfBot(player) || sRandomPlayerbotMgr.IsRandomBot(player))
+    if (IsSelfBot(player) || sRandomPlayerbotMgr.IsRandomBot(player) ||
+        sRandomPlayerbotMgr.IsAccountType(player->GetSession()->GetAccountId(), 3))
     {
         if (!player->GetGroup())
         {
@@ -452,7 +453,8 @@ void AiFactory::AddDefaultCombatStrategies(Player* player, PlayerbotAI* const fa
             }
         }
     }
-    if (sRandomPlayerbotMgr.IsRandomBot(player))
+    if (sRandomPlayerbotMgr.IsRandomBot(player) ||
+        sRandomPlayerbotMgr.IsAccountType(player->GetSession()->GetAccountId(), 3))
         engine->ChangeStrategy(sPlayerbotAIConfig.randomBotCombatStrategies);
     else
         engine->ChangeStrategy(sPlayerbotAIConfig.combatStrategies);
