@@ -370,7 +370,10 @@ ItemIds EquipAction::SelectInventoryItemsToEquip()
 
 bool EquipUpgradesPacketAction::Execute(Event event)
 {
-    if (!sPlayerbotAIConfig.autoEquipUpgradeLoot && !sRandomPlayerbotMgr.IsRandomBot(bot))
+    uint32 const acctIdEq = bot->GetSession()->GetAccountId();
+    if (!sPlayerbotAIConfig.autoEquipUpgradeLoot &&
+        !sRandomPlayerbotMgr.IsRandomBot(bot) &&
+        !sRandomPlayerbotMgr.IsAccountType(acctIdEq, 3))
         return false;
     std::string const source = event.GetSource();
     if (source == "trade status")
