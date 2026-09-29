@@ -442,6 +442,19 @@ void PlayerbotAI::UpdateAIGroupMaster()
     if (master && !ObjectAccessor::FindConnectedPlayer(masterGuid))
         SetMaster(nullptr);
 
+    // Alt-bot stranded in a dungeon/raid instance the master already left: teleport to follow.
+    // The "lfg teleport" master-packet mirror only fires when the master exits via the LFG
+    // "leave dungeon" button; a hearthstone, portal, or walking out sends no such packet and
+    // otherwise leaves the bot stuck inside indefinitely.
+    if (botAI->IsAltBot() && master && bot->GetMap() &&
+        (bot->GetMap()->IsDungeon() || bot->GetMap()->IsRaid()) && bot->GetMapId() != master->GetMapId() &&
+        master->IsInWorld() && !bot->IsBeingTeleported() && !master->IsBeingTeleported())
+    {
+        bot->TeleportTo(master->GetMapId(), master->GetPositionX(), master->GetPositionY(),
+                         master->GetPositionZ(), master->GetOrientation());
+        return;
+    }
+
     // Bot in BG, but master no longer part of a group: release master
     // Exclude alt and addclass bots as they rely on current (real player) master, security-wise.
     if (bot->InBattleground() && sRandomPlayerbotMgr.IsRndBotAccount(acctId) && master && !master->GetGroup())
