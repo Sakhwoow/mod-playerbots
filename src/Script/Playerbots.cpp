@@ -513,14 +513,23 @@ public:
             return;
         }
 
-        // Case 2: a real player (or selfbot) left — immediately process all random bots remaining in the group
+        // Case 2: a real player (or selfbot) left — process all bots remaining in the group
         if ((!GET_PLAYERBOT_AI(removed) || IsSelfBot(removed)) && group)
         {
             for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
             {
                 Player* member = itr->GetSource();
-                if (member && GET_PLAYERBOT_AI(member) && sRandomPlayerbotMgr.IsRandomBot(member->GetGUID().GetCounter()))
+                if (!member)
+                    continue;
+
+                PlayerbotAI* botAI = GET_PLAYERBOT_AI(member);
+                if (!botAI)
+                    continue;
+
+                if (sRandomPlayerbotMgr.IsRandomBot(member->GetGUID().GetCounter()))
                     sRandomPlayerbotMgr.ProcessBot(member);
+                else if (botAI->IsAltBot() && botAI->GetMaster() == removed)
+                    botAI->LeaveOrDisbandGroup();
             }
         }
     }
