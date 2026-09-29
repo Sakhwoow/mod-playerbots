@@ -1581,7 +1581,7 @@ bool RandomPlayerbotMgr::ProcessBot(uint32 bot)
         for (GroupReference* ref = botGroup->GetFirstMember(); ref != nullptr; ref = ref->next())
         {
             Player* member = ref->GetSource();
-            if (member && !GET_PLAYERBOT_AI(member))
+            if (member && (!GET_PLAYERBOT_AI(member) || IsSelfBot(member)))
                 return false;
         }
         // No online real player — bot is stuck in a bot-only or ghost group; run cleanup only

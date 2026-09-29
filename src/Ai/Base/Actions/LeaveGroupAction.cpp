@@ -135,7 +135,27 @@ bool LeaveFarAwayAction::isUseful()
         return false;
 
     if (botAI->GetGrouperType() == GrouperType::SOLO)
+    {
+        // Stay if any real player (online or offline) is still in the group
+        if (Group* g = bot->GetGroup())
+        {
+            for (auto const& slot : g->GetMemberSlots())
+            {
+                if (Player* member = ObjectAccessor::FindPlayer(slot.guid))
+                {
+                    if (!GET_PLAYERBOT_AI(member) || IsSelfBot(member))
+                        return false;
+                }
+                else
+                {
+                    uint32 acctId = sCharacterCache->GetCharacterAccountIdByGuid(slot.guid);
+                    if (acctId && !sRandomPlayerbotMgr.IsRndBotAccount(acctId))
+                        return false;
+                }
+            }
+        }
         return true;
+    }
 
     uint32 dCount = AI_VALUE(uint32, "death count");
 
