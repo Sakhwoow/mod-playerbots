@@ -175,10 +175,16 @@ bool LfgRoleCheckAction::Execute(Event /*event*/)
     if (bot->GetGroup())
     {
         uint32 newRoles = GetRoles();
-        uint8 currentRoles = sLFGMgr->GetRoles(bot->GetGUID());
-        if (currentRoles == newRoles)
-            return false;
-
+        // Do NOT skip sending just because sLFGMgr->GetRoles() already matches newRoles --
+        // that reads LfgPlayerData's persistent last-submitted role, which survives a role
+        // check being torn down and restarted (e.g. "find a replacement" after a member
+        // leaves mid-dungeon). RoleChecksStore resets every player's answer to 0 on each
+        // new/restarted check, but this bot's desired role is usually unchanged, so the
+        // stale-looking "already told them" comparison here used to skip resending forever
+        // -- the server's fresh check never got an answer, timed out, and restarted, with
+        // the same mismatch repeating every cycle (confirmed live: infinite role-check
+        // start/cancel loop whenever a replacement was needed for an in-progress dungeon
+        // group). Always resend; the LFG client only shows this at LOG_DEBUG, not spam.
         WorldPacket* packet = new WorldPacket(CMSG_LFG_SET_ROLES);
         *packet << (uint8)newRoles;
         bot->GetSession()->QueuePacket(packet);
