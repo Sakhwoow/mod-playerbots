@@ -91,13 +91,6 @@ public:
     bool IsActive() override;
 };
 
-class BwlNefarianFearWardTrigger : public Trigger
-{
-public:
-    BwlNefarianFearWardTrigger(PlayerbotAI* botAI) : Trigger(botAI, "bwl nefarian fear ward") {}
-    bool IsActive() override;
-};
-
 // Trash
 
 class BwlDeathTalonWyrmguardTankTrigger : public Trigger
