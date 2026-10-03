@@ -74,7 +74,7 @@ public:
 class VigilanceTrigger : public BuffOnPartyTrigger
 {
 public:
-    VigilanceTrigger(PlayerbotAI* botAI) : BuffOnPartyTrigger(botAI, "vigilance") {}
+    VigilanceTrigger(PlayerbotAI* botAI) : BuffOnPartyTrigger(botAI, "vigilance", 5 * IN_MILLISECONDS) {}
 
     bool IsActive() override;
 };
