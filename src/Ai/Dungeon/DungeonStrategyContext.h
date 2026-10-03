@@ -24,6 +24,7 @@
 #include "NexStrategy.h"
 #include "OCStrategy.h"
 #include "PoSStrategy.h"
+#include "RampStrategy.h"
 #include "SethStrategy.h"
 #include "Strategy.h"
 #include "TOCStrategy.h"
@@ -47,6 +48,7 @@ class DungeonStrategyContext : public NamedObjectContext<Strategy>
             creators["tbc-tbm"] = &DungeonStrategyContext::tbc_tbm;         // The Black Morass
             creators["tbc-ub"] = &DungeonStrategyContext::tbc_ub;           // Coilfang Reservoir: The Underbog
             creators["tbc-mgt"] = &DungeonStrategyContext::tbc_mgt;         // Magisters' Terrace
+            creators["tbc-ramp"] = &DungeonStrategyContext::tbc_ramp;       // Hellfire Citadel: Hellfire Ramparts
 
             // Wrath of the Lich King
             creators["wotlk-uk"] = &DungeonStrategyContext::wotlk_uk;       // Utgarde Keep
@@ -74,6 +76,7 @@ class DungeonStrategyContext : public NamedObjectContext<Strategy>
         static Strategy* tbc_tbm(PlayerbotAI* botAI) { return new TbcDungeonBlackMorassStrategy(botAI); }
         static Strategy* tbc_ub(PlayerbotAI* botAI) { return new TbcDungeonUnderbogStrategy(botAI); }
         static Strategy* tbc_mgt(PlayerbotAI* botAI) { return new TbcDungeonMagistersTerraceStrategy(botAI); }
+        static Strategy* tbc_ramp(PlayerbotAI* botAI) { return new TbcDungeonHellfireRampartsStrategy(botAI); }
         static Strategy* wotlk_uk(PlayerbotAI* botAI) { return new WotlkDungeonUKStrategy(botAI); }
         static Strategy* wotlk_nex(PlayerbotAI* botAI) { return new WotlkDungeonNexStrategy(botAI); }
         static Strategy* wotlk_an(PlayerbotAI* botAI) { return new WotlkDungeonANStrategy(botAI); }
