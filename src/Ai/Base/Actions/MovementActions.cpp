@@ -2476,7 +2476,7 @@ bool TankFaceAction::Execute(Event /*event*/)
 
 bool RearFlankAction::isUseful()
 {
-    Unit* target = AI_VALUE(Unit*, "current target");
+    Unit const* target = GetTarget();
     if (!target)
         return false;
 
@@ -2491,7 +2491,7 @@ bool RearFlankAction::isUseful()
 
 bool RearFlankAction::Execute(Event /*event*/)
 {
-    Unit* target = AI_VALUE(Unit*, "current target");
+    Unit const* target = GetTarget();
     if (!target)
         return false;
 
@@ -2514,6 +2514,11 @@ bool RearFlankAction::Execute(Event /*event*/)
 
     return MoveTo(bot->GetMapId(), destination->GetPositionX(), destination->GetPositionY(),
                   destination->GetPositionZ(), false, false, false, true, MovementPriority::MOVEMENT_COMBAT);
+}
+
+Unit* BossRearFlankAction::GetTarget()
+{
+    return AI_VALUE2(Unit*, "find target", bossName);
 }
 
 bool DisperseSetAction::Execute(Event event)
