@@ -314,7 +314,7 @@ void StatsWeightCalculator::GenerateBasicWeights(Player* player)
         stats_weights_[STATS_TYPE_CRIT] += 1.5f;
         stats_weights_[STATS_TYPE_HASTE] += 2.1f;
         stats_weights_[STATS_TYPE_EXPERTISE] += 2.1f;
-        stats_weights_[STATS_TYPE_MELEE_DPS] += 15.0f;
+        // Weapon DPS is taken into account as part of Attack Power for Cat Druids.
     }
     else if (cls == CLASS_ROGUE && (tab == ROGUE_TAB_ASSASSINATION || tab == ROGUE_TAB_SUBTLETY))
     {
@@ -517,7 +517,7 @@ void StatsWeightCalculator::GenerateBasicWeights(Player* player)
         stats_weights_[STATS_TYPE_CRIT] += 1.3f;
         stats_weights_[STATS_TYPE_HASTE] += 2.3f;
         stats_weights_[STATS_TYPE_EXPERTISE] += 3.7f;
-        stats_weights_[STATS_TYPE_MELEE_DPS] += 3.0f;
+        // Weapon DPS is taken into account as part of Attack Power for Bear Druids.
     }
 }
 
