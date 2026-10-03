@@ -134,28 +134,33 @@ bool LeaveFarAwayAction::isUseful()
         (!groupLeaderBotAI || IsSelfBot(groupLeader)))  // Don't leave when an altbot is grouped under a regular real player or a selfbot.
         return false;
 
-    if (botAI->GetGrouperType() == GrouperType::SOLO)
+    // Stay if any real player (online or offline) is still in the group, regardless of grouper
+    // type. This used to be checked only inside the SOLO branch below, but GetGrouperType() can
+    // never return SOLO for a guild bot (SOLO requires !HasGameClientMaster(), and guild bots
+    // always have one) and only ~20% of random bots land in SOLO either -- everyone else (guild
+    // bots always included) fell through to the death-count/level-diff heuristics further down,
+    // which have nothing to do with whether a real player is actually present and could fire
+    // mid-raid (e.g. after a few wipes pushes death count past 9) while the player was still there.
+    if (Group* g = bot->GetGroup())
     {
-        // Stay if any real player (online or offline) is still in the group
-        if (Group* g = bot->GetGroup())
+        for (auto const& slot : g->GetMemberSlots())
         {
-            for (auto const& slot : g->GetMemberSlots())
+            if (Player* member = ObjectAccessor::FindPlayer(slot.guid))
             {
-                if (Player* member = ObjectAccessor::FindPlayer(slot.guid))
-                {
-                    if (!GET_PLAYERBOT_AI(member) || IsSelfBot(member))
-                        return false;
-                }
-                else
-                {
-                    uint32 acctId = sCharacterCache->GetCharacterAccountIdByGuid(slot.guid);
-                    if (acctId && !sRandomPlayerbotMgr.IsRndBotAccount(acctId))
-                        return false;
-                }
+                if (!GET_PLAYERBOT_AI(member) || IsSelfBot(member))
+                    return false;
+            }
+            else
+            {
+                uint32 acctId = sCharacterCache->GetCharacterAccountIdByGuid(slot.guid);
+                if (acctId && !sRandomPlayerbotMgr.IsRndBotAccount(acctId))
+                    return false;
             }
         }
-        return true;
     }
+
+    if (botAI->GetGrouperType() == GrouperType::SOLO)
+        return true;
 
     uint32 dCount = AI_VALUE(uint32, "death count");
 
