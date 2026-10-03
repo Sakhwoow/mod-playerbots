@@ -12,6 +12,9 @@
 #include "PlayerbotTextMgr.h"
 #include "Playerbots.h"
 
+static constexpr uint32 SPELL_LEARNING_1 = 483;
+static constexpr uint32 SPELL_LEARNING_2 = 55884;
+
 bool UseItemAction::Execute(Event event)
 {
     std::string name = event.getParam();
@@ -79,15 +82,51 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget, Uni
     uint8 castFlags = 0;
     uint32 targetFlag = TARGET_FLAG_NONE;
     uint32 spellId = 0;
-    for (uint8 i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
+    ItemTemplate const* itemProto = item->GetTemplate();
+    bool const isGenericLearnItem = itemProto->Spells[0].SpellId == SPELL_LEARNING_1
+        || itemProto->Spells[0].SpellId == SPELL_LEARNING_2;
+
+    if (isGenericLearnItem)
     {
-        if (item->GetTemplate()->Spells[i].SpellId > 0)
+        if (bot->HasSpell(itemProto->Spells[1].SpellId))
+            return false;
+    }
+    else if (itemProto->Spells[0].SpellId)
+    {
+        // Older/direct layout: Spells[0] itself teaches the spell(s), via one or
+        // more SPELL_EFFECT_LEARN_SPELL effects (not necessarily in effect slot 0).
+        if (SpellInfo const* learnSpellInfo = sSpellMgr->GetSpellInfo(itemProto->Spells[0].SpellId))
         {
-            spellId = item->GetTemplate()->Spells[i].SpellId;
-            if (!botAI->CanCastSpell(spellId, bot, false, itemTarget, item))
+            bool foundLearnEffect = false;
+            bool allKnown = true;
+            for (auto const& effect : learnSpellInfo->Effects)
             {
-                return false;
+                if (effect.Effect != SPELL_EFFECT_LEARN_SPELL || !effect.TriggerSpell)
+                    continue;
+
+                foundLearnEffect = true;
+                if (!bot->HasSpell(effect.TriggerSpell))
+                {
+                    allKnown = false;
+                    break;
+                }
             }
+
+            if (foundLearnEffect && allKnown)
+                return false;
+        }
+    }
+
+    // Only check index 0 for generic-learn items; slot 1 is the taught spell id
+    uint8 const spellSlotLimit = isGenericLearnItem ? 1 : MAX_ITEM_PROTO_SPELLS;
+
+    for (uint8 i = 0; i < spellSlotLimit; ++i)
+    {
+        if (itemProto->Spells[i].SpellId > 0)
+        {
+            spellId = itemProto->Spells[i].SpellId;
+            if (!botAI->CanCastSpell(spellId, bot, false, itemTarget, item))
+                return false;
         }
     }
 
