@@ -475,6 +475,8 @@ void PlayerbotAI::UpdateAIGroupMaster()
 
             if (!bot->InBattleground())
             {
+                LOG_DEBUG("playerbots", "UpdateAIGroupMaster: bot {} took master {} (leader={}).", bot->GetName(),
+                          newMaster->GetName(), botAI->GetGroupLeader() ? botAI->GetGroupLeader()->GetName() : "none");
                 botAI->ChangeStrategy("+follow", BOT_STATE_NON_COMBAT);
 
                 if (botAI->GetMaster() == botAI->GetGroupLeader())
