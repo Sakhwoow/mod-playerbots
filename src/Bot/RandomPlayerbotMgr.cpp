@@ -1636,6 +1636,25 @@ bool RandomPlayerbotMgr::ProcessBot(uint32 bot)
     return false;
 }
 
+// A real player (or selfbot, which IS a real player) is online and in this group right now.
+// Used to keep pool-maintenance routines (Refresh/RandomizeFirst/RandomizeMin) from ripping a
+// bot out of a group a real player is actively using -- those routines exist to recycle UNUSED
+// pool bots and have no business touching a bot someone is currently grouped with.
+static bool GroupHasRealPlayer(Group* group)
+{
+    if (!group)
+        return false;
+
+    for (GroupReference* ref = group->GetFirstMember(); ref != nullptr; ref = ref->next())
+    {
+        Player* member = ref->GetSource();
+        if (member && (!GET_PLAYERBOT_AI(member) || IsSelfBot(member)))
+            return true;
+    }
+
+    return false;
+}
+
 bool RandomPlayerbotMgr::ProcessBot(Player* bot)
 {
 
@@ -1809,7 +1828,10 @@ void RandomPlayerbotMgr::Revive(Player* player)
     SetEventValue(bot, "revive", 0, 0);
 
     Refresh(player);
-    RandomTeleportGrindForLevel(player);
+
+    // Don't yank a revived bot away from a real player it's still grouped with.
+    if (!GroupHasRealPlayer(player->GetGroup()))
+        RandomTeleportGrindForLevel(player);
 }
 
 void RandomPlayerbotMgr::RandomTeleport(Player* bot, std::vector<WorldLocation>& locs, bool hearth)
@@ -2369,13 +2391,16 @@ void RandomPlayerbotMgr::RandomizeFirst(Player* bot)
     // teleport to a random inn for bot level
     botAI->Reset(true);
 
-    if (bot->GetGroup())
+    // Pool-maintenance recycling (re-roll gear/level, random teleport) is for bots nobody is
+    // using -- never pull a bot a real player is actively grouped with out of that group.
+    if (bot->GetGroup() && !GroupHasRealPlayer(bot->GetGroup()))
         botAI->LeaveOrDisbandGroup();
 
     if (pmo)
         pmo->finish();
 
-    RandomTeleportForLevel(bot);
+    if (!GroupHasRealPlayer(bot->GetGroup()))
+        RandomTeleportForLevel(bot);
 }
 
 void RandomPlayerbotMgr::RandomizeMin(Player* bot)
@@ -2410,7 +2435,9 @@ void RandomPlayerbotMgr::RandomizeMin(Player* bot)
     // teleport to a random inn for bot level
     botAI->Reset(true);
 
-    if (bot->GetGroup())
+    // Pool-maintenance recycling (re-roll gear/level, random teleport) is for bots nobody is
+    // using -- never pull a bot a real player is actively grouped with out of that group.
+    if (bot->GetGroup() && !GroupHasRealPlayer(bot->GetGroup()))
         botAI->LeaveOrDisbandGroup();
 
     if (pmo)
@@ -2480,7 +2507,9 @@ void RandomPlayerbotMgr::Refresh(Player* bot)
     uint32 money = bot->GetMoney();
     bot->SetMoney(money + 500 * sqrt(urand(1, bot->GetLevel() * 5)));
 
-    if (bot->GetGroup())
+    // Pool-maintenance recycling (re-roll gear/level, random teleport) is for bots nobody is
+    // using -- never pull a bot a real player is actively grouped with out of that group.
+    if (bot->GetGroup() && !GroupHasRealPlayer(bot->GetGroup()))
         botAI->LeaveOrDisbandGroup();
 
     if (pmo)
