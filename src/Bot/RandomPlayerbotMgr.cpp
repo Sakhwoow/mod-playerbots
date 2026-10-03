@@ -2954,7 +2954,7 @@ void RandomPlayerbotMgr::ProcessPendingLogouts()
         WorldSession* session = _pendingPersonalBotLogouts.front();
         _pendingPersonalBotLogouts.pop_front();
 
-        if (session && !session->isLogingOut())
+        if (session && !session->IsLoggingOut())
             session->LogoutPlayer(true);
 
         delete session;

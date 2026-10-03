@@ -317,7 +317,7 @@ void PlayerbotHolder::DeferLogoutBot(ObjectGuid guid)
     bot->SaveToDB(false, false);
 
     WorldSession* session = bot->GetSession();
-    if (session->isLogingOut())
+    if (session->IsLoggingOut())
         return;
 
     botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault("goodbye", "Goodbye!", {}));
