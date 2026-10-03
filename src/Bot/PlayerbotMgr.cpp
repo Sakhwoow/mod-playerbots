@@ -1128,6 +1128,10 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
         {
             messages.push_back("ИИ бота отключён");
             delete GET_PLAYERBOT_AI(master);
+
+            if (master->isTaxiCheater())
+                master->SetTaxiCheater(false);
+
             applyBotTitle(master, false);
         }
         else if (sPlayerbotAIConfig.selfBotLevel == 0)
