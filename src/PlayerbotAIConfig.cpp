@@ -668,6 +668,8 @@ bool PlayerbotAIConfig::Initialize()
     maxAddedBots = sConfigMgr->GetOption<int32>("AiPlayerbot.MaxAddedBots", 40);
     addClassCommand = sConfigMgr->GetOption<int32>("AiPlayerbot.AddClassCommand", 1);
     addClassAccountPoolSize = sConfigMgr->GetOption<int32>("AiPlayerbot.AddClassAccountPoolSize", 50);
+    addClassIdleLogoutSeconds = sConfigMgr->GetOption<int32>("AiPlayerbot.AddClassIdleLogoutSeconds", 0);
+    addClassGuildTransfer = sConfigMgr->GetOption<int32>("AiPlayerbot.AddClassGuildTransfer", 0);
     addClassRandomCharacter = sConfigMgr->GetOption<bool>("AiPlayerbot.AddClassRandomCharacter", false);
     maintenanceCommand = sConfigMgr->GetOption<int32>("AiPlayerbot.MaintenanceCommand", 1);
 

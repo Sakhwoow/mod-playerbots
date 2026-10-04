@@ -101,6 +101,13 @@ AiPlayerbot.RandomBotAccountCount = 0
 # 10 bots (or 9 if WotLK is disabled), one bot for each class.
 AiPlayerbot.AddClassAccountPoolSize = 50
 
+# Seconds an AddClass bot may stay online without a group before it logs out (0 = never).
+AiPlayerbot.AddClassIdleLogoutSeconds = 0
+
+# AddClass characters that join a real guild are moved to a guild-bot (type 3) account while offline.
+# 0 = off, 1 = log only (dry run), 2 = move. Runs at startup, before the AddClass cache is built.
+AiPlayerbot.AddClassGuildTransfer = 0
+
 # Prefix for created bot accounts (of any type).
 # Do not change this prefix while there are existing bot accounts.
 AiPlayerbot.RandomBotAccountPrefix = "rndbot"

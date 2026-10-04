@@ -464,6 +464,78 @@ uint32 RandomPlayerbotFactory::CalculateAvailableCharsPerAccount()
     return availableChars;
 }
 
+static uint32 CreateGuildBotAccount(std::string const& pdb)
+{
+    std::string const name = sPlayerbotAIConfig.randomBotAccountPrefix + "guild" + std::to_string(time(nullptr));
+    sAccountMgr->CreateAccount(name, name);
+    while (LoginDatabase.QueueSize())
+        std::this_thread::sleep_for(100ms);
+
+    QueryResult res = LoginDatabase.Query("SELECT id FROM account WHERE UPPER(username) = UPPER('{}')", name);
+    if (!res)
+        return 0;
+
+    uint32 const accountId = res->Fetch()[0].Get<uint32>();
+    PlayerbotsDatabase.DirectExecute("INSERT INTO playerbots_account_type (account_id, account_type, assignment_date) VALUES ({}, 3, NOW())", accountId);
+    return accountId;
+}
+
+void RandomPlayerbotFactory::TransferAddClassGuildBots()
+{
+    if (!sPlayerbotAIConfig.addClassGuildTransfer)
+        return;
+
+    std::string const pdb = PlayerbotsDatabase.GetConnectionInfo()->database;
+    uint32 const maxChars = sWorld->getIntConfig(CONFIG_CHARACTERS_PER_REALM);
+
+    // AddClass (type 2) characters that are offline, in a guild led by a real player, and not grouped or in arena.
+    QueryResult candidates = CharacterDatabase.Query(
+        "SELECT gm.guid, c.account FROM guild_member gm "
+        "INNER JOIN characters c ON c.guid = gm.guid "
+        "INNER JOIN guild g ON g.guildid = gm.guildid "
+        "INNER JOIN characters l ON l.guid = g.leaderguid "
+        "INNER JOIN {}.playerbots_account_type p ON p.account_id = c.account AND p.account_type = 2 "
+        "WHERE c.online = 0 "
+        "AND l.account NOT IN (SELECT account_id FROM {}.playerbots_account_type) "
+        "AND gm.guid NOT IN (SELECT memberGuid FROM group_member) "
+        "AND gm.guid NOT IN (SELECT guid FROM arena_team_member)", pdb, pdb);
+    if (!candidates)
+        return;
+
+    do
+    {
+        uint32 const guid = candidates->Fetch()[0].Get<uint32>();
+        uint32 const oldAccount = candidates->Fetch()[1].Get<uint32>();
+
+        QueryResult room = CharacterDatabase.Query(
+            "SELECT p.account_id FROM {}.playerbots_account_type p "
+            "LEFT JOIN characters c ON c.account = p.account_id "
+            "WHERE p.account_type = 3 GROUP BY p.account_id "
+            "HAVING COUNT(c.guid) < {} ORDER BY COUNT(c.guid) DESC LIMIT 1", pdb, maxChars);
+        uint32 targetAccount = room ? room->Fetch()[0].Get<uint32>() : 0;
+
+        if (sPlayerbotAIConfig.addClassGuildTransfer != 2)
+        {
+            LOG_INFO("playerbots", "AddClass guild transfer (dry run): character {} from account {} to {}", guid, oldAccount,
+                     targetAccount ? "guild-bot account " + std::to_string(targetAccount) : std::string("a new guild-bot account"));
+            continue;
+        }
+
+        if (!targetAccount)
+            targetAccount = CreateGuildBotAccount(pdb);
+        if (!targetAccount)
+        {
+            LOG_ERROR("playerbots", "AddClass guild transfer: could not create a guild-bot account, stopping");
+            break;
+        }
+
+        CharacterDatabase.DirectExecute("UPDATE characters SET account = {} WHERE guid = {} AND account = {} AND online = 0",
+                                        targetAccount, guid, oldAccount);
+        LOG_INFO("playerbots", "AddClass guild transfer: character {} moved from account {} to guild-bot account {}",
+                 guid, oldAccount, targetAccount);
+    } while (candidates->NextRow());
+}
+
 void RandomPlayerbotFactory::CreateRandomBots()
 {
     /* multi-thread here is meaningless? since the async db operations */
@@ -672,6 +744,7 @@ void RandomPlayerbotFactory::CreateRandomBots()
         LOG_INFO("playerbots", ">> {} Accounts loaded into database in {} ms", account_creation, GetMSTimeDiffToNow(timer));
     }
 
+    TransferAddClassGuildBots();
     LOG_INFO("playerbots", "Creating random bot characters...");
     uint32 totalRandomBotChars = 0;
     std::vector<std::pair<Player*, uint32>> playerBots;

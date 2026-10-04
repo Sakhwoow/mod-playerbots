@@ -437,6 +437,8 @@ public:
     int32 maxAddedBots;
     int32 addClassCommand;
     int32 addClassAccountPoolSize;
+    int32 addClassIdleLogoutSeconds;
+    int32 addClassGuildTransfer;
     bool addClassRandomCharacter;
     int32 maintenanceCommand;
     bool altMaintenanceAttunementQs,

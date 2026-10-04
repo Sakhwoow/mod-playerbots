@@ -537,6 +537,23 @@ void PlayerbotAI::UpdateAIInternal([[maybe_unused]] uint32 elapsed, bool minimal
 
     HandleCommands();
 
+    if (sPlayerbotAIConfig.addClassIdleLogoutSeconds && master && !bot->GetGroup() &&
+        sRandomPlayerbotMgr.IsAccountType(bot->GetSession()->GetAccountId(), 2))
+    {
+        if (!addClassIdleSince)
+            addClassIdleSince = time(nullptr);
+        else if (time(nullptr) - addClassIdleSince >= sPlayerbotAIConfig.addClassIdleLogoutSeconds)
+        {
+            if (PlayerbotMgr* masterBotMgr = GET_PLAYERBOT_MGR(master))
+                masterBotMgr->LogoutPlayerBot(bot->GetGUID());
+            else
+                sRandomPlayerbotMgr.LogoutPlayerBot(bot->GetGUID());
+            return;
+        }
+    }
+    else
+        addClassIdleSince = 0;
+
     // logout if logout timer is ready or if instant logout is possible
     if (bot->GetSession()->IsLoggingOut())
     {

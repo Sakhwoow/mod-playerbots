@@ -606,6 +606,7 @@ public:
     NewRpgStatistic rpgStatistic;
     std::unordered_set<uint32> lowPriorityQuest;
     time_t bgReleaseAttemptTime = 0;
+    time_t addClassIdleSince = 0;
     ForceRebuffState forceRebuff;
 
     // Schedules a callback to run once after <delayMs> milliseconds.
