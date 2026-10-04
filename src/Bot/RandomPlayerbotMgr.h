@@ -251,6 +251,7 @@ private:
     std::vector<uint32> GetBgBots(uint32 bracket);
     time_t BgCheckTimer;
     time_t LfgCheckTimer;
+    time_t AddClassGuildTransferTimer = 0;
     time_t PlayersCheckTimer;
     time_t RealPlayerLastTimeSeen = 0;
     time_t DelayLoginBotsTimer;

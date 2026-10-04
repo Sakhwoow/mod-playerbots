@@ -105,7 +105,7 @@ AiPlayerbot.AddClassAccountPoolSize = 50
 AiPlayerbot.AddClassIdleLogoutSeconds = 0
 
 # AddClass characters that join a real guild are moved to a guild-bot (type 3) account while offline.
-# 0 = off, 1 = log only (dry run), 2 = move. Runs at startup, before the AddClass cache is built.
+# 0 = off, 1 = log only (dry run), 2 = move. Runs at startup and then every 5 minutes; only offline characters are moved.
 AiPlayerbot.AddClassGuildTransfer = 0
 
 # Prefix for created bot accounts (of any type).

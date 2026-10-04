@@ -533,6 +533,11 @@ void RandomPlayerbotFactory::TransferAddClassGuildBots()
                                         targetAccount, guid, oldAccount);
         LOG_INFO("playerbots", "AddClass guild transfer: character {} moved from account {} to guild-bot account {}",
                  guid, oldAccount, targetAccount);
+
+        ObjectGuid const movedGuid(HighGuid::Player, guid);
+        sCharacterCache->UpdateCharacterAccountId(movedGuid, targetAccount);
+        for (auto& [team, pool] : sRandomPlayerbotMgr.addclassCache)
+            pool.erase(movedGuid);
     } while (candidates->NextRow());
 }
 

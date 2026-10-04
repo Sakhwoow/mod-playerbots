@@ -397,6 +397,12 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 /*elapsed*/, bool /*minimal*/)
             sRandomPlayerbotMgr.CheckLfgQueue();
     }
 
+    if (time(nullptr) > (AddClassGuildTransferTimer + 300))
+    {
+        AddClassGuildTransferTimer = time(nullptr);
+        RandomPlayerbotFactory::TransferAddClassGuildBots();
+    }
+
     // Guild bot periodic check moved to mod-guild-bots: GuildBotMgr::PeriodicCheck
     // if (sPlayerbotAIConfig.guildBotMinOnline && !players.empty() && ...) { ... }
 
