@@ -467,15 +467,26 @@ uint32 RandomPlayerbotFactory::CalculateAvailableCharsPerAccount()
 static uint32 CreateGuildBotAccount(std::string const& pdb)
 {
     std::string const name = sPlayerbotAIConfig.randomBotAccountPrefix + "guild" + std::to_string(time(nullptr));
-    sAccountMgr->CreateAccount(name, name);
-    while (LoginDatabase.QueueSize())
-        std::this_thread::sleep_for(100ms);
-
-    QueryResult res = LoginDatabase.Query("SELECT id FROM account WHERE UPPER(username) = UPPER('{}')", name);
-    if (!res)
+    AccountOpResult const created = sAccountMgr->CreateAccount(name, name);
+    if (created != AOR_OK)
+    {
+        LOG_ERROR("playerbots", "AddClass guild transfer: CreateAccount '{}' returned {}", name, static_cast<int>(created));
         return 0;
+    }
 
-    uint32 const accountId = res->Fetch()[0].Get<uint32>();
+    uint32 accountId = 0;
+    for (int attempt = 0; attempt < 50 && !accountId; ++attempt)
+    {
+        std::this_thread::sleep_for(100ms);
+        if (QueryResult res = LoginDatabase.Query("SELECT id FROM account WHERE UPPER(username) = UPPER('{}')", name))
+            accountId = res->Fetch()[0].Get<uint32>();
+    }
+    if (!accountId)
+    {
+        LOG_ERROR("playerbots", "AddClass guild transfer: account '{}' is not visible after creation", name);
+        return 0;
+    }
+
     PlayerbotsDatabase.DirectExecute("INSERT INTO playerbots_account_type (account_id, account_type, assignment_date) VALUES ({}, 3, NOW())", accountId);
     return accountId;
 }
