@@ -3152,41 +3152,11 @@ void RandomPlayerbotMgr::EnsureArenaBotsOnline()
     if (arenaGuids.empty())
         return;
 
-    uint32 maxAllowed = GetEventValue(0, "bot_count");
-    if (!maxAllowed)
-        maxAllowed = sPlayerbotAIConfig.maxRandomBots;
-
     for (uint64 rawGuid : arenaGuids)
     {
         ObjectGuid botGUID = ObjectGuid(rawGuid);
         if (GetPlayerBot(botGUID) || ObjectAccessor::FindConnectedPlayer(botGUID))
             continue;
-
-        if ((uint32)playerBots.size() >= maxAllowed)
-        {
-            bool kicked = false;
-            for (auto const& [guid, candidate] : playerBots)
-            {
-                if (!IsRandomBot(candidate))
-                    continue;
-                if (candidate->GetGroup())
-                    continue;
-                uint32 cGuildId = candidate->GetGuildId();
-                if (cGuildId && PlayerbotGuildMgr::instance().IsRealGuild(cGuildId))
-                    continue;
-                bool candidateInArena = false;
-                for (uint32 slot = 0; slot < MAX_ARENA_SLOT; ++slot)
-                    if (candidate->GetArenaTeamId(slot)) { candidateInArena = true; break; }
-                if (candidateInArena)
-                    continue;
-
-                LogoutPlayerBot(guid);
-                kicked = true;
-                break;
-            }
-            if (!kicked)
-                break;
-        }
 
         uint32 charGuid = botGUID.GetCounter();
         currentBots.insert(charGuid);
@@ -3221,33 +3191,6 @@ void RandomPlayerbotMgr::EnsurePlayerArenaBotsOnline(Player* player)
 
             if (GetPlayerBot(member.Guid) || ObjectAccessor::FindConnectedPlayer(member.Guid))
                 continue;
-
-            uint32 maxAllowed = GetEventValue(0, "bot_count");
-            if (!maxAllowed)
-                maxAllowed = sPlayerbotAIConfig.maxRandomBots;
-
-            if ((uint32)playerBots.size() >= maxAllowed)
-            {
-                bool kicked = false;
-                for (auto const& [guid, candidate] : playerBots)
-                {
-                    if (!IsRandomBot(candidate))
-                        continue;
-                    if (candidate->GetGroup())
-                        continue;
-                    uint32 cGuildId = candidate->GetGuildId();
-                    if (cGuildId && PlayerbotGuildMgr::instance().IsRealGuild(cGuildId))
-                        continue;
-                    if (sPlayerbotAIConfig.IsArenaTeamBot(candidate->GetGUID()))
-                        continue;
-
-                    LogoutPlayerBot(guid);
-                    kicked = true;
-                    break;
-                }
-                if (!kicked)
-                    break;
-            }
 
             currentBots.insert(charGuid);
             SetEventValue(charGuid, "add", 1, sPlayerbotAIConfig.maxRandomBotInWorldTime);
