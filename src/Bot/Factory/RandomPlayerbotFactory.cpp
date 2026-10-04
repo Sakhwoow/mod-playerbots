@@ -779,14 +779,15 @@ void RandomPlayerbotFactory::CreateRandomBots()
     uint32 neededAccounts = neededRndBotAccounts + (uint32)sPlayerbotAIConfig.addClassAccountPoolSize;
     uint32 accountsReadyForBots = 0;
 
-    // AddClass accounts are typed before this runs (from the previous start); they must get
-    // characters even when the random bot pool is already full, or the addclass command has nothing to pick.
-    std::unordered_set<uint32> addClassAccountIds;
-    if (QueryResult addClassResult = PlayerbotsDatabase.Query("SELECT account_id FROM playerbots_account_type WHERE account_type = 2"))
+    // Random (type 1) and AddClass (type 2) accounts are typed before this runs (from the previous start).
+    // They must get characters even when the account count threshold is already reached, otherwise
+    // only the accounts that happen to come first in the name order ever get characters.
+    std::unordered_set<uint32> pooledAccountIds;
+    if (QueryResult pooledResult = PlayerbotsDatabase.Query("SELECT account_id FROM playerbots_account_type WHERE account_type IN (1, 2)"))
     {
         do
-            addClassAccountIds.insert(addClassResult->Fetch()[0].Get<uint32>());
-        while (addClassResult->NextRow());
+            pooledAccountIds.insert(pooledResult->Fetch()[0].Get<uint32>());
+        while (pooledResult->NextRow());
     }
 
     // Batch-load account ids (all rndbot* accounts now exist in DB).
@@ -844,7 +845,7 @@ void RandomPlayerbotFactory::CreateRandomBots()
         }
 
         // Don't create characters for accounts beyond what's needed for active bots.
-        if (accountsReadyForBots >= neededAccounts && !addClassAccountIds.count(accountId))
+        if (accountsReadyForBots >= neededAccounts && !pooledAccountIds.count(accountId))
             continue;
 
         if (!nameCached)
