@@ -689,6 +689,16 @@ void RandomPlayerbotFactory::CreateRandomBots()
     uint32 neededAccounts = neededRndBotAccounts + (uint32)sPlayerbotAIConfig.addClassAccountPoolSize;
     uint32 accountsReadyForBots = 0;
 
+    // AddClass accounts are typed before this runs (from the previous start); they must get
+    // characters even when the random bot pool is already full, or the addclass command has nothing to pick.
+    std::unordered_set<uint32> addClassAccountIds;
+    if (QueryResult addClassResult = PlayerbotsDatabase.Query("SELECT account_id FROM playerbots_account_type WHERE account_type = 2"))
+    {
+        do
+            addClassAccountIds.insert(addClassResult->Fetch()[0].Get<uint32>());
+        while (addClassResult->NextRow());
+    }
+
     // Batch-load account ids (all rndbot* accounts now exist in DB).
     // One cross-DB JOIN: account names + ids + existing char counts in a single query.
     // Avoids building a huge IN(22k ids) clause which is slow on MySQL.
@@ -744,7 +754,7 @@ void RandomPlayerbotFactory::CreateRandomBots()
         }
 
         // Don't create characters for accounts beyond what's needed for active bots.
-        if (accountsReadyForBots >= neededAccounts)
+        if (accountsReadyForBots >= neededAccounts && !addClassAccountIds.count(accountId))
             continue;
 
         if (!nameCached)
