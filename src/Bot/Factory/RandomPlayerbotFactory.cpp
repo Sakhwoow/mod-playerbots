@@ -466,7 +466,8 @@ uint32 RandomPlayerbotFactory::CalculateAvailableCharsPerAccount()
 
 static uint32 CreateGuildBotAccount(std::string const& pdb)
 {
-    std::string const name = sPlayerbotAIConfig.randomBotAccountPrefix + "guild" + std::to_string(time(nullptr));
+    static uint32 sequence = 0;
+    std::string const name = "gb" + std::to_string(time(nullptr)) + std::to_string(sequence++ % 10);
     AccountOpResult const created = sAccountMgr->CreateAccount(name, name);
     if (created != AOR_OK)
     {
