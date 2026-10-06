@@ -12,6 +12,7 @@
 // #include "GuildScript.h"  // no longer needed: BotGuildLimitGuildScript moved to mod-guild-bots
 #include "PlayerbotAIConfig.h"
 #include "Player.h"
+#include "RandomPlayerbotFactory.h"
 #include "ScriptMgr.h"
 
 void PlayerbotGuildMgr::Init()
@@ -168,7 +169,12 @@ void PlayerbotGuildMgr::LoadGuildNames()
 {
     LOG_INFO("playerbots", "Loading guild names from playerbots_guild_names...");
 
-    QueryResult result = CharacterDatabase.Query("SELECT name_id, name FROM playerbots_guild_names");
+    _guildNames.clear();
+    _shuffled_guild_keys.clear();
+
+    QueryResult result = CharacterDatabase.Query(
+        "SELECT {} FROM playerbots_guild_names",
+        RandomPlayerbotFactory::GetLocalizedNameSelector("name"));
 
     if (!result)
     {
@@ -179,7 +185,10 @@ void PlayerbotGuildMgr::LoadGuildNames()
     do
     {
         Field* fields = result->Fetch();
-        _guildNames[fields[1].Get<std::string>()] = true;
+
+        std::string name = fields[0].Get<std::string>();
+        if (!name.empty())
+            _guildNames[name] = true;
     } while (result->NextRow());
 
     for (auto& pair : _guildNames)
