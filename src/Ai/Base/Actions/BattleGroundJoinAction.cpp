@@ -14,6 +14,23 @@
 #include "Playerbots.h"
 #include "PositionValue.h"
 
+// A bot must not be pulled out of a group that a real player is using (e.g. a raid).
+static bool GroupHasRealPlayerForBG(Group* group)
+{
+    if (!group)
+        return false;
+
+    for (GroupReference* ref = group->GetFirstMember(); ref != nullptr; ref = ref->next())
+    {
+        Player* groupMember = ref->GetSource();
+        if (groupMember && (!GET_PLAYERBOT_AI(groupMember) || IsSelfBot(groupMember)))
+            return true;
+    }
+
+    return false;
+}
+
+
 bool BGJoinAction::Execute(Event /*event*/)
 {
     uint32 queueType = AI_VALUE(uint32, "bg type");
@@ -106,6 +123,10 @@ bool BGJoinAction::gatherArenaTeam(ArenaType type)
                 continue;
 
             if (member->InBattlegroundQueue())
+                continue;
+
+            // never pull a bot out of a group a real player is in (raid/party they are using)
+            if (member->GetGroup() && GroupHasRealPlayerForBG(member->GetGroup()))
                 continue;
 
             if (member->GetGroup())
