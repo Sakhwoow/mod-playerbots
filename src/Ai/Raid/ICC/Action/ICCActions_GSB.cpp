@@ -1018,6 +1018,15 @@ bool IccGunshipRocketPackSetupAction::AcquireRocketPack()
 
 bool IccGunshipRocketPackSetupAction::EquipRocketPack()
 {
+    // Equipping any item is rejected by the server (EQUIP_ERR_NOT_IN_COMBAT) while the bot is
+    // in combat, and the Gunship Battle encounter is itself continuous combat -- so every retry
+    // here was guaranteed to fail for the whole fight, spamming "Надеваю [Goblin Rocket Pack]" /
+    // "Я в бою" to the master every EQUIP_COOLDOWN_MS forever with no chance of success. If a bot
+    // genuinely loses its pack mid-fight there is no way to recover it before leaving combat
+    // anyway, so stop retrying instead of hammering the equip packet uselessly.
+    if (bot->IsInCombat())
+        return false;
+
     static constexpr uint32 EQUIP_COOLDOWN_MS = 3000;
     auto& lastEquip = IcecrownHelpers::IccState(bot->GetInstanceId()).gsbLastRocketPackEquip;
     uint32 const now = getMSTime();
