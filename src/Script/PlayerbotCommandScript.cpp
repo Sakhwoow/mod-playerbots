@@ -4,8 +4,13 @@
  * or (at your option) any later version.
  */
 
+#include "ArenaSeasonMgr.h"
+#include "ArenaTeam.h"
+#include "ArenaTeamFilter.h"
 #include "BattleGroundTactics.h"
+#include "CharacterCache.h"
 #include "Chat.h"
+#include "DatabaseEnv.h"
 #include "GuildTaskMgr.h"
 #include "PerfMonitor.h"
 #include "PlayerbotMgr.h"
@@ -13,6 +18,42 @@
 #include "ScriptMgr.h"
 
 using namespace Acore::ChatCommands;
+
+// Core's own ArenaTeamFilter has no concept of "bot" at all (core must build without this
+// module present) - bot detection only exists here, in mod-playerbots, via
+// playerbots_account_type. Wraps an inner core filter (type/"all") and additionally drops any
+// team whose captain has a row in that table, i.e. was ever provisioned as a bot of any kind
+// (random or guild) - presence of the row is what matters, not which type value it holds.
+class RealPlayerArenaTeamFilter : public ArenaTeamFilter
+{
+public:
+    explicit RealPlayerArenaTeamFilter(std::unique_ptr<ArenaTeamFilter> inner) : _inner(std::move(inner)) {}
+
+    ArenaTeamMgr::ArenaTeamContainer Filter(ArenaTeamMgr::ArenaTeamContainer teams) override
+    {
+        ArenaTeamMgr::ArenaTeamContainer source = _inner ? _inner->Filter(std::move(teams)) : teams;
+        ArenaTeamMgr::ArenaTeamContainer result;
+
+        for (auto const& pair : source)
+        {
+            ArenaTeam* team = pair.second;
+            uint32 accountId = sCharacterCache->GetCharacterAccountIdByGuid(team->GetCaptain());
+            if (!accountId)
+                continue;
+
+            if (QueryResult botRow = PlayerbotsDatabase.Query(
+                    "SELECT 1 FROM playerbots_account_type WHERE account_id = {}", accountId))
+                continue;
+
+            result[pair.first] = team;
+        }
+
+        return result;
+    }
+
+private:
+    std::unique_ptr<ArenaTeamFilter> _inner;
+};
 
 class playerbots_commandscript : public CommandScript
 {
@@ -32,6 +73,10 @@ public:
             {"unlink", HandleUnlinkAccountCommand, SEC_PLAYER, Console::No},
         };
 
+        static ChatCommandTable playerbotsArenaSeasonCommandTable = {
+            {"reward", HandleArenaSeasonRewardRealCommand, SEC_GAMEMASTER, Console::Yes},
+        };
+
         static ChatCommandTable playerbotsCommandTable = {
             {"bot", HandlePlayerbotCommand, SEC_PLAYER, Console::No},
             {"gtask", HandleGuildTaskCommand, SEC_GAMEMASTER, Console::Yes},
@@ -39,6 +84,7 @@ public:
             {"rndbot", HandleRandomPlayerbotCommand, SEC_GAMEMASTER, Console::Yes},
             {"debug", playerbotsDebugCommandTable},
             {"account", playerbotsAccountCommandTable},
+            {"arenaseason", playerbotsArenaSeasonCommandTable},
         };
 
         static ChatCommandTable commandTable = {
@@ -100,6 +146,35 @@ public:
     static bool HandleDebugBGCommand(ChatHandler* handler, char const* args)
     {
         return BGTactics::HandleConsoleCommand(handler, args);
+    }
+
+    // .playerbots arenaseason reward <all|typeList> - exactly like core's own
+    // .arena season reward, except arena teams captained by a bot account (random or guild) are
+    // excluded first, so titles/mounts/gold only ever land on real players.
+    static bool HandleArenaSeasonRewardRealCommand(ChatHandler* handler, char const* args)
+    {
+        std::string teamsFilterStr = (args && *args) ? args : "all";
+
+        std::unique_ptr<ArenaTeamFilter> baseFilter = ArenaTeamFilterFactoryByUserInput().CreateFilterByUserInput(teamsFilterStr);
+        if (!baseFilter)
+        {
+            handler->PSendSysMessage("Invalid filter. Please check your input.");
+            return false;
+        }
+
+        if (!sArenaSeasonMgr->CanDeleteArenaTeams())
+        {
+            handler->PSendSysMessage("Cannot proceed. Make sure there are no active arenas and that rewards exist for the current season.");
+            handler->PSendSysMessage("Hint: You can disable the arena queue using the following command: .arena season set state 0");
+            return false;
+        }
+
+        std::shared_ptr<ArenaTeamFilter> sharedFilter = std::make_shared<RealPlayerArenaTeamFilter>(std::move(baseFilter));
+
+        handler->PSendSysMessage("Distributing rewards for REAL PLAYER arena teams only (types: {})...", teamsFilterStr);
+        sArenaSeasonMgr->RewardTeamsForTheSeason(sharedFilter);
+        handler->PSendSysMessage("Rewards distributed.");
+        return true;
     }
 
     static bool HandleSetSecurityKeyCommand(ChatHandler* handler, char const* args)
