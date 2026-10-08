@@ -1,0 +1,30 @@
+name: Notify VK
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send push notification to VK chat
+        env:
+          VK_ACCESS_TOKEN: ${{ secrets.VK_ACCESS_TOKEN }}
+          VK_PEER_ID: ${{ secrets.VK_PEER_ID }}
+        run: |
+          set -euo pipefail
+
+          COUNT=$(jq '.commits | length' "$GITHUB_EVENT_PATH")
+          COMMITS=$(jq -r '.commits[:10][] | "• " + .message + " (" + (.id[0:7]) + ")"' "$GITHUB_EVENT_PATH")
+
+          MSG="🔧 ${GITHUB_REPOSITORY} — push в ${GITHUB_REF_NAME} от ${GITHUB_ACTOR} (${COUNT} коммит(ов)):
+          ${COMMITS}"
+
+          curl -s "https://api.vk.com/method/messages.send" \
+            --data-urlencode "access_token=${VK_ACCESS_TOKEN}" \
+            --data-urlencode "peer_id=${VK_PEER_ID}" \
+            --data-urlencode "message=${MSG}" \
+            --data-urlencode "random_id=${RANDOM}${RANDOM}" \
+            --data-urlencode "v=5.199"
