@@ -11,8 +11,11 @@
 #include "Event.h"
 #include "GroupMgr.h"
 #include "PlayerbotAI.h"
+#include "PlayerbotOperations.h"
+#include "PlayerbotWorldThreadProcessor.h"
 #include "Playerbots.h"
 #include "PositionValue.h"
+#include "RandomPlayerbotFactory.h"
 
 // A bot must not be pulled out of a group that a real player is using (e.g. a raid).
 static bool GroupHasRealPlayerForBG(Group* group)
@@ -129,6 +132,14 @@ bool BGJoinAction::gatherArenaTeam(ArenaType type)
             if (member->GetGroup() && GroupHasRealPlayerForBG(member->GetGroup()))
                 continue;
 
+            // a member outside the captain's bracket keeps the team from queuing: it leaves the team (world thread)
+            if (!RandomPlayerbotFactory::SameArenaBracket(member->GetLevel(), bot->GetLevel()))
+            {
+                PlayerbotWorldThreadProcessor::instance().QueueOperation(
+                    std::make_unique<ArenaTeamDropMemberOperation>(arenateam->GetId(), member->GetGUID()));
+                continue;
+            }
+
             if (member->GetGroup())
                 member->GetGroup()->RemoveMember(member->GetGUID());
 
@@ -177,9 +188,6 @@ bool BGJoinAction::gatherArenaTeam(ArenaType type)
 
         Player* member = ObjectAccessor::FindConnectedPlayer(*i);
         if (!member)
-            continue;
-
-        if (member->GetLevel() < 70)
             continue;
 
         if (!group->AddMember(member))
