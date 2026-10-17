@@ -14,7 +14,7 @@
 using namespace BlackTempleHelpers;
 using namespace EncounterHelpers;
 
-// General
+// Shared
 
 bool BlackTempleEraseTimersAndTrackersAction::Execute(Event /*event*/)
 {
@@ -1422,8 +1422,9 @@ bool IllidariCouncilMainTankPositionGathiosAction::Execute(Event /*event*/)
     // Failsafe for if bot falls through the floor, which tends to happen upon the pull
     if (bot->GetPositionZ() < COUNCIL_FLOOR_Z_THRESHOLD)
     {
-        bot->TeleportTo(BLACK_TEMPLE_MAP_ID, gathios->GetPositionX(), gathios->GetPositionY(),
-                        gathios->GetPositionZ(), bot->GetOrientation());
+        bot->NearTeleportTo(
+            gathios->GetPositionX(), gathios->GetPositionY(),
+            gathios->GetPositionZ(), bot->GetOrientation());
     }
 
     if (MarkTargetWithSquare(bot, gathios))
@@ -1495,8 +1496,9 @@ bool IllidariCouncilFirstAssistTankFocusMalandeAction::Execute(Event /*event*/)
     // Failsafe for if bot falls through the floor, which tends to happen upon the pull
     if (bot->GetPositionZ() < COUNCIL_FLOOR_Z_THRESHOLD)
     {
-        bot->TeleportTo(BLACK_TEMPLE_MAP_ID, malande->GetPositionX(), malande->GetPositionY(),
-                        malande->GetPositionZ(), bot->GetOrientation());
+        bot->NearTeleportTo(
+            malande->GetPositionX(), malande->GetPositionY(),
+            malande->GetPositionZ(), bot->GetOrientation());
     }
 
     if (MarkTargetWithStar(bot, malande))
@@ -1519,8 +1521,9 @@ bool IllidariCouncilSecondAssistTankPositionDarkshadowAction::Execute(Event /*ev
     // Failsafe for if bot falls through the floor, which tends to happen upon the pull
     if (bot->GetPositionZ() < COUNCIL_FLOOR_Z_THRESHOLD)
     {
-        bot->TeleportTo(BLACK_TEMPLE_MAP_ID, darkshadow->GetPositionX(), darkshadow->GetPositionY(),
-                        darkshadow->GetPositionZ(), bot->GetOrientation());
+        bot->NearTeleportTo(
+            darkshadow->GetPositionX(), darkshadow->GetPositionY(),
+            darkshadow->GetPositionZ(), bot->GetOrientation());
     }
 
     if (MarkTargetWithCircle(bot, darkshadow))
