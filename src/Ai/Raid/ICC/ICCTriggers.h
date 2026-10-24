@@ -679,4 +679,10 @@ public:
     bool IsActive() override;
 };
 
+// Blood Prince Council: the unit a live Ball of Flame / Ball of Inferno Flame within 100 yards of the
+// searcher is chasing (nullptr if none). Prefers the Ball of Inferno Flame.
+Unit* IccBpcBallOfFlameVictim(Unit* searcher, Unit** ball = nullptr);
+// true if a live Ball of Flame / Ball of Inferno Flame within 100 yards of the searcher chases this member
+bool IccBpcIsBallOfFlameVictim(Unit* searcher, Unit* member);
+
 #endif

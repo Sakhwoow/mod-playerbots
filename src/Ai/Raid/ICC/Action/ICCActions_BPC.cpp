@@ -256,9 +256,15 @@ bool IccBpcEmpoweredVortexAction::Execute(Event /*event*/)
 
 bool IccBpcEmpoweredVortexAction::MaintainRangedSpacing()
 {
-    static float const IDEAL_RADIUS = 25.0f;
-    static float const RADIUS_TOLERANCE = 3.0f;
+    // Ranged and healers only keep apart from each other while Valanar is empowered. They used to be put on
+    // a full 25-yard ring around Valanar: tanked at ICC_BPC_MT_POSITION, more than half of that ring lies
+    // outside the room, the slots were recomputed every tick (3-yard tolerance) and moved at
+    // MOVEMENT_NORMAL, so any combat move interrupted them and they walked back next tick - constant
+    // shuffling, a Shadow Prison stack per step on heroic. Now a bot steps away only from a member closer
+    // than SPREAD_DIST and otherwise stands still.
+    static float const SPREAD_DIST = 12.0f;
     static float const MOVE_INCREMENT = 3.0f;
+    static float const ROOM_RADIUS = 33.0f;
 
     bool const isRanged = botAI->IsRanged(bot) || botAI->IsHeal(bot);
     if (!isRanged)
@@ -268,57 +274,14 @@ bool IccBpcEmpoweredVortexAction::MaintainRangedSpacing()
     if (!valanar)
         return false;
 
-    // Collect ranged/healer bots sorted by GUID for consistent slot assignment
     Group* group = bot->GetGroup();
     if (!group)
         return false;
 
-    std::vector<Player*> rangedBots;
-    for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
-    {
-        Player* member = itr->GetSource();
-        if (!member || !member->IsAlive())
-            continue;
-        if (botAI->IsTank(member))
-            continue;
-        PlayerbotAI* memberAI = GET_PLAYERBOT_AI(member);
-        if (!memberAI)
-            continue;
-        if (memberAI->IsRanged(member) || memberAI->IsHeal(member))
-            rangedBots.push_back(member);
-    }
-
-    if (rangedBots.empty())
-        return false;
-
-    std::sort(rangedBots.begin(), rangedBots.end(),
-              [](Player* a, Player* b) { return a->GetGUID() < b->GetGUID(); });
-
-    // Find this bot's slot index
-    int slotIndex = -1;
-    for (size_t i = 0; i < rangedBots.size(); ++i)
-    {
-        if (rangedBots[i] == bot)
-        {
-            slotIndex = static_cast<int>(i);
-            break;
-        }
-    }
-
-    if (slotIndex < 0)
-        return false;
-
-    // Calculate angular position around Valanar
-    float angleStep = 2.0f * static_cast<float>(M_PI) / static_cast<float>(rangedBots.size());
-    float targetAngle = angleStep * static_cast<float>(slotIndex);
-
-    // Collect shock vortex positions to avoid
+    // Emergency: if bot is currently inside a vortex danger zone, flee directly away
     static float const VORTEX_AVOID_DIST = 13.0f;
     std::list<Creature*> vortexList;
     bot->GetCreatureListWithEntryInGrid(vortexList, NPC_SHOCK_VORTEX, 100.0f);
-
-    // Emergency: if bot is currently inside a vortex danger zone, flee directly away
-    // before any slot recalculation — prevents bots from walking back through the vortex
     for (Creature* vortex : vortexList)
     {
         if (!vortex || !vortex->IsAlive())
@@ -338,72 +301,67 @@ bool IccBpcEmpoweredVortexAction::MaintainRangedSpacing()
         }
     }
 
-    // Find safe angle — try assigned slot first, then nudge away from vortices
-    static float const ANGLE_NUDGE = static_cast<float>(M_PI) / 18.0f;
-    static int const MAX_NUDGE_STEPS = 18;
-    float bestAngle = targetAngle;
-
-    auto isAngleSafe = [&](float angle) -> bool
+    Player* nearest = nullptr;
+    float nearestDist = SPREAD_DIST;
+    for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
     {
-        float testX = valanar->GetPositionX() + IDEAL_RADIUS * std::cos(angle);
-        float testY = valanar->GetPositionY() + IDEAL_RADIUS * std::sin(angle);
-        for (Creature* vortex : vortexList)
-        {
-            if (!vortex || !vortex->IsAlive())
-                continue;
-            float vdx = testX - vortex->GetPositionX();
-            float vdy = testY - vortex->GetPositionY();
-            if (std::sqrt(vdx * vdx + vdy * vdy) < VORTEX_AVOID_DIST)
-                return false;
-        }
-        return true;
-    };
+        Player* member = itr->GetSource();
+        if (!member || member == bot || !member->IsAlive() || member->GetMapId() != bot->GetMapId())
+            continue;
 
-    if (!isAngleSafe(bestAngle))
-    {
-        for (int i = 1; i <= MAX_NUDGE_STEPS; ++i)
+        float const dist = bot->GetExactDist2d(member);
+        if (dist < nearestDist)
         {
-            float plusAngle = targetAngle + ANGLE_NUDGE * static_cast<float>(i);
-            if (isAngleSafe(plusAngle))
-            {
-                bestAngle = plusAngle;
-                break;
-            }
-            float minusAngle = targetAngle - ANGLE_NUDGE * static_cast<float>(i);
-            if (isAngleSafe(minusAngle))
-            {
-                bestAngle = minusAngle;
-                break;
-            }
+            nearestDist = dist;
+            nearest = member;
         }
     }
 
-    float targetX = valanar->GetPositionX() + IDEAL_RADIUS * std::cos(bestAngle);
-    float targetY = valanar->GetPositionY() + IDEAL_RADIUS * std::sin(bestAngle);
-    float targetZ = bot->GetPositionZ();
-
-    float distToSlot = bot->GetExactDist2d(targetX, targetY);
-    if (distToSlot <= RADIUS_TOLERANCE)
+    if (!nearest)
         return false;
 
-    // Move toward assigned slot
-    float dx = targetX - bot->GetPositionX();
-    float dy = targetY - bot->GetPositionY();
-    float len = std::sqrt(dx * dx + dy * dy);
+    float dx = bot->GetPositionX() - nearest->GetPositionX();
+    float dy = bot->GetPositionY() - nearest->GetPositionY();
+    float const len = std::sqrt(dx * dx + dy * dy);
     if (len < 0.001f)
-        return false;
+    {
+        // same spot: step away from Valanar instead
+        dx = bot->GetPositionX() - valanar->GetPositionX();
+        dy = bot->GetPositionY() - valanar->GetPositionY();
+        float const vlen = std::sqrt(dx * dx + dy * dy);
+        if (vlen < 0.001f)
+            return false;
+        dx /= vlen;
+        dy /= vlen;
+    }
+    else
+    {
+        dx /= len;
+        dy /= len;
+    }
 
-    dx /= len;
-    dy /= len;
-    float step = std::min(MOVE_INCREMENT, distToSlot);
+    float const step = std::min(MOVE_INCREMENT, SPREAD_DIST - nearestDist + 1.0f);
     float moveX = bot->GetPositionX() + dx * step;
     float moveY = bot->GetPositionY() + dy * step;
 
-    if (bot->IsWithinLOS(moveX, moveY, targetZ))
+    // never out of the room
+    float const cx = ICC_BPC_CENTER_POSITION.GetPositionX();
+    float const cy = ICC_BPC_CENTER_POSITION.GetPositionY();
+    float const ddx = moveX - cx;
+    float const ddy = moveY - cy;
+    float const dFromCenter = std::sqrt(ddx * ddx + ddy * ddy);
+    if (dFromCenter > ROOM_RADIUS)
     {
-        MoveTo(bot->GetMapId(), moveX, moveY, targetZ, false, false, false, true,
-               MovementPriority::MOVEMENT_NORMAL);
+        moveX = cx + ddx * (ROOM_RADIUS / dFromCenter);
+        moveY = cy + ddy * (ROOM_RADIUS / dFromCenter);
     }
+
+    if (bot->GetExactDist2d(moveX, moveY) < 1.0f)
+        return false;
+
+    float const moveZ = bot->GetPositionZ();
+    if (bot->IsWithinLOS(moveX, moveY, moveZ))
+        MoveTo(bot->GetMapId(), moveX, moveY, moveZ, false, false, false, true, MovementPriority::MOVEMENT_COMBAT);
 
     return false;
 }
@@ -433,6 +391,33 @@ bool IccBpcEmpoweredVortexAction::HandleEmpoweredVortexSpread()
             it = spreadLockTimers.erase(it);
         else
             ++it;
+    }
+
+    // Collect shock vortex positions to avoid
+    static float const VORTEX_AVOID_DIST = 13.0f;
+    std::list<Creature*> vortexList;
+    bot->GetCreatureListWithEntryInGrid(vortexList, NPC_SHOCK_VORTEX, 100.0f);
+
+    // Emergency: flee vortex even when spread-locked — 250ms lock doesn't justify standing in knockback
+    // (this used to come after the lock check below, so a locked bot never fled)
+    for (Creature* vortex : vortexList)
+    {
+        if (!vortex || !vortex->IsAlive())
+            continue;
+        if (bot->GetExactDist2d(vortex) < VORTEX_AVOID_DIST)
+        {
+            spreadLockTimers.erase(bot->GetGUID());
+            float dx = bot->GetPositionX() - vortex->GetPositionX();
+            float dy = bot->GetPositionY() - vortex->GetPositionY();
+            float len = std::sqrt(dx * dx + dy * dy);
+            if (len < 0.001f) { dx = 1.0f; dy = 0.0f; }
+            else { dx /= len; dy /= len; }
+            float moveX = bot->GetPositionX() + dx * MOVE_INCREMENT;
+            float moveY = bot->GetPositionY() + dy * MOVE_INCREMENT;
+            MoveTo(bot->GetMapId(), moveX, moveY, bot->GetPositionZ(), false, false, false, true,
+                   MovementPriority::MOVEMENT_COMBAT);
+            return true;
+        }
     }
 
     auto it = spreadLockTimers.find(bot->GetGUID());
@@ -487,32 +472,6 @@ bool IccBpcEmpoweredVortexAction::HandleEmpoweredVortexSpread()
     float angleStep = 2.0f * static_cast<float>(M_PI) / botCount;
     float targetAngle = angleStep * static_cast<float>(slotIndex);
 
-    // Collect shock vortex positions to avoid
-    static float const VORTEX_AVOID_DIST = 13.0f;
-    std::list<Creature*> vortexList;
-    bot->GetCreatureListWithEntryInGrid(vortexList, NPC_SHOCK_VORTEX, 100.0f);
-
-    // Emergency: flee vortex even when spread-locked — 250ms lock doesn't justify standing in knockback
-    for (Creature* vortex : vortexList)
-    {
-        if (!vortex || !vortex->IsAlive())
-            continue;
-        if (bot->GetExactDist2d(vortex) < VORTEX_AVOID_DIST)
-        {
-            spreadLockTimers.erase(bot->GetGUID());
-            float dx = bot->GetPositionX() - vortex->GetPositionX();
-            float dy = bot->GetPositionY() - vortex->GetPositionY();
-            float len = std::sqrt(dx * dx + dy * dy);
-            if (len < 0.001f) { dx = 1.0f; dy = 0.0f; }
-            else { dx /= len; dy /= len; }
-            float moveX = bot->GetPositionX() + dx * MOVE_INCREMENT;
-            float moveY = bot->GetPositionY() + dy * MOVE_INCREMENT;
-            MoveTo(bot->GetMapId(), moveX, moveY, bot->GetPositionZ(), false, false, false, true,
-                   MovementPriority::MOVEMENT_COMBAT);
-            return true;
-        }
-    }
-
     // Find safe angle — try assigned slot first, then nudge away from vortices
     static float const ANGLE_NUDGE = static_cast<float>(M_PI) / 18.0f;
     static int const MAX_NUDGE_STEPS = 18;
@@ -556,6 +515,22 @@ bool IccBpcEmpoweredVortexAction::HandleEmpoweredVortexSpread()
     float targetX = valanar->GetPositionX() + idealRadius * std::cos(bestAngle);
     float targetY = valanar->GetPositionY() + idealRadius * std::sin(bestAngle);
     float targetZ = bot->GetPositionZ();
+
+    // Keep the slot inside the room (33 yards from its center, as the Ball of Flame flee does): Valanar is
+    // tanked near the wall, so part of the ring around him lies outside it.
+    {
+        static float const ROOM_RADIUS = 33.0f;
+        float const cx = ICC_BPC_CENTER_POSITION.GetPositionX();
+        float const cy = ICC_BPC_CENTER_POSITION.GetPositionY();
+        float const ddx = targetX - cx;
+        float const ddy = targetY - cy;
+        float const dFromCenter = std::sqrt(ddx * ddx + ddy * ddy);
+        if (dFromCenter > ROOM_RADIUS)
+        {
+            targetX = cx + ddx * (ROOM_RADIUS / dFromCenter);
+            targetY = cy + ddy * (ROOM_RADIUS / dFromCenter);
+        }
+    }
 
     float distToSlot = bot->GetExactDist2d(targetX, targetY);
 
@@ -667,7 +642,9 @@ Unit* IccBpcKineticBombAction::FindNearestBomb()
         for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
         {
             Player* member = itr->GetSource();
-            if (member && member->IsAlive() && GET_PLAYERBOT_AI(member) && botAI->IsRangedDps(member))
+            // a member chased by a Ball of Flame leads it away instead; the bomb goes to someone else
+            if (member && member->IsAlive() && GET_PLAYERBOT_AI(member) && botAI->IsRangedDps(member) &&
+                !IccBpcIsBallOfFlameVictim(bot, member))
                 rangedDps.push_back(member);
         }
     }
@@ -741,8 +718,12 @@ bool IccBpcBallOfFlameAction::Execute(Event /*event*/)
     // Soak logic: move non-targeted bot toward Ball of Inferno Flame to absorb it.
     // Disabled on 25-player: Empowered Flame hits ~73k and kills anyone who isn't
     // the original target — soaking is suicidal at that damage level.
+    // Only melee already next to the ball soak it: it is fast and gone in under a second, so healers and
+    // ranged 30-40 yards away never reached it and only ran into the raid stack (a Shadow Prison stack per
+    // step on heroic).
+    static float const SOAK_REACH = 12.0f;
     if (!is25Man && infernoFlameUnit && infernoDist > 2.0f && infernoDist <= 10.0f && !hasInfernoFlame &&
-        bot->getClass() != CLASS_HUNTER)
+        botAI->IsMelee(bot) && bot->GetExactDist2d(infernoFlameUnit) <= SOAK_REACH)
     {
         if (!botAI->IsTank(bot) && infernoFlameUnit->GetVictim() != bot)
         {
@@ -819,7 +800,61 @@ bool IccBpcBallOfFlameAction::Execute(Event /*event*/)
                 }
             }
         }
+
+        return false;
     }
+
+    // Someone else is chased: the ball explodes on its target (Flames, 15 yards), so everyone but a
+    // soaking melee steps away from the chased player, not from the ball.
+    Unit* chasingBall = nullptr;
+    Unit* chased = IccBpcBallOfFlameVictim(bot, &chasingBall);
+    if (!chased || chased == bot || !chasingBall)
+        return false;
+
+    bool const soaking = !is25Man && chasingBall->GetEntry() == NPC_BALL_OF_INFERNO_FLAME && botAI->IsMelee(bot) &&
+                         bot->GetExactDist2d(chasingBall) <= SOAK_REACH;
+    if (soaking)
+        return false;
+
+    static float const FLAMES_CLEAR_DIST = 17.0f;
+    static float const STEP = 5.0f;
+    static float const ROOM_RADIUS = 33.0f;
+    float const dist = bot->GetExactDist2d(chased);
+    if (dist >= FLAMES_CLEAR_DIST)
+        return false;
+
+    float dx = bot->GetPositionX() - chased->GetPositionX();
+    float dy = bot->GetPositionY() - chased->GetPositionY();
+    float const len = std::sqrt(dx * dx + dy * dy);
+    if (len < 0.001f)
+    {
+        dx = 1.0f;
+        dy = 0.0f;
+    }
+    else
+    {
+        dx /= len;
+        dy /= len;
+    }
+
+    float const step = std::min(STEP, FLAMES_CLEAR_DIST - dist + 1.0f);
+    float moveX = bot->GetPositionX() + dx * step;
+    float moveY = bot->GetPositionY() + dy * step;
+
+    float const cx = ICC_BPC_CENTER_POSITION.GetPositionX();
+    float const cy = ICC_BPC_CENTER_POSITION.GetPositionY();
+    float const ddx = moveX - cx;
+    float const ddy = moveY - cy;
+    float const dFromCenter = std::sqrt(ddx * ddx + ddy * ddy);
+    if (dFromCenter > ROOM_RADIUS)
+    {
+        moveX = cx + ddx * (ROOM_RADIUS / dFromCenter);
+        moveY = cy + ddy * (ROOM_RADIUS / dFromCenter);
+    }
+
+    float const moveZ = bot->GetPositionZ();
+    if (bot->IsWithinLOS(moveX, moveY, moveZ))
+        MoveTo(bot->GetMapId(), moveX, moveY, moveZ, false, false, false, true, MovementPriority::MOVEMENT_COMBAT);
 
     return false;
 }

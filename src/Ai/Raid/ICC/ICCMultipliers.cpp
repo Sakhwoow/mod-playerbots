@@ -528,6 +528,48 @@ float IccBpcAssistMultiplier::GetValue(Action* action)
 
     Aura* aura = botAI->GetAura("Shadow Prison", bot, false, true);
 
+    // Empowered Shock Vortex and a chasing Ball of Flame come before the bomb assignment: a bot on a
+    // Kinetic Bomb used to keep shooting it during the vortex cast (hits every ally within 12 yards of
+    // each player) and while a ball was chasing it.
+    Unit* valanar = AI_VALUE2(Unit*, "find target", "prince valanar");
+    if (valanar && valanar->HasUnitState(UNIT_STATE_CASTING) &&
+        (valanar->FindCurrentSpellBySpellId(SPELL_EMPOWERED_SHOCK_VORTEX1) ||
+         valanar->FindCurrentSpellBySpellId(SPELL_EMPOWERED_SHOCK_VORTEX2) ||
+         valanar->FindCurrentSpellBySpellId(SPELL_EMPOWERED_SHOCK_VORTEX3) ||
+         valanar->FindCurrentSpellBySpellId(SPELL_EMPOWERED_SHOCK_VORTEX4)))
+    {
+        if (dynamic_cast<AvoidAoeAction*>(action) || dynamic_cast<IccBpcEmpoweredVortexAction*>(action))
+            return 1.0f;
+        else
+            return 0.0f;
+    }
+
+    Unit* chasingBall = nullptr;
+    bool const chasedByBall = IccBpcBallOfFlameVictim(bot, &chasingBall) == bot && chasingBall;
+    if (chasedByBall)
+    {
+        if (dynamic_cast<IccBpcBallOfFlameAction*>(action))
+            return 1.0f;
+
+        // The chased bot leads the ball away and must not be pulled back to the raid (or flee the Inferno
+        // Flame it is meant to lead). It keeps casting and healing: only movement, the bomb and target
+        // switching are blocked; it used to be frozen completely (every action but this one at 0).
+        if (dynamic_cast<IccBpcKineticBombAction*>(action) || dynamic_cast<MovementAction*>(action) ||
+            dynamic_cast<DpsAssistAction*>(action) || dynamic_cast<TankAssistAction*>(action))
+            return 0.0f;
+    }
+
+    // Melee soaking the Ball of Inferno Flame (10-player only, see IccBpcBallOfFlameAction) must not be
+    // pushed away from it by the generic AoE avoidance, which outranks the soak and pulled them back.
+    if (!chasedByBall && chasingBall && chasingBall->GetEntry() == NPC_BALL_OF_INFERNO_FLAME &&
+        dynamic_cast<AvoidAoeAction*>(action) && botAI->IsMelee(bot) && !botAI->IsTank(bot) &&
+        bot->GetExactDist2d(chasingBall) <= 12.0f)
+    {
+        Difficulty const raidDiff = bot->GetRaidDifficulty();
+        if (raidDiff != RAID_DIFFICULTY_25MAN_NORMAL && raidDiff != RAID_DIFFICULTY_25MAN_HEROIC)
+            return 0.0f;
+    }
+
     // Bomb assignment check (done early so it can override shadow prison stack limits)
     static const std::array<uint32, 4> bombEntries = {NPC_KINETIC_BOMB1, NPC_KINETIC_BOMB2, NPC_KINETIC_BOMB3,
                                                       NPC_KINETIC_BOMB4};
@@ -563,7 +605,9 @@ float IccBpcAssistMultiplier::GetValue(Action* action)
             for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
             {
                 Player* member = itr->GetSource();
-                if (member && member->IsAlive() && GET_PLAYERBOT_AI(member) && botAI->IsRangedDps(member))
+                // a member chased by a ball leads it away instead (same rule as FindNearestBomb)
+                if (member && member->IsAlive() && GET_PLAYERBOT_AI(member) && botAI->IsRangedDps(member) &&
+                    !IccBpcIsBallOfFlameVictim(bot, member))
                     rangedDps.push_back(member);
             }
         }
@@ -635,44 +679,6 @@ float IccBpcAssistMultiplier::GetValue(Action* action)
         dynamic_cast<MovementAction*>(action) && !dynamic_cast<AttackAction*>(action) &&
         !dynamic_cast<ReachTargetAction*>(action))
         return 0.0f;
-
-    Unit* valanar = AI_VALUE2(Unit*, "find target", "prince valanar");
-    if (!valanar)
-        return 1.0f;
-
-    if (valanar && valanar->HasUnitState(UNIT_STATE_CASTING) &&
-        (valanar->FindCurrentSpellBySpellId(SPELL_EMPOWERED_SHOCK_VORTEX1) ||
-         valanar->FindCurrentSpellBySpellId(SPELL_EMPOWERED_SHOCK_VORTEX2) ||
-         valanar->FindCurrentSpellBySpellId(SPELL_EMPOWERED_SHOCK_VORTEX3) ||
-         valanar->FindCurrentSpellBySpellId(SPELL_EMPOWERED_SHOCK_VORTEX4)))
-    {
-        if (dynamic_cast<AvoidAoeAction*>(action) || dynamic_cast<IccBpcEmpoweredVortexAction*>(action))
-            return 1.0f;
-        else
-            return 0.0f;
-    }
-
-    Unit* flame1 = bot->FindNearestCreature(NPC_BALL_OF_FLAME, 60.0f);
-    Unit* flame2 = bot->FindNearestCreature(NPC_BALL_OF_INFERNO_FLAME, 60.0f);
-    bool ballOfFlame = flame1 && flame1->GetVictim() == bot;
-    bool infernoFlame = flame2 && flame2->GetVictim() == bot;
-
-    if (infernoFlame)
-    {
-        if (dynamic_cast<AvoidAoeAction*>(action) || dynamic_cast<IccBpcKineticBombAction*>(action))
-            return 0.0f;
-
-        if (dynamic_cast<IccBpcBallOfFlameAction*>(action))
-            return 1.0f;
-    }
-
-    if (ballOfFlame || infernoFlame)
-    {
-        if (dynamic_cast<IccBpcBallOfFlameAction*>(action))
-            return 1.0f;
-        else
-            return 0.0f;
-    }
 
     // For assist tank during BPC fight
     if (botAI->IsAssistTank(bot) && !(aura && aura->GetStackAmount() > 18))

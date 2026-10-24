@@ -566,23 +566,67 @@ bool IccBpcKineticBombTrigger::IsActive()
     return botAI->IsRangedDps(bot) && bombFound;
 }
 
+Unit* IccBpcBallOfFlameVictim(Unit* searcher, Unit** ball)
+{
+    if (ball)
+        *ball = nullptr;
+
+    if (!searcher)
+        return nullptr;
+
+    // Ball of Inferno Flame first: it is the one that hurts most and is handled specially
+    for (uint32 const entry : {uint32(NPC_BALL_OF_INFERNO_FLAME), uint32(NPC_BALL_OF_FLAME)})
+    {
+        std::list<Creature*> balls;
+        searcher->GetCreatureListWithEntryInGrid(balls, entry, 100.0f);
+        for (Creature* flame : balls)
+        {
+            if (!flame || !flame->IsAlive())
+                continue;
+
+            Unit* victim = flame->GetVictim();
+            if (!victim || !victim->IsAlive())
+                continue;
+
+            if (ball)
+                *ball = flame;
+            return victim;
+        }
+    }
+
+    return nullptr;
+}
+
+bool IccBpcIsBallOfFlameVictim(Unit* searcher, Unit* member)
+{
+    if (!searcher || !member)
+        return false;
+
+    for (uint32 const entry : {uint32(NPC_BALL_OF_INFERNO_FLAME), uint32(NPC_BALL_OF_FLAME)})
+    {
+        std::list<Creature*> balls;
+        searcher->GetCreatureListWithEntryInGrid(balls, entry, 100.0f);
+        for (Creature* flame : balls)
+            if (flame && flame->IsAlive() && flame->GetVictim() == member)
+                return true;
+    }
+
+    return false;
+}
+
 bool IccBpcBallOfFlameTrigger::IsActive()
 {
     if (botAI->IsTank(bot))
         return false;
 
-    Unit* valanar = AI_VALUE2(Unit*, "find target", "prince valanar");
-    Unit* taldaram = AI_VALUE2(Unit*, "find target", "prince taldaram");
-    Unit* keleseth = AI_VALUE2(Unit*, "find target", "prince keleseth");
-
-    if (!(valanar || taldaram || keleseth))
+    if (!IccAnyBloodPrincePresent(botAI))
         return false;
 
-    Aura* auraTaldaram = botAI->GetAura("Invocation of Blood", taldaram);
-    if (!auraTaldaram)
-        return false;
-
-    return true;
+    // Any Ball of Flame or Ball of Inferno Flame that chases someone. This used to wait for Taldaram's
+    // Invocation of Blood, but he conjures the plain Ball of Flame while NOT empowered, so for about two
+    // thirds of the fight the chased bot (whose other actions the multiplier blocks) just stood in the
+    // raid until the ball exploded on it.
+    return IccBpcBallOfFlameVictim(bot) != nullptr;
 }
 
 // BQL
