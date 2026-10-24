@@ -1860,23 +1860,30 @@ bool IccLichKingAddsAction::Execute(Event /*event*/)
 
     // Skull marking: phase 1 marks the boss; phase 2+ prioritises Raging Spirits.
     // Val'kyr marking owns skull while any Val'kyr is actively grabbing — skip here.
+    auto const isGrabbingValkyr = [diff](Unit* unit)
+    {
+        return unit && unit->IsAlive() && IsLkValkyr(unit) && unit->HasAura(SPELL_HARVEST_SOUL_VALKYR) &&
+               (!IsHeroicLk(diff) || unit->HealthAbovePct(49));
+    };
+    bool anyValkyrGrabbing = false;
     if (Group* group = bot->GetGroup())
     {
-        bool anyValkyrGrabbing = false;
         {
             GuidVector const& nearbyNpcs = AI_VALUE(GuidVector, "nearest hostile npcs");
             for (ObjectGuid const& guid : nearbyNpcs)
             {
-                Unit* unit = botAI->GetUnit(guid);
-                if (unit && unit->IsAlive() && IsLkValkyr(unit) &&
-                    unit->HasAura(SPELL_HARVEST_SOUL_VALKYR) &&
-                    (!IsHeroicLk(diff) || unit->HealthAbovePct(49)))
+                if (isGrabbingValkyr(botAI->GetUnit(guid)))
                 {
                     anyValkyrGrabbing = true;
                     break;
                 }
             }
         }
+
+        // "nearest hostile npcs" only holds units this bot can see: a bot without line of sight to the
+        // grabbing Val'kyr must not move the skull back to the boss or a spirit while it is on the Val'kyr.
+        if (!anyValkyrGrabbing && isGrabbingValkyr(botAI->GetUnit(group->GetTargetIcon(RtiTargetValue::skullIndex))))
+            anyValkyrGrabbing = true;
 
         if (!anyValkyrGrabbing)
         {
@@ -2042,6 +2049,17 @@ bool IccLichKingAddsAction::Execute(Event /*event*/)
     if (HandleAssistTankAddManagement(boss, diff))
         return true;
 
+    // A grabbing Val'kyr comes before spirit flanking and center stacking: those return early, and
+    // center stacking only lets go once the Val'kyr is marked, which used to happen after it (a loop).
+    // Defile avoidance still comes first (HandleValkyrMechanics also leaves the Defile target alone).
+    if (anyValkyrGrabbing)
+    {
+        if (HandleDefileMechanics(boss, diff))
+            return true;
+        if (HandleValkyrMechanics(diff))
+            return true;
+    }
+
     if (HandleRagingSpiritFlanking(boss, hasPlague, diff))
         return true;
 
@@ -2053,7 +2071,9 @@ bool IccLichKingAddsAction::Execute(Event /*event*/)
         return true;
     if (HandleCenterStacking(boss, diff))
         return true;
-    HandleValkyrMechanics(diff);
+    // with a grabbing Val'kyr this already ran above; here it only resets bots still on an old Val'kyr
+    if (!anyValkyrGrabbing)
+        HandleValkyrMechanics(diff);
     HandleVileSpiritMechanics();
     HandleIceSphereMechanics();
 
@@ -3733,6 +3753,19 @@ bool IccLichKingAddsAction::HandleValkyrMechanics(Difficulty diff)
             grabbingValkyrs.push_back(unit);
     }
 
+    // Marked Val'kyrs the bot cannot see (no line of sight) still count: otherwise such a bot is sent
+    // back to the boss below while its RTI points at the Val'kyr, and the two keep switching it.
+    for (IccBucketMarker const& marker : ICC_BUCKET_MARKERS)
+    {
+        Unit* marked = botAI->GetUnit(group->GetTargetIcon(marker.icon));
+        if (!marked || !marked->IsAlive() || !IsLkValkyr(marked) || !marked->HasAura(SPELL_HARVEST_SOUL_VALKYR) ||
+            (IsHeroicLk(diff) && !marked->HealthAbovePct(49)))
+            continue;
+
+        if (std::find(grabbingValkyrs.begin(), grabbingValkyrs.end(), marked) == grabbingValkyrs.end())
+            grabbingValkyrs.push_back(marked);
+    }
+
     // No active valkyrs — reset bots still targeting an excluded valkyr
     if (grabbingValkyrs.empty() || (boss && boss->HealthBelowPct(40)))
     {
@@ -3756,9 +3789,9 @@ bool IccLichKingAddsAction::HandleValkyrMechanics(Difficulty diff)
         return false;
 
     HandleValkyrMarking(grabbingValkyrs, diff);
-    HandleValkyrAssignment(grabbingValkyrs);
 
-    return true;
+    // true only when the bot has just switched to its Val'kyr (see HandleValkyrAssignment)
+    return HandleValkyrAssignment(grabbingValkyrs);
 }
 
 bool IccLichKingAddsAction::HandleValkyrMarking(std::vector<Unit*> const& grabbingValkyrs,
@@ -3798,19 +3831,13 @@ bool IccLichKingAddsAction::HandleValkyrMarking(std::vector<Unit*> const& grabbi
             group->SetTargetIcon(Icons[i], bot->GetGUID(), ObjectGuid::Empty);
     }
 
-    // Assign an icon to each active Val'kyr.
-    // Skip skull if a Raging Spirit currently owns it.
+    // Assign an icon to each active Val'kyr. A grabbing Val'kyr outranks a Raging Spirit: in 10-man
+    // there is only one Val'kyr and only the skull is left for it (cross/star are cleared above), so
+    // leaving the skull on a spirit left the Val'kyr unmarked and the bots never hit it. Once no
+    // Val'kyr is grabbing, Execute() hands the skull back to the nearest spirit.
     for (size_t i = 0; i < sorted.size() && i < Icons.size(); ++i)
     {
         uint8 const iconIdx = Icons[i];
-
-        if (iconIdx == 7)
-        {
-            Unit* currentSkull = botAI->GetUnit(group->GetTargetIcon(RtiTargetValue::skullIndex));
-            if (currentSkull && currentSkull->IsAlive() && IsLkRagingSpirit(currentSkull->GetEntry()))
-                continue;
-        }
-
         Unit* marked = botAI->GetUnit(group->GetTargetIcon(iconIdx));
         if (!marked || marked != sorted[i])
             group->SetTargetIcon(iconIdx, bot->GetGUID(), sorted[i]->GetGUID());
@@ -3869,9 +3896,26 @@ bool IccLichKingAddsAction::HandleValkyrAssignment(std::vector<Unit*> const& gra
         return false;
 
     Unit* myValkyr = valid[valkyrIndex];
-    context->GetValue<std::string>("rti")->Set(IccRtiNameForBucket(valkyrIndex));
 
-    Attack(myValkyr);
+    // The bot's RTI must name the icon that really sits on its Val'kyr: "dps target" is resolved from
+    // the RTI, and if it points at another unit (a Raging Spirit still under the skull) "dps assist"
+    // switches the bot straight back every tick and the Val'kyr takes almost no damage.
+    char const* rtiName = IccRtiNameForBucket(valkyrIndex);
+    for (IccBucketMarker const& marker : ICC_BUCKET_MARKERS)
+    {
+        if (group->GetTargetIcon(marker.icon) == myValkyr->GetGUID())
+        {
+            rtiName = marker.rti;
+            break;
+        }
+    }
+    context->GetValue<std::string>("rti")->Set(rtiName);
+
+    // true only on the tick the bot switches to its Val'kyr: Execute() then stops there, so no later
+    // handler (or "dps assist" in the same tick) can pull it away. Returning true on every tick would
+    // stop the engine before any spell is cast.
+    bool const switching = bot->GetVictim() != myValkyr;
+    bool const attacked = Attack(myValkyr);
 
     Difficulty const diff = bot->GetRaidDifficulty();
     if (sPlayerbotAIConfig.EnableICCBuffs && IsHeroicLk(diff) &&
@@ -3880,7 +3924,7 @@ bool IccLichKingAddsAction::HandleValkyrAssignment(std::vector<Unit*> const& gra
 
     ApplyCCToValkyr(myValkyr);
 
-    return true;
+    return switching && attacked;
 }
 
 std::pair<float, float> IccLichKingAddsAction::DefileAwareStep(float tx, float ty,
