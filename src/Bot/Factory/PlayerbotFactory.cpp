@@ -1793,7 +1793,7 @@ uint32 PlayerbotFactory::InitTalentsTree(bool increment /*false*/, bool use_temp
 // middle talent of row 8, as in InitTalentsByTemplate().
 static bool IsAboveTalentExpansionLimit(Player* bot, uint32 row, uint32 col)
 {
-    if (!sPlayerbotAIConfig.LimitTalentsExpansion)
+    if (!sPlayerbotAIConfig.limitTalentsExpansion)
         return false;
 
     if (bot->GetLevel() <= 60)
